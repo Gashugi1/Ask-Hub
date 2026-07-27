@@ -59,6 +59,9 @@ Every task's requirements implicitly include this section. Values are copied ver
 - Next 16 deprecates the `middleware.ts` convention in favour of **`proxy.ts` exporting a `proxy` function**. `middleware.ts` still builds but prints a deprecation warning.
 - `create-next-app` refuses a non-empty target directory unless every entry is on its allowlist. That allowlist includes `.git`, `.gitignore`, `.DS_Store` and `docs`, but **not `.claude`** — so scaffolding in place will fail here. Task 1 scaffolds to a temp directory and copies in.
 - The generated `.gitignore` contains `.env*`, which ignores `.env.example` too. Task 1 adds a `!.env.example` negation.
+- **TypeScript must stay on `^5`.** Next 16.2.12 rejects TypeScript 6 and newer outright: `TypeScript 7.0.2 does not provide the compiler API required by Next.js`. `create-next-app` pins `^5`. Never run a bare `npm install -D typescript`, which now resolves to 7.x and breaks the build.
+- With a root layout and **no page at all**, the build succeeds and prints a pages-router `Route (pages) / ─ ○ /404` table rather than an `app` table. That is the expected intermediate state at the end of Task 1.
+- `npx supabase start` needs a running Docker daemon. Confirm `docker info` succeeds before starting Task 3.
 
 ---
 
@@ -527,9 +530,20 @@ npm run typecheck
 npm run lint
 ```
 
-Expected: the build succeeds and its route table lists `/_not-found` and nothing else — there is no `page.tsx` yet, which is correct at this point. `typecheck` prints nothing. `lint` prints nothing.
+Expected: the build **succeeds**, and because the app directory now holds a layout but no page at all, its route table reads exactly this — the pages-router 404 fallback, not an `app` table:
+
+```
+Route (pages)
+─ ○ /404
+```
+
+That is correct and expected at this point. Task 2 adds the pages, and the table becomes a `Route (app)` listing. Do not add a page here to make the table look more normal.
+
+`typecheck` prints nothing. `lint` prints nothing.
 
 If the build errors with `Couldn't find any pages or app directory`, the `src/app/layout.tsx` write in Step 11 did not land.
+
+If the build fails with `TypeScript <version> does not provide the compiler API required by Next.js`, the installed TypeScript is 6 or newer. Next 16.2.12 needs TypeScript 5; `create-next-app` pins `^5` for exactly this reason. Reinstall with `npm install -D "typescript@^5"` and do not widen that range.
 
 - [ ] **Step 17: Commit**
 
