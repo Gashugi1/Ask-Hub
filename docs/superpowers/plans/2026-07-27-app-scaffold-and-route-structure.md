@@ -818,7 +818,8 @@ Every page here renders **no text**. Each carries a `data-route` attribute namin
 
 ```ts
 import { describe, it, expect } from 'vitest';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 
 const MANIFEST = '.next/app-path-routes-manifest.json';
 
@@ -833,6 +834,17 @@ function routes(): Record<string, string> {
     throw new Error(`${MANIFEST} is missing — run \`npm run build\` first`);
   }
   return JSON.parse(readFileSync(MANIFEST, 'utf8')) as Record<string, string>;
+}
+
+/** Every file under dir, recursively. Returns [] when dir does not exist. */
+function walk(dir: string, out: string[] = []): string[] {
+  if (!existsSync(dir)) return out;
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) walk(full, out);
+    else out.push(full);
+  }
+  return out;
 }
 
 describe('route structure', () => {
@@ -892,8 +904,20 @@ describe('placeholder pages', () => {
 
 describe('route handler and server action placement', () => {
   it('keeps server actions out of the route tree', () => {
-    // Explained in src/lib/actions/README.md: src/app/api reserves the
-    // route.ts filename and treats directories as URL segments.
+    // src/app/api reserves the route.ts filename and treats directories as
+    // URL segments, so a 'use server' module has no business there. Asserted
+    // against the tree itself rather than against the README that explains
+    // it — a doc-exists check would name this invariant without guarding it.
+    const offenders = walk('src/app/api')
+      .filter((file) => /\.(ts|tsx)$/.test(file))
+      .filter((file) => /['"]use server['"]/.test(readFileSync(file, 'utf8')));
+    expect(
+      offenders,
+      `'use server' found under src/app/api: ${offenders.join(', ')}`,
+    ).toEqual([]);
+  });
+
+  it('documents why server actions live outside the route tree', () => {
     expect(existsSync('src/lib/actions/README.md')).toBe(true);
   });
 
@@ -1108,7 +1132,7 @@ npm run build
 npm test -- tests/structure/routes.test.ts
 ```
 
-Expected: PASS, all eight cases. The build's route table should read:
+Expected: PASS, all twelve cases. The build's route table should read:
 
 ```
 Route (app)
