@@ -13,7 +13,13 @@ describe('.env.example', () => {
       'SUPABASE_URL',
       'SUPABASE_ANON_KEY',
     ]) {
-      expect(example, `${name} is undocumented`).toContain(name);
+      // Line-anchored, not a substring match: SUPABASE_URL and
+      // SUPABASE_ANON_KEY are both substrings of their NEXT_PUBLIC_
+      // counterparts, so toContain() would pass even with the bare
+      // test-only names deleted outright.
+      expect(example, `${name} is undocumented`).toMatch(
+        new RegExp(`^${name}=`, 'm'),
+      );
     }
   });
 
@@ -46,8 +52,18 @@ describe('supabase local config', () => {
   it('disables public signup at the project level', () => {
     // PRD 3 and 14.3: no public sign-up route can exist regardless of
     // application code. Enforced by config, not by omitting a page.
-    const authSection = config.slice(config.indexOf('[auth]'));
-    expect(authSection).toMatch(/enable_signup\s*=\s*false/);
+    //
+    // Bound the slice to the [auth] block itself. Slicing to end-of-file
+    // swallows [auth.email] and [auth.sms], which carry their own
+    // enable_signup lines — an unanchored match then passes when ANY of
+    // the three is false, including with the top-level master switch
+    // flipped to true. Verified: that exact mutation passed the earlier
+    // version of this test.
+    const start = config.indexOf('[auth]');
+    expect(start, '[auth] section missing from config.toml').toBeGreaterThan(-1);
+    const next = config.indexOf('\n[', start + 1);
+    const block = config.slice(start, next === -1 ? undefined : next);
+    expect(block).toMatch(/^enable_signup\s*=\s*false\s*$/m);
   });
 });
 
