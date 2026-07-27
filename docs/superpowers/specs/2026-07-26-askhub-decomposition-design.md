@@ -73,7 +73,7 @@ SP2 and SP3 are independent of each other and can run in parallel once SP1 lands
 
 ### 4.1 Two decisions deliberately pulled forward into SP1
 
-**RLS on every table from the first migration.** `docs/CLAUDE.md` states a new table without RLS is a defect, and PRD §14.4 names it the single most likely serious defect in a Supabase build. Retrofitting policies across sixteen tables is a different and worse job than writing them alongside the schema.
+**RLS on every table from the first migration.** `CLAUDE.md` states a new table without RLS is a defect, and PRD §14.4 names it the single most likely serious defect in a Supabase build. Retrofitting policies across sixteen tables is a different and worse job than writing them alongside the schema.
 
 **String externalisation to `locales/en.json` from the first component.** Near-free at the start, a mechanical rewrite of every component later.
 
