@@ -290,10 +290,13 @@ describe('local supabase stack', () => {
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_ANON_KEY!,
     );
-    // No tables exist yet; a missing-relation error still proves the
-    // PostgREST endpoint is reachable and the key is accepted.
     const { error } = await client.from('profiles').select('id').limit(1);
-    expect(error?.code).toBe('42P01');
+    // No tables exist yet; a table-not-found error still proves the
+    // PostgREST endpoint is reachable and the key is accepted. Modern
+    // PostgREST answers from its own schema cache with PGRST205 and never
+    // reaches Postgres; older versions surface Postgres's 42P01.
+    expect(error).not.toBeNull();
+    expect(['PGRST205', '42P01']).toContain(error!.code);
   });
 });
 ```

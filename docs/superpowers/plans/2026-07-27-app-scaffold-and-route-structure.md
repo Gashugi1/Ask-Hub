@@ -1363,11 +1363,23 @@ describe('local supabase stack', () => {
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_ANON_KEY!,
     );
-    // No tables exist yet. A missing-relation error still proves the
-    // PostgREST endpoint is reachable and the key was accepted — which is
-    // the whole claim. Once the schema lands this becomes a real query.
     const { error } = await client.from('profiles').select('id').limit(1);
-    expect(error?.code).toBe('42P01');
+
+    // No tables exist yet, so an error is expected. What matters is WHICH
+    // error: a structured table-not-found proves the request cleared Kong,
+    // the anon key was accepted, and PostgREST processed it — which is the
+    // whole claim at this stage.
+    //
+    // Modern PostgREST answers a missing table from its own schema cache
+    // with PGRST205 and never reaches Postgres; older versions surface
+    // Postgres's own 42P01. Accept either rather than pinning the test to
+    // one PostgREST version. Anything else — an auth rejection, a
+    // connection failure — lands here as a different code and fails.
+    expect(error, 'expected a table-not-found error, got none').not.toBeNull();
+    expect(
+      ['PGRST205', '42P01'],
+      `unexpected error: ${error!.code} ${error!.message}`,
+    ).toContain(error!.code);
   });
 });
 ```
@@ -1378,7 +1390,7 @@ describe('local supabase stack', () => {
 npm test -- tests/smoke.test.ts tests/structure/env-contract.test.ts
 ```
 
-Expected: PASS. A network error on the smoke test means the stack is not running — `npx supabase start`. A `42501` instead of `42P01` means a `profiles` table already exists, which it should not at this point.
+Expected: PASS. A network error on the smoke test means the stack is not running — `npx supabase start`, and note a cold first run pulls a dozen container images and takes several minutes. A `42501` (insufficient_privilege) instead of a table-not-found code means a `profiles` table already exists, which it should not at this point.
 
 - [ ] **Step 9: Commit**
 
