@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens intentionally absent.
+ *
+ * The full @theme block — palette, need colour keys, card shadow and the
+ * self-hosted Outfit @font-face rules — is SP1 Task 2 in
+ * docs/superpowers/plans/2026-07-26-sp1-foundation-data-spine.md.
+ *
+ * Do not add a colour or a font-size here. CLAUDE.md: no hardcoded
+ * colours or type values, use design tokens.
+ */
