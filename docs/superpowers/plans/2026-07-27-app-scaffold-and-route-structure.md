@@ -1108,7 +1108,7 @@ npm run build
 npm test -- tests/structure/routes.test.ts
 ```
 
-Expected: PASS, all eight cases. The build's route table should read:
+Expected: PASS, all eleven cases. The build's route table should read:
 
 ```
 Route (app)
