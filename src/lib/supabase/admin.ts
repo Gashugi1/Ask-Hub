@@ -18,9 +18,13 @@ import type { Database } from './database.types';
  * error rather than a leaked key. PRD 14.9 check 6 verifies the built bundle.
  */
 export function createAdminSupabase() {
+  // Both variables are named in the diagnostic, never valued: an error message
+  // is logged, and a service_role key inside one is a leaked key.
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) throw new Error('NEXT_PUBLIC_SUPABASE_URL is not set');
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set');
-  return createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, key, {
+  return createClient<Database>(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }

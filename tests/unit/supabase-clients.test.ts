@@ -1,10 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
+// Importable only because vitest.config.ts aliases `server-only` to its no-op
+// shim. The marker itself is still in the module and still load-bearing in a
+// real Next build; see the comment on that alias.
+import { createAdminSupabase } from '@/lib/supabase/admin';
 
 const browser = readFileSync('src/lib/supabase/browser.ts', 'utf8');
 const server = readFileSync('src/lib/supabase/server.ts', 'utf8');
 const admin = readFileSync('src/lib/supabase/admin.ts', 'utf8');
-const proxy = readFileSync('src/proxy.ts', 'utf8');
+// The proxy is covered behaviourally in tests/unit/proxy.test.ts, which also
+// keeps the two source assertions about it that cannot be expressed at runtime.
 
 describe('browser client', () => {
   it('uses the anon key', () => {
@@ -43,32 +48,56 @@ describe('admin client', () => {
     expect(admin).not.toMatch(/NEXT_PUBLIC_\w*SERVICE_ROLE/);
   });
 
-  it('fails loudly when the key is absent rather than falling back', () => {
-    expect(admin).toMatch(/throw new Error/);
-  });
-
   it('does not persist or auto-refresh a session', () => {
     expect(admin).toMatch(/persistSession:\s*false/);
     expect(admin).toMatch(/autoRefreshToken:\s*false/);
   });
 });
 
-describe('proxy', () => {
-  it('exports a proxy function, the Next 16 convention', () => {
-    // middleware.ts still builds but prints a deprecation warning.
-    expect(proxy).toMatch(/export async function proxy\(/);
+describe('createAdminSupabase() behaviour', () => {
+  const KEY = 'SUPABASE_SERVICE_ROLE_KEY';
+  const URL_NAME = 'NEXT_PUBLIC_SUPABASE_URL';
+  const saved = { [KEY]: process.env[KEY], [URL_NAME]: process.env[URL_NAME] };
+
+  afterEach(() => {
+    for (const [name, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
   });
 
-  it('redirects unauthenticated admin traffic to the login route', () => {
-    expect(proxy).toContain('/admin/login');
+  it('returns a client when both variables are set', () => {
+    const client = createAdminSupabase();
+    expect(client).toBeDefined();
+    expect(typeof client.from).toBe('function');
   });
 
-  it('never touches the service_role key', () => {
-    // The proxy runs on every request with no role check of its own.
-    expect(proxy).not.toMatch(/SERVICE_ROLE/);
+  it('throws naming SUPABASE_SERVICE_ROLE_KEY when the key is unset', () => {
+    delete process.env[KEY];
+    expect(() => createAdminSupabase()).toThrow(/SUPABASE_SERVICE_ROLE_KEY/);
   });
 
-  it('states that route gating is UX and not the security boundary', () => {
-    expect(proxy.toLowerCase()).toContain('not security');
+  it('throws naming NEXT_PUBLIC_SUPABASE_URL when the url is unset', () => {
+    // Previously an opaque `supabaseUrl is required.` from the SDK, because the
+    // URL was taken with `!` while only the key was checked.
+    delete process.env[URL_NAME];
+    expect(() => createAdminSupabase()).toThrow(/NEXT_PUBLIC_SUPABASE_URL/);
+  });
+
+  it('never puts the key value into the thrown message', () => {
+    // An error message reaches logs and, in a dev overlay, a browser. The
+    // real key is present in this process, so this is a genuine check that the
+    // diagnostic names the variable instead of echoing it.
+    const secret = saved[KEY];
+    expect(secret, 'test env has no service_role key to check against').toBeTruthy();
+    delete process.env[URL_NAME];
+    let message = '';
+    try {
+      createAdminSupabase();
+    } catch (error) {
+      message = String(error);
+    }
+    expect(message).not.toBe('');
+    expect(message).not.toContain(secret);
   });
 });
