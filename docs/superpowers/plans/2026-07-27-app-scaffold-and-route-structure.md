@@ -19,7 +19,7 @@ This plan **supersedes Tasks 1 and 2 of** `docs/superpowers/plans/2026-07-26-sp1
 | SP1 plan task | Status after this plan |
 | --- | --- |
 | Task 1 (repo scaffold, Supabase CLI, test loop) | **Replaced** by Tasks 1 and 3 here. SP1 Task 1 Step 1 uses `--no-turbopack`, a flag `create-next-app` no longer accepts, and its `"lint": "next lint"` script names a CLI command Next 16 removed. |
-| Task 2 (design tokens, Outfit font, i18n) | **Unchanged and still to do.** Run it after this plan. Task 1 here writes a deliberately token-free `globals.css` whose only job is to import Tailwind. |
+| Task 2 (design tokens, Outfit font, i18n) | **Split.** The localisation half — `src/locales/*.json`, `src/lib/i18n.ts`, `t()`, and the content-rule assertions over `en.json` — moves **into Task 1 here** (decision below). What remains in SP1 Task 2 is design tokens and the self-hosted Outfit font: its Steps 1–5 and 12–15, minus the i18n steps 6–11. Task 1 here writes a deliberately token-free `globals.css` whose only job is to import Tailwind. |
 | Tasks 3–12 (migrations, seed) | Unchanged. |
 | Task 13 (Supabase clients, `src/lib/auth.ts`, admin provisioning) | Client factories move **into Task 4 here**. What remains in SP1 Task 13 is regenerating `database.types.ts` from the real schema, writing `src/lib/auth.ts` (`getCurrentUser`, `requireRole`), and `scripts/provision-admins.ts` — all of which need the `profiles` table to exist first. |
 | Task 14 (bundle secret audit, protected deploy) | Unchanged. Task 4 here adds a source-level check; Task 14's built-bundle audit still applies. |
@@ -47,9 +47,16 @@ Every task's requirements implicitly include this section. Values are copied ver
 **Configuration (PRD §13.5):** All secrets in environment variables, nothing secret committed. Anything prefixed `NEXT_PUBLIC_` is public by definition and must contain no secret.
 
 **Conventions:**
-- No hardcoded user-facing strings. Everything goes to `src/locales/en.json`. Stubs exist for `fr`, `pt`, `ar`. (The file itself arrives in SP1 Task 2; this plan simply writes no user-facing copy.)
-- No hardcoded colours or type values. Use design tokens. (Tokens arrive in SP1 Task 2; this plan writes no colours.)
+- No hardcoded user-facing strings. Everything goes to `src/locales/en.json`. Stubs exist for `fr`, `pt`, `ar`. **This is binding from Task 1 of this plan** — `en.json` and `t()` are built here, not deferred.
+- No hardcoded colours or type values. Use design tokens. (Tokens arrive in SP1 Task 2; this plan writes no colours, and a test enforces that.)
 - No login link or admin reference anywhere in public navigation (PRD §5.8). The route-group split is what makes that structurally easy.
+
+**How the no-hardcoded-strings rule applies to a scaffold with no pages.** Two rules, both enforced by tests:
+
+1. Anything that reaches a user — page copy, `<title>`, `<meta description>`, button labels, error text — comes from `t()`. The root layout's metadata is the only such content in this plan, and it uses `t('site.name')` and `t('site.tagline')`.
+2. Placeholder pages render **no text at all**. They carry a `data-route` attribute naming their route and nothing else. An HTML attribute is not user-facing copy, so it needs no locale key, and it gives Task 2 a stable machine-checkable hook that a blank page would not. Every one of these files is deleted by SP2 or SP3.
+
+A reviewer should treat a visible string outside `t()` as a defect, and should **not** treat `data-route="/admin"` as one.
 
 **Deploy posture (design doc §5.7):** this build ships behind Vercel Deployment Protection and serves `noindex`. It is a gated stakeholder review, not a public go-live. CSP, HSTS, Turnstile and rate limiting are SP4 and deliberately absent.
 
@@ -78,8 +85,13 @@ vitest.config.ts                          @ alias, fileParallelism off for the l
 .gitignore                                .env* plus a !.env.example negation
 README.md                                 versions, infrastructure, scope boundary
 
-src/app/layout.tsx                        root layout: <html>, <body>, noindex metadata
+src/app/layout.tsx                        root layout: <html>, <body>, noindex metadata via t()
 src/app/globals.css                       `@import "tailwindcss"` only — tokens are SP1 Task 2
+src/lib/i18n.ts                           t() lookup, missing key returns the key
+src/locales/en.json                       every user-facing string, flat dotted keys
+src/locales/fr.json                       stub: {}
+src/locales/pt.json                       stub: {}
+src/locales/ar.json                       stub: {}
 src/app/(public)/layout.tsx               public chrome slot; header/footer are SP2
 src/app/(public)/page.tsx                 placeholder for `/`
 src/app/(admin)/layout.tsx                admin group shell, separate from public chrome
@@ -101,6 +113,7 @@ supabase/config.toml                      CLI config, public signup disabled
 tests/structure/app-structure.test.ts     required files exist, forbidden ones do not
 tests/structure/routes.test.ts            build manifest maps route groups to clean URLs
 tests/structure/env-contract.test.ts      no NEXT_PUBLIC_ secret, .env.example committable
+tests/unit/i18n.test.ts                   t() behaviour plus the PRD 10 content rules
 tests/unit/supabase-clients.test.ts       key boundary at the source level
 tests/smoke.test.ts                       local Postgres reachable with the anon key
 ```
@@ -116,12 +129,19 @@ tests/smoke.test.ts                       local Postgres reachable with the anon
 **Files:**
 - Create: `package.json`, `tsconfig.json`, `next.config.ts`, `postcss.config.mjs`, `eslint.config.mjs`, `vitest.config.ts`, `.gitignore`, `README.md`, `.env.example` (empty here; Task 3 fills it)
 - Create: `src/app/layout.tsx`, `src/app/globals.css`
+- Create: `src/lib/i18n.ts`, `src/locales/en.json`, `src/locales/fr.json`, `src/locales/pt.json`, `src/locales/ar.json`
 - Delete: `src/app/page.tsx` (generated), `public/file.svg`, `public/globe.svg`, `public/next.svg`, `public/vercel.svg`, `public/window.svg`
-- Test: `tests/structure/app-structure.test.ts`
+- Test: `tests/structure/app-structure.test.ts`, `tests/unit/i18n.test.ts`
 
 **Interfaces:**
 - Consumes: nothing
-- Produces: `npm run build`, `npm test`, `npm run lint`; the `@/*` import alias resolving to `src/`; a root layout exporting `metadata` with `robots: { index: false, follow: false }`
+- Produces:
+  - `npm run build`, `npm test`, `npm run lint`, `npm run typecheck`
+  - the `@/*` import alias resolving to `src/`
+  - a root layout exporting `metadata` with `robots: { index: false, follow: false }`
+  - `t(key: string, vars?: Record<string, string | number>, locale?: string): string` and `DEFAULT_LOCALE` from `@/lib/i18n`
+
+The localisation scaffolding is here rather than in SP1 Task 2 because this plan's root layout has user-facing metadata, and the no-hardcoded-strings rule has no useful "start later" point — the first component that ships a bare string sets the precedent. **When SP1 Task 2 runs, skip its i18n steps (6 through 11) and add only its tokens and font.**
 
 - [ ] **Step 1: Scaffold to a temp directory**
 
@@ -321,20 +341,232 @@ Expected: `public` is empty, or holds nothing but directories you created. The f
 
 `src/app/favicon.ico` stays for now; SP2 replaces it with the AI Hub mark.
 
-- [ ] **Step 11: Rewrite `src/app/layout.tsx`**
+- [ ] **Step 11: Write the failing i18n test**
+
+`tests/unit/i18n.test.ts`. The content-rule cases matter more than the lookup cases: PRD §10 is set by K&S and non-negotiable, and asserting it over `en.json` means every string the site ever renders is checked in one place rather than page by page.
+
+```ts
+import { describe, it, expect } from 'vitest';
+import { t, DEFAULT_LOCALE } from '@/lib/i18n';
+import en from '@/locales/en.json';
+import fr from '@/locales/fr.json';
+import pt from '@/locales/pt.json';
+import ar from '@/locales/ar.json';
+
+const dictionary = en as Record<string, string>;
+
+describe('t()', () => {
+  it('resolves a known key', () => {
+    expect(t('site.name')).toBe('AI Hub for Sustainable Development');
+  });
+
+  it('returns the key itself for a missing lookup so gaps are visible', () => {
+    // A blank string would hide the gap; the key renders as an obvious token.
+    expect(t('does.not.exist')).toBe('does.not.exist');
+  });
+
+  it('interpolates named variables', () => {
+    expect(t('deadline.daysLeft', { count: 6 })).toBe('6 days left');
+  });
+
+  it('leaves an unsupplied placeholder visibly intact', () => {
+    expect(t('deadline.daysLeft')).toBe('{count} days left');
+  });
+
+  it('falls back to English for an unknown locale', () => {
+    expect(t('site.name', undefined, 'xx')).toBe(dictionary['site.name']);
+  });
+
+  it('defaults to English', () => {
+    expect(DEFAULT_LOCALE).toBe('en');
+  });
+});
+
+describe('en.json hygiene', () => {
+  it('is flat — no nested objects', () => {
+    for (const [key, value] of Object.entries(dictionary)) {
+      expect(typeof value, `${key} is not a string`).toBe('string');
+    }
+  });
+
+  it('has no empty values', () => {
+    for (const [key, value] of Object.entries(dictionary)) {
+      expect(value, `empty value for ${key}`).not.toBe('');
+    }
+  });
+
+  it('ships fr, pt and ar stubs', () => {
+    // PRD 12.4: adding a locale file makes that locale selectable with no
+    // code change. The switcher itself is SP6.
+    for (const stub of [fr, pt, ar]) {
+      expect(typeof stub).toBe('object');
+    }
+  });
+});
+
+describe('PRD 10 content rules', () => {
+  const all = JSON.stringify(en);
+
+  it('uses the co-led attribution', () => {
+    expect(all).toContain('co-led by MIMIT and UNDP');
+  });
+
+  it('never says "powered by" or "implemented by"', () => {
+    expect(all).not.toMatch(/powered by|implemented by/i);
+  });
+
+  it('carries the exact footer wording from rule 10.1', () => {
+    expect(dictionary['site.footer']).toBe(
+      'Co-led by the Ministry of Enterprises and Made in Italy and the United Nations Development Programme.',
+    );
+  });
+
+  it('never says "the Hub" alone', () => {
+    // Rule 10.2: always "AI Hub" or "AI Hub for Sustainable Development".
+    expect(all).not.toMatch(/\bthe Hub\b(?! for)/);
+  });
+
+  it('uses one mailbox only', () => {
+    expect(dictionary['site.contactEmail']).toBe('aihubfordevelopment@undp.org');
+    expect(all).not.toMatch(/info@|partnerships@/i);
+  });
+
+  it('states curation once, globally, with no per-resource Verified badge', () => {
+    // Rule 10.8 and PRD 16.1.
+    expect(dictionary['site.curationStatement']).toBe(
+      'Every resource is curated and verified by the AI Hub team.',
+    );
+    expect(all).not.toMatch(/"[^"]*\bVerified\b[^"]*"/);
+  });
+
+  it('offers no "Global programmes" country filter value', () => {
+    // Rule 10.6.
+    expect(all).not.toMatch(/Global programmes/i);
+  });
+
+  it('carries no fabricated metric from the prototype GADATA block', () => {
+    // PRD 8.4: a plausible fake number reaching production is a
+    // launch-blocking defect. These are the prototype's invented figures.
+    for (const figure of ['14,698', '12,840', '17,650', '2,583']) {
+      expect(all, `fabricated figure ${figure}`).not.toContain(figure);
+    }
+  });
+});
+```
+
+- [ ] **Step 12: Run it to confirm it fails**
+
+Run: `npm test -- tests/unit/i18n.test.ts`
+Expected: FAIL — `@/lib/i18n` does not exist.
+
+- [ ] **Step 13: Write `src/locales/en.json`**
+
+Flat dotted keys. SP2 and SP3 add to this file; this task seeds the strings the content rules police plus the labels the schema enums need display names for.
+
+```json
+{
+  "site.name": "AI Hub for Sustainable Development",
+  "site.shortName": "AI Hub",
+  "site.tagline": "Compute, training, funding, accelerators and partnerships for African AI innovators.",
+  "site.attribution": "co-led by MIMIT and UNDP",
+  "site.footer": "Co-led by the Ministry of Enterprises and Made in Italy and the United Nations Development Programme.",
+  "site.contactEmail": "aihubfordevelopment@undp.org",
+  "site.curationStatement": "Every resource is curated and verified by the AI Hub team.",
+  "need.compute": "Compute",
+  "need.training": "Training",
+  "need.funding": "Funding",
+  "need.accelerator": "Accelerator",
+  "need.partners": "Partners",
+  "deadline.rolling": "Rolling",
+  "deadline.closed": "Closed",
+  "deadline.autoClosed": "Auto-closed, past deadline",
+  "deadline.daysLeft": "{count} days left",
+  "status.live": "Live",
+  "status.pipeline": "Pipeline",
+  "status.reference": "Reference",
+  "stage.prospecting": "Prospecting",
+  "stage.in_discussion": "In discussion",
+  "stage.active": "Active",
+  "stage.delivered": "Delivered",
+  "empty.noData": "Data will appear here as traffic accumulates.",
+  "empty.ga4NotConnected": "Not connected, add your GA4 Measurement ID"
+}
+```
+
+The two `empty.*` keys are PRD §8.4 in string form: a metric panel with no data says so rather than showing a plausible number.
+
+- [ ] **Step 14: Write the three stub locale files**
+
+`src/locales/fr.json`, `src/locales/pt.json`, `src/locales/ar.json` — each containing exactly:
+
+```json
+{}
+```
+
+- [ ] **Step 15: Write `src/lib/i18n.ts`**
+
+```ts
+import en from '@/locales/en.json';
+import fr from '@/locales/fr.json';
+import pt from '@/locales/pt.json';
+import ar from '@/locales/ar.json';
+
+export const DEFAULT_LOCALE = 'en';
+
+export const LOCALES = ['en', 'fr', 'pt', 'ar'] as const;
+
+export type Locale = (typeof LOCALES)[number];
+
+const dictionaries: Record<string, Record<string, string>> = {
+  en: en as Record<string, string>,
+  fr: fr as Record<string, string>,
+  pt: pt as Record<string, string>,
+  ar: ar as Record<string, string>,
+};
+
+/**
+ * Look up a user-facing string.
+ *
+ * Returns the key itself when missing, so a gap shows up in the UI as an
+ * obvious token rather than as blank space. Falls back to English per key,
+ * not per file, which is what lets the fr/pt/ar stubs ship empty and be
+ * filled in a string at a time (PRD 12.4).
+ *
+ * The locale switcher is SP6. Callers pass no locale until then.
+ */
+export function t(
+  key: string,
+  vars?: Record<string, string | number>,
+  locale: string = DEFAULT_LOCALE,
+): string {
+  const fallback = dictionaries[DEFAULT_LOCALE]!;
+  const raw = dictionaries[locale]?.[key] ?? fallback[key] ?? key;
+  if (!vars) return raw;
+  return raw.replace(/\{(\w+)\}/g, (match, name: string) =>
+    name in vars ? String(vars[name]) : match,
+  );
+}
+```
+
+- [ ] **Step 16: Run the i18n test**
+
+Run: `npm test -- tests/unit/i18n.test.ts`
+Expected: PASS, every case. A failure in the `PRD 10 content rules` block means a string in `en.json` was altered — fix the string, never the assertion.
+
+- [ ] **Step 17: Rewrite `src/app/layout.tsx`**
 
 The generated layout imports Geist from `next/font/google`. Design doc §5.1 self-hosts Outfit specifically to keep a Google Fonts round trip off the critical path, so the Geist import goes now rather than being replaced later.
 
 ```tsx
 import type { Metadata } from 'next';
 import './globals.css';
+import { t } from '@/lib/i18n';
 
 export const metadata: Metadata = {
-  // Copy moves to src/locales/en.json in SP1 Task 2, which also adds the
-  // self-hosted Outfit preload here. These are deliberately bare strings
-  // until that file exists.
-  title: 'AskHub',
-  description: 'AI Hub for Sustainable Development resource directory',
+  // From the locale file, not inline: <title> and <meta description> are
+  // user-facing. SP1 Task 2 adds the self-hosted Outfit preload below.
+  title: t('site.name'),
+  description: t('site.tagline'),
   // Design doc 5.7: this build ships behind Vercel Deployment Protection
   // with no CSP, no Turnstile and no rate limiting. It must not be indexed.
   robots: { index: false, follow: false },
@@ -351,7 +583,7 @@ export default function RootLayout({
 }
 ```
 
-- [ ] **Step 12: Reduce `src/app/globals.css` to the Tailwind import**
+- [ ] **Step 18: Reduce `src/app/globals.css` to the Tailwind import**
 
 The generated file declares a light/dark `--background` / `--foreground` pair and an Arial fallback stack. All three are hardcoded design values, which `CLAUDE.md` forbids, and all three are superseded by the token block in SP1 Task 2. Replace the whole file with:
 
@@ -370,7 +602,7 @@ The generated file declares a light/dark `--background` / `--foreground` pair an
  */
 ```
 
-- [ ] **Step 13: Add the noindex and low-cost security headers**
+- [ ] **Step 19: Add the noindex and low-cost security headers**
 
 `next.config.ts`:
 
@@ -398,7 +630,7 @@ const nextConfig: NextConfig = {
 export default nextConfig;
 ```
 
-- [ ] **Step 14: Write the failing structure test**
+- [ ] **Step 20: Write the failing structure test**
 
 `tests/structure/app-structure.test.ts`:
 
@@ -409,6 +641,11 @@ import { existsSync, readFileSync } from 'node:fs';
 const REQUIRED = [
   'src/app/layout.tsx',
   'src/app/globals.css',
+  'src/lib/i18n.ts',
+  'src/locales/en.json',
+  'src/locales/fr.json',
+  'src/locales/pt.json',
+  'src/locales/ar.json',
   'tsconfig.json',
   'vitest.config.ts',
   'next.config.ts',
@@ -487,10 +724,16 @@ describe('root layout', () => {
   it('does not import a font from next/font/google', () => {
     expect(layout).not.toContain('next/font/google');
   });
+
+  it('takes its title and description from the locale file', () => {
+    // <title> and <meta description> are user-facing, so they go through t().
+    expect(layout).toMatch(/title:\s*t\(/);
+    expect(layout).toMatch(/description:\s*t\(/);
+  });
 });
 ```
 
-- [ ] **Step 15: Run it, then prove it has teeth**
+- [ ] **Step 21: Run it, then prove it has teeth**
 
 This test codifies a contract that Steps 4 through 13 already satisfy, so it passes on the first run rather than failing first. That makes it worth checking it can actually fail — a structure assertion that never goes red is decoration.
 
@@ -522,7 +765,7 @@ npm test -- tests/structure/app-structure.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 16: Verify the build, the types and the lint all pass**
+- [ ] **Step 22: Verify the build, the types and the lint all pass**
 
 ```bash
 npm run build
@@ -545,7 +788,7 @@ If the build errors with `Couldn't find any pages or app directory`, the `src/ap
 
 If the build fails with `TypeScript <version> does not provide the compiler API required by Next.js`, the installed TypeScript is 6 or newer. Next 16.2.12 needs TypeScript 5; `create-next-app` pins `^5` for exactly this reason. Reinstall with `npm install -D "typescript@^5"` and do not widen that range.
 
-- [ ] **Step 17: Commit**
+- [ ] **Step 23: Commit**
 
 ```bash
 git add -A
@@ -567,7 +810,7 @@ git commit -m "chore: scaffold Next.js app with strict TypeScript, Tailwind v4, 
 - Consumes: Task 1's root layout and build
 - Produces: routes `/`, `/admin`, `/admin/login`, `/api/health`; layout slots that SP2 fills with the public header and footer and SP3 fills with the admin sidebar
 
-Every page here renders its own route path as its only content. That is not user-facing copy needing localisation — it is a route identifier, and it keeps a manual browser check meaningful without pre-empting SP2 or SP3.
+Every page here renders **no text**. Each carries a `data-route` attribute naming its route and nothing else. An HTML attribute is not user-facing copy, so it needs no locale key and does not violate the no-hardcoded-strings rule; it also gives the verification steps a stable machine-checkable hook that a blank page would not. SP2 and SP3 delete every one of these files.
 
 - [ ] **Step 1: Write the failing route contract test**
 
@@ -625,6 +868,28 @@ describe('route structure', () => {
   });
 });
 
+describe('placeholder pages', () => {
+  const PLACEHOLDERS = [
+    'src/app/(public)/page.tsx',
+    'src/app/(admin)/admin/page.tsx',
+    'src/app/(admin)/admin/login/page.tsx',
+  ];
+
+  for (const file of PLACEHOLDERS) {
+    it(`${file} renders no text`, () => {
+      const code = readFileSync(file, 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/.*$/gm, '');
+      // A self-closing element structurally cannot contain a text node, so
+      // these two assertions together are exact rather than heuristic: the
+      // only JSX is <main data-route="..." />, and nothing has children.
+      // Any text node here would be an unlocalised user-facing string.
+      expect(code).toMatch(/<main data-route="[^"]+" \/>/);
+      expect(code, 'placeholder renders an element with children').not.toMatch(/<\/[a-zA-Z]/);
+    });
+  }
+});
+
 describe('route handler and server action placement', () => {
   it('keeps server actions out of the route tree', () => {
     // Explained in src/lib/actions/README.md: src/app/api reserves the
@@ -680,7 +945,7 @@ export default function PublicLayout({
  * recently added rail and the full directory — is PRD 5.1 and belongs to SP2.
  */
 export default function PublicHomePage() {
-  return <main>{'/'}</main>;
+  return <main data-route="/" />;
 }
 ```
 
@@ -733,7 +998,7 @@ export default function AdminLayout({
  * PRD 8.4 makes a fabricated figure a launch-blocking defect.
  */
 export default function AdminDashboardPage() {
-  return <main>{'/admin'}</main>;
+  return <main data-route="/admin" />;
 }
 ```
 
@@ -749,7 +1014,7 @@ export default function AdminDashboardPage() {
  * Users are created by an admin.
  */
 export default function AdminLoginPage() {
-  return <main>{'/admin/login'}</main>;
+  return <main data-route="/admin/login" />;
 }
 ```
 
@@ -865,14 +1130,17 @@ npm run dev
 In another shell:
 
 ```bash
-curl -s localhost:3000/ | grep -o "<main>[^<]*</main>"
-curl -s localhost:3000/admin | grep -o "<main>[^<]*</main>"
-curl -s localhost:3000/admin/login | grep -o "<main>[^<]*</main>"
+curl -s localhost:3000/ | grep -o 'data-route="[^"]*"'
+curl -s localhost:3000/admin | grep -o 'data-route="[^"]*"'
+curl -s localhost:3000/admin/login | grep -o 'data-route="[^"]*"'
 curl -s localhost:3000/api/health
 curl -sI localhost:3000/ | grep -i x-robots-tag
+curl -s localhost:3000/ | grep -o "<title>[^<]*</title>"
 ```
 
-Expected: `<main>/</main>`, `<main>/admin</main>`, `<main>/admin/login</main>`, `{"ok":true}`, and `x-robots-tag: noindex, nofollow`.
+Expected: `data-route="/"`, `data-route="/admin"`, `data-route="/admin/login"`, `{"ok":true}`, `x-robots-tag: noindex, nofollow`, and a `<title>AI Hub for Sustainable Development</title>` proving the locale lookup reaches the rendered page.
+
+Note that `/admin` and `/admin/login` both serve here because Task 3 has not yet created the Supabase env, so `src/proxy.ts` does not exist until Task 4. Task 4 Step 8 re-checks `/admin` and expects a 307 redirect at that point.
 
 Also confirm the group names 404: `curl -s -o /dev/null -w "%{http_code}\n" localhost:3000/\(public\)` must print `404`.
 
@@ -1472,7 +1740,7 @@ Expected: every test passes. Confirm `git status --short` lists no `.env.local` 
 
 | Not built | Owner |
 | --- | --- |
-| Design tokens, the self-hosted Outfit `@font-face` rules, `src/locales/*.json`, `t()` | SP1 Task 2 |
+| Design tokens and the self-hosted Outfit `@font-face` rules | SP1 Task 2 (its i18n steps 6–11 are delivered here instead — skip them) |
 | Every migration, RLS policy, public-safe view, and the seed | SP1 Tasks 3–12 |
 | Real `database.types.ts`, `src/lib/auth.ts` (`getCurrentUser`, `requireRole`), `scripts/provision-admins.ts` | SP1 Task 13 |
 | Bundle secret audit as a committed test, `public/robots.txt`, the protected Vercel deploy | SP1 Task 14 |
@@ -1494,7 +1762,7 @@ Expected: every test passes. Confirm `git status --short` lists no `.env.local` 
 Run all of these. Do not report completion on any that has not been run.
 
 ```bash
-npx supabase start        # local stack up
+npx supabase start        # local stack up (needs a running Docker daemon)
 npm run build             # app compiles, route table as expected
 npm run typecheck         # strict mode clean
 npm run lint              # eslint clean
@@ -1512,4 +1780,6 @@ Then confirm by hand:
 - [ ] `git ls-files | grep -E "^\.env"` returns `.env.example` and nothing else
 - [ ] `grep -rn "#[0-9a-fA-F]\{6\}" src` returns nothing — no colour has been hardcoded ahead of SP1 Task 2
 - [ ] `README.md` records the installed Next, React, Tailwind and TypeScript versions
-- [ ] No `page.tsx` in the repo renders any user-facing copy
+- [ ] `grep -rn "data-route" src/app` shows exactly three placeholder pages, and none of them renders a text node
+- [ ] `npm test -- tests/unit/i18n.test.ts` passes, including every PRD §10 content rule
+- [ ] `curl -s localhost:3000/ | grep -o "<title>[^<]*</title>"` returns the title from `en.json`, proving `t()` reaches rendered output
