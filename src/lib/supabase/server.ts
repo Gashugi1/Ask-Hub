@@ -10,10 +10,15 @@ import type { Database } from './database.types';
  * to read on a user's behalf.
  */
 export async function createServerSupabase() {
+  // Named, not valued. Never interpolate a key into a thrown message.
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) throw new Error('NEXT_PUBLIC_SUPABASE_URL is not set');
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!anonKey) throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set');
   const cookieStore = await cookies();
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    anonKey,
     {
       cookies: {
         getAll: () => cookieStore.getAll(),

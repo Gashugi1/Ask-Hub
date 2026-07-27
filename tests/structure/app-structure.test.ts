@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 
 const REQUIRED = [
   'src/app/layout.tsx',
@@ -68,13 +69,63 @@ describe('globals.css', () => {
     expect(css).toContain('@import "tailwindcss"');
   });
 
-  it('declares no colour value — tokens are SP1 Task 2', () => {
-    expect(css).not.toMatch(/#[0-9a-f]{3,8}\b/i);
-  });
-
   it('does not round-trip to google fonts', () => {
     expect(css).not.toMatch(/fonts\.googleapis\.com|fonts\.gstatic\.com/);
   });
+});
+
+/**
+ * CLAUDE.md: no hardcoded colours, use design tokens. The token block itself
+ * is SP1 Task 2, so until then the correct number of colour values in this
+ * repository is zero, and SP1 Task 2 is told to rely on this guard.
+ *
+ * Two widenings over the original, both of which the guard needed to be
+ * worth relying on:
+ *
+ *  - Every notation, not only hex. Tailwind v4 tokens are conventionally
+ *    written in `oklch()`, so a hex-only guard would have missed the single
+ *    most likely form of the mistake it exists to catch.
+ *  - Every file under `src/`, not `globals.css` alone. A hardcoded colour is
+ *    far more likely to arrive as `style={{ color: '#1F5FBF' }}` or a
+ *    `bg-[#1F5FBF]` arbitrary value in a `.tsx` file than in the one CSS file
+ *    whose comment already forbids it.
+ *
+ * When SP1 Task 2 lands the real `@theme` block, this guard must be narrowed
+ * deliberately — to "colours only inside `@theme`" — not simply deleted.
+ */
+describe('no hardcoded colour anywhere in src/ — tokens are SP1 Task 2', () => {
+  function sourceFiles(dir = 'src', out: string[] = []): string[] {
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) sourceFiles(full, out);
+      else if (/\.(ts|tsx|css|json)$/.test(entry)) out.push(full);
+    }
+    return out;
+  }
+
+  const NOTATIONS: Record<string, RegExp> = {
+    // 3, 4, 6 or 8 digits. Anchored on a non-word character so a URL
+    // fragment or a `#1` issue reference is not a colour.
+    hex: /(?<![\w#])#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})(?![0-9a-z])/i,
+    oklch: /\boklch\(/i,
+    rgb: /\brgba?\(/i,
+    hsl: /\bhsla?\(/i,
+  };
+
+  for (const [notation, pattern] of Object.entries(NOTATIONS)) {
+    it(`declares no ${notation} colour value`, () => {
+      const offenders = sourceFiles()
+        .flatMap((file) =>
+          readFileSync(file, 'utf8')
+            .split('\n')
+            .map((line, index) => ({ file, line: index + 1, text: line }))
+            .filter(({ text }) => pattern.test(text)),
+        )
+        .map(({ file, line, text }) => `${file}:${line}: ${text.trim()}`);
+
+      expect(offenders, `hardcoded ${notation} colour — use a design token`).toEqual([]);
+    });
+  }
 });
 
 describe('root layout', () => {

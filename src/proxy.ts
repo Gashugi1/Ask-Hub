@@ -4,6 +4,17 @@ import { NextResponse, type NextRequest } from 'next/server';
 const LOGIN_PATH = '/admin/login';
 
 /**
+ * Every cookie @supabase/ssr writes is `sb-`-prefixed — `sb-<ref>-auth-token`,
+ * its `.0`/`.1` chunks, and the PKCE code verifier. Matching the prefix rather
+ * than an exact name is deliberate and fail-safe: the only cost of a false
+ * positive is one auth call that would have happened anyway, while a false
+ * negative would silently stop refreshing a real session.
+ */
+function hasSupabaseAuthCookie(request: NextRequest): boolean {
+  return request.cookies.getAll().some(({ name }) => name.startsWith('sb-'));
+}
+
+/**
  * Runs on every matched request. Two jobs:
  *
  *  1. Refresh the Supabase session cookie. Server components get a read-only
@@ -16,52 +27,71 @@ const LOGIN_PATH = '/admin/login';
  * `requireRole` re-check inside every mutating server action. Anything that
  * relies on this redirect having run is a vulnerability, because a server
  * action invoked directly never passes through here.
+ *
+ * An anonymous visitor browsing the public site costs no auth call. Without the
+ * short-circuit below, `auth.getUser()` — a network round trip to Supabase Auth
+ * — would sit in front of every public HTML response, making the availability
+ * and latency of the entire product depend on the auth server. The public
+ * surface IS the product (PRD 5: open browsing, cached pages, Core Web Vitals),
+ * so it must stay servable when auth is degraded or misconfigured.
  */
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
+
+  // No session to refresh and no gate to apply: answer without touching auth.
+  if (!isAdminRoute && !hasSupabaseAuthCookie(request)) {
+    return NextResponse.next({ request });
+  }
+
+  // Named, not valued, and checked here rather than at module scope so a
+  // misconfigured deployment still serves the public site. The SDK's own
+  // `supabaseUrl is required.` does not say which variable is missing, and
+  // it would be thrown once per request.
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) throw new Error('NEXT_PUBLIC_SUPABASE_URL is not set');
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!anonKey) throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set');
+
   let response = NextResponse.next({ request });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => request.cookies.getAll(),
-        setAll: (toSet) => {
-          for (const { name, value } of toSet) {
-            request.cookies.set(name, value);
-          }
-          response = NextResponse.next({ request });
-          for (const { name, value, options } of toSet) {
-            response.cookies.set(name, value, options);
-          }
-        },
+  const supabase = createServerClient(url, anonKey, {
+    cookies: {
+      getAll: () => request.cookies.getAll(),
+      setAll: (toSet) => {
+        for (const { name, value } of toSet) {
+          request.cookies.set(name, value);
+        }
+        response = NextResponse.next({ request });
+        for (const { name, value, options } of toSet) {
+          response.cookies.set(name, value, options);
+        }
       },
     },
-  );
+  });
 
   // getUser, not getSession: it validates the token with the auth server
   // instead of trusting whatever the cookie claims.
   const { data } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
-  const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
-
   if (isAdminRoute && pathname !== LOGIN_PATH && !data.user) {
-    const url = request.nextUrl.clone();
-    url.pathname = LOGIN_PATH;
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = LOGIN_PATH;
     // No `next` or `redirect` query parameter is carried. PRD 14.5 forbids
     // open redirects: no route accepts a user-supplied destination.
-    url.search = '';
-    return NextResponse.redirect(url);
+    redirectUrl.search = '';
+    return NextResponse.redirect(redirectUrl);
   }
 
   return response;
 }
 
 export const config = {
-  // Everything except static assets. Public pages are matched too, so an
-  // expiring session refreshes while browsing rather than only at /admin.
+  // Everything except static assets and the liveness endpoint. Public pages
+  // are matched so an expiring session refreshes while browsing rather than
+  // only at /admin; /api/health is excluded because a liveness probe that
+  // depends on the auth server reports the wrong thing when auth is down.
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|fonts/|robots.txt|sitemap.xml).*)',
+    '/((?!_next/static|_next/image|favicon.ico|fonts/|robots.txt|sitemap.xml|api/health).*)',
   ],
 };

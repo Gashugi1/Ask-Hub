@@ -46,6 +46,46 @@ describe('.env.example', () => {
   });
 });
 
+describe('the test environment satisfies the contract', () => {
+  // Documenting a name is not the same as `npm test` having it. The three
+  // client factories read the NEXT_PUBLIC_ pair, so a .env.test that defines
+  // only the bare SUPABASE_* names leaves every factory — and therefore every
+  // RLS suite built on one — unusable. Asserted against process.env, which
+  // vitest.config.ts has already populated from .env.test, so this is the
+  // real condition rather than a restatement of the template.
+  for (const name of [
+    'NEXT_PUBLIC_SUPABASE_URL',
+    'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'SUPABASE_URL',
+    'SUPABASE_ANON_KEY',
+  ]) {
+    it(`defines ${name}`, () => {
+      expect(
+        process.env[name],
+        `${name} is missing from .env.test — copy it from .env.example and fill it from \`npx supabase status\``,
+      ).toBeTruthy();
+    });
+  }
+
+  it('never lets a value leak into an error message the tests print', () => {
+    // Guards the diagnostics added to the three factories: they must name the
+    // variable, never interpolate its value.
+    for (const file of [
+      'src/lib/supabase/browser.ts',
+      'src/lib/supabase/server.ts',
+      'src/lib/supabase/admin.ts',
+    ]) {
+      const source = readFileSync(file, 'utf8');
+      for (const thrown of source.match(/throw new Error\([^)]*\)/g) ?? []) {
+        expect(thrown, `${file}: ${thrown} may interpolate a value`).not.toMatch(
+          /\$\{|\+\s*(url|key|anonKey|process\.env)/,
+        );
+      }
+    }
+  });
+});
+
 describe('supabase local config', () => {
   const config = readFileSync('supabase/config.toml', 'utf8');
 
@@ -64,6 +104,21 @@ describe('supabase local config', () => {
     const next = config.indexOf('\n[', start + 1);
     const block = config.slice(start, next === -1 ? undefined : next);
     expect(block).toMatch(/^enable_signup\s*=\s*false\s*$/m);
+  });
+
+  it('requires a strong password of the staff accounts that are the only accounts', () => {
+    // The CLI default is 6 with no composition requirement. Every account on
+    // this project is staff with write access to a UN programme's reporting
+    // surface, and there is no self-service sign-up whose conversion a strict
+    // policy could cost. Line-anchored so a commented-out line does not
+    // satisfy it, and asserted as a lower bound so raising it later passes.
+    const length = /^minimum_password_length\s*=\s*(\d+)\s*$/m.exec(config);
+    expect(length, 'minimum_password_length is missing or commented out').not.toBeNull();
+    expect(Number(length![1])).toBeGreaterThanOrEqual(12);
+
+    expect(config).toMatch(
+      /^password_requirements\s*=\s*"lower_upper_letters_digits_symbols"\s*$/m,
+    );
   });
 });
 

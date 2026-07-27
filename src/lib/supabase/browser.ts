@@ -9,8 +9,12 @@ import type { Database } from './database.types';
  * precisely because RLS, not key secrecy, is the authorization boundary.
  */
 export function createBrowserSupabase() {
-  return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  );
+  // Named, not valued: `supabaseUrl is required.` from the SDK does not say
+  // which of the two variables is missing, and both are inlined at build time,
+  // so a missing one is a deploy-configuration mistake worth naming.
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) throw new Error('NEXT_PUBLIC_SUPABASE_URL is not set');
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!anonKey) throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set');
+  return createBrowserClient<Database>(url, anonKey);
 }
