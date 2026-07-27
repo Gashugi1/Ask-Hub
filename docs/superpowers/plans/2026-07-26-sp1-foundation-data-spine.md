@@ -129,6 +129,33 @@ tests/build/no-secrets.test.ts
 
 ## Task 1: Repo scaffold, Supabase CLI, and a working test loop
 
+> ### SUPERSEDED — do not run this task
+>
+> Replaced in full by Tasks 1 and 3 of
+> `docs/superpowers/plans/2026-07-27-app-scaffold-and-route-structure.md`,
+> which has already been executed. **Everything below is already in the
+> repository**: `package.json`, `tsconfig.json` (strict, with
+> `noUncheckedIndexedAccess`), `next.config.ts`, `vitest.config.ts`,
+> `.env.example`, `.gitignore` with its `!.env.example` negation,
+> `src/app/layout.tsx`, `src/app/globals.css`, `supabase/config.toml` with
+> `enable_signup = false`, and `tests/smoke.test.ts`.
+>
+> Running it would actively break the build. Three specifics:
+>
+> - Step 1's `create-next-app --no-turbopack` names a flag that no longer
+>   exists; Turbopack is the default bundler.
+> - Step 5's `include: ['tests/**/*.test.ts']` silently excludes every
+>   `.test.tsx` file. The delivered config uses `.test.{ts,tsx}` and aliases
+>   `server-only` to its no-op shim so server modules are importable under
+>   Vitest at all. Do not revert either.
+> - The `"lint": "next lint"` script further down names a CLI command Next 16
+>   removed. The delivered script is `eslint`.
+>
+> `src/app/page.tsx` in the Files list below is **not** delivered and must not
+> be created — see the Task 2 banner.
+>
+> **Do:** nothing. **Read for context only.**
+
 **Files:**
 - Create: `package.json`, `tsconfig.json`, `next.config.ts`, `vitest.config.ts`, `.env.example`, `.gitignore`
 - Create: `src/app/layout.tsx`, `src/app/page.tsx`, `src/app/globals.css`
@@ -144,14 +171,14 @@ tests/build/no-secrets.test.ts
 ```bash
 cd /Users/Itanzi/Projects/AskHub
 npx create-next-app@latest . --typescript --tailwind --app --eslint \
-  --src-dir --import-alias "@/*" --no-turbopack --yes
+  --src-dir --import-alias "@/*" --yes   # --no-turbopack no longer exists
 ```
 
 If it refuses because the directory is non-empty, scaffold to a temp dir and move:
 
 ```bash
 npx create-next-app@latest /tmp/askhub-scaffold --typescript --tailwind --app \
-  --eslint --src-dir --import-alias "@/*" --no-turbopack --yes
+  --eslint --src-dir --import-alias "@/*" --yes   # --no-turbopack no longer exists
 rsync -a --exclude .git /tmp/askhub-scaffold/ /Users/Itanzi/Projects/AskHub/
 rm -rf /tmp/askhub-scaffold
 ```
@@ -215,7 +242,7 @@ export default defineConfig({
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
     "db:start": "supabase start",
@@ -315,17 +342,54 @@ git commit -m "chore: scaffold Next.js app, Supabase CLI, and Vitest harness"
 
 ---
 
-## Task 2: Design tokens, Outfit font, and localisation scaffolding
+## Task 2: Design tokens and the Outfit font
+
+> ### PARTLY SUPERSEDED — the localisation half is already built
+>
+> `docs/superpowers/plans/2026-07-27-app-scaffold-and-route-structure.md` has
+> been executed and delivered the whole i18n half of this task. **Already in
+> the repository, do not recreate:** `src/lib/i18n.ts`, `src/locales/en.json`
+> with the keys listed in Step 8, the `fr`/`pt`/`ar` stubs, the root layout's
+> `t()`-driven metadata, and `tests/unit/i18n.test.ts` — which is now
+> substantially stronger than Step 6's version and must not be overwritten by
+> it. **Skip Steps 6 through 11 entirely.**
+>
+> **Never create `src/app/page.tsx`.** The scaffold deletes it and
+> `tests/structure/app-structure.test.ts` lists it as FORBIDDEN. The home
+> route is `src/app/(public)/page.tsx`, inside a route group; adding
+> `src/app/page.tsx` back gives two files resolving the same `/` route and
+> breaks the build. Step 13's `src/app/page.tsx` block is void — apply that
+> copy to `src/app/(public)/page.tsx` if it is still a placeholder when you
+> reach it, or leave it for SP2.
+>
+> Step 13's `layout.tsx` block is also void as written: the delivered layout
+> already has the `t()` metadata and the `noindex` robots entry, and would
+> lose them. Add **only** the font `<link rel="preload">` to it.
+>
+> **What is genuinely outstanding here:** Steps 1–5 (the Outfit woff2 files
+> and the `@theme` token block in `src/app/globals.css`), Step 12
+> (`src/lib/reference.ts`), the preload link, and Steps 14–15.
+>
+> One consequence to expect. The scaffold's
+> `tests/structure/app-structure.test.ts` asserts that **no colour value in
+> any notation — hex, `oklch()`, `rgb()`, `hsl()` — appears anywhere under
+> `src/`**, because until this task the correct number of hardcoded colours is
+> zero. Step 4 will turn that guard red. That is the guard doing its job.
+> Narrow it deliberately to "colours only inside the `@theme` block in
+> `globals.css`" — do not delete it, or SP2 and SP3 lose the check that keeps
+> hardcoded colours out of their components.
 
 **Files:**
-- Create: `src/app/globals.css`, `src/lib/i18n.ts`, `src/locales/en.json`, `src/locales/fr.json`, `src/locales/pt.json`, `src/locales/ar.json`, `src/lib/reference.ts`
+- Create: `src/app/globals.css` (modify: replace the token-free placeholder block), `src/lib/reference.ts`
 - Create: `public/fonts/outfit-latin.woff2`, `public/fonts/outfit-latin-ext.woff2`
-- Modify: `src/app/layout.tsx`, `src/app/page.tsx`
-- Test: `tests/unit/tokens.test.ts`, `tests/unit/i18n.test.ts`
+- Modify: `src/app/layout.tsx` (add the font preload link only)
+- Modify: `tests/structure/app-structure.test.ts` (narrow the colour guard to `@theme`)
+- Test: `tests/unit/tokens.test.ts`
 
 **Interfaces:**
 - Consumes: Task 1's app skeleton
-- Produces: `t(key: string): string` from `@/lib/i18n`; `COUNTRIES: readonly string[]`, `SECTORS: readonly string[]`, `STAGES: readonly string[]`, `NEEDS: readonly string[]`, `NEED_KEYS: readonly NeedKey[]`, `type NeedKey = 'compute'|'training'|'funding'|'accelerator'|'partners'` from `@/lib/reference`
+- Produces: `COUNTRIES: readonly string[]`, `SECTORS: readonly string[]`, `STAGES: readonly string[]`, `NEEDS: readonly string[]`, `NEED_KEYS: readonly NeedKey[]`, `type NeedKey = 'compute'|'training'|'funding'|'accelerator'|'partners'` from `@/lib/reference`
+- Already delivered by the scaffold plan, consume as-is: `t(key: string, vars?: Record<string, string | number>, locale?: Locale): string`, plus `DEFAULT_LOCALE`, `LOCALES` and `type Locale` from `@/lib/i18n`
 
 - [ ] **Step 1: Extract the Outfit font files from the prototype bundle**
 
@@ -461,7 +525,30 @@ The card shadow is PRD §11's "`#003C64` at 8%, x0 y2 blur 20".
 Run: `npm test -- tests/unit/tokens.test.ts`
 Expected: PASS.
 
-- [ ] **Step 6: Write the failing i18n test**
+### Steps 6–11: SUPERSEDED, skip
+
+All six are already delivered by the scaffold plan, and re-running any of them
+overwrites something better with something weaker. Skip to Step 12.
+
+The delivered artefacts differ from the sketches below in ways that matter:
+
+- `src/lib/i18n.ts` registers **all four** locale dictionaries, not just `en`,
+  and falls back **per key** rather than per file — which is what lets the
+  stubs be filled a string at a time. Its `locale` parameter is typed `Locale`,
+  not `string`, so a typo is a compile error instead of a silent fallback to
+  English. Its docstring records how the locale is to reach it (request-scoped,
+  passed down explicitly, never a module global); read it before writing any
+  call site.
+- `tests/unit/i18n.test.ts` runs the content rules over `en.json` **and every
+  `.ts`/`.tsx`/`.css`/`.json` file under `src/`**, case-insensitively, and
+  checks the fabricated-figure list. Step 6's version checks `en.json` alone —
+  the one file where a fabricated metric or a stray "Verified" badge will never
+  appear. Replacing it would be a real regression in the launch-blocking
+  never-fabricate-data guard.
+
+The original steps are kept below for context only.
+
+- [ ] ~~**Step 6: Write the failing i18n test**~~ — SUPERSEDED, do not run
 
 `tests/unit/i18n.test.ts`:
 
@@ -504,12 +591,12 @@ describe('i18n', () => {
 });
 ```
 
-- [ ] **Step 7: Run it to confirm it fails**
+- [ ] ~~**Step 7: Run it to confirm it fails**~~ — SUPERSEDED, do not run
 
 Run: `npm test -- tests/unit/i18n.test.ts`
 Expected: FAIL — `@/lib/i18n` does not exist.
 
-- [ ] **Step 8: Write `src/locales/en.json`**
+- [ ] ~~**Step 8: Write `src/locales/en.json`**~~ — SUPERSEDED, already delivered
 
 Flat dotted keys. SP2 and SP3 add to this file; SP1 seeds the strings the content rules police.
 
@@ -543,7 +630,7 @@ Flat dotted keys. SP2 and SP3 add to this file; SP1 seeds the strings the conten
 }
 ```
 
-- [ ] **Step 9: Write the three stub locale files**
+- [ ] ~~**Step 9: Write the three stub locale files**~~ — SUPERSEDED, already delivered
 
 `src/locales/fr.json`, `src/locales/pt.json`, `src/locales/ar.json` — each exactly:
 
@@ -553,7 +640,7 @@ Flat dotted keys. SP2 and SP3 add to this file; SP1 seeds the strings the conten
 
 PRD §12.4: adding a locale file makes that locale selectable with no code changes. The switcher is SP6.
 
-- [ ] **Step 10: Write `src/lib/i18n.ts`**
+- [ ] ~~**Step 10: Write `src/lib/i18n.ts`**~~ — SUPERSEDED, already delivered
 
 ```ts
 import en from '@/locales/en.json';
@@ -582,10 +669,12 @@ export function t(
 }
 ```
 
-- [ ] **Step 11: Run the i18n test**
+- [ ] ~~**Step 11: Run the i18n test**~~ — SUPERSEDED, do not run
 
 Run: `npm test -- tests/unit/i18n.test.ts`
 Expected: PASS.
+
+### Resume here
 
 - [ ] **Step 12: Write `src/lib/reference.ts`**
 
@@ -622,9 +711,19 @@ export const NEEDS = ['Compute', 'Training', 'Funding', 'Accelerator', 'Partners
 export const COUNTRY_FILTER_OPTIONS = COUNTRIES;
 ```
 
-- [ ] **Step 13: Wire the layout and replace the scaffold home page**
+- [ ] **Step 13: Add the font preload link to the layout**
 
-`src/app/layout.tsx`:
+> **Corrected.** There is no scaffold home page left to replace, and
+> `src/app/page.tsx` must not be recreated — see the task banner. The only
+> change here is adding the `<link rel="preload">` for
+> `/fonts/outfit-latin.woff2` to the existing `src/app/layout.tsx`. Do **not**
+> paste the block below over that file: the delivered layout already has the
+> `t()`-driven `title`/`description` and the `robots: { index: false }` entry,
+> and a wholesale replacement would silently drop the `noindex` posture this
+> gated review deploy depends on. Both are asserted by
+> `tests/structure/app-structure.test.ts`.
+
+`src/app/layout.tsx` — shown for the preload link only, merge it in:
 
 ```tsx
 import type { Metadata } from 'next';
@@ -656,7 +755,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 }
 ```
 
-`src/app/page.tsx`:
+~~`src/app/page.tsx`:~~ **VOID — creating this file breaks the build.** It
+collides with the delivered `src/app/(public)/page.tsx` on the `/` route, and
+`tests/structure/app-structure.test.ts` lists it as FORBIDDEN. The public home
+page is SP2's; if you want the placeholder to render something before then,
+edit `src/app/(public)/page.tsx` instead. Kept only so the copy is not lost:
 
 ```tsx
 import { t } from '@/lib/i18n';
@@ -3492,9 +3595,43 @@ git commit -m "feat: idempotent content seed from prototype, no fabricated metri
 
 ## Task 13: Supabase clients and admin provisioning
 
+> ### PARTLY SUPERSEDED — the three client factories are already built
+>
+> Task 4 of
+> `docs/superpowers/plans/2026-07-27-app-scaffold-and-route-structure.md`, now
+> executed, delivered `src/lib/supabase/browser.ts`, `server.ts`, `admin.ts`
+> (with its `import 'server-only'` marker), a placeholder
+> `database.types.ts`, `src/proxy.ts`, and a
+> `tests/unit/supabase-clients.test.ts` stronger than Step 2's sketch —
+> behavioural, not source-string. **Skip Steps 2 through 4 and do not
+> overwrite those files.** The delivered factories additionally throw naming
+> the missing environment variable, which the sketch below does not; keep
+> that.
+>
+> **What is genuinely outstanding here:**
+>
+> - Step 1, `npm run db:types`, which overwrites the placeholder
+>   `database.types.ts` with the real schema. It is a placeholder precisely so
+>   that every `.from('...')` is a type error until you do this. Never
+>   hand-write a table definition into it.
+> - `src/lib/auth.ts` — `getCurrentUser` and `requireRole`. Deliberately not
+>   built by the scaffold, because it needs the `profiles` table from Task 4
+>   of this plan.
+> - `scripts/provision-admins.ts`.
+>
+> Two constraints from the scaffold that carry forward. **Never remove an
+> `import 'server-only'`** — it is what turns a client import of the
+> `service_role` key into a build error rather than a leaked secret; if a test
+> cannot import a server module, note that `vitest.config.ts` already aliases
+> `server-only` to its no-op shim for exactly that reason. And the proxy's
+> `/admin` redirect is UX, never authorization: `requireRole` must re-check
+> inside every mutating server action.
+
 **Files:**
-- Create: `src/lib/supabase/browser.ts`, `src/lib/supabase/server.ts`, `src/lib/supabase/admin.ts`, `src/lib/supabase/database.types.ts`, `scripts/provision-admins.ts`
-- Test: `tests/unit/supabase-clients.test.ts`
+- ~~Create: `src/lib/supabase/browser.ts`, `src/lib/supabase/server.ts`, `src/lib/supabase/admin.ts`~~ — already delivered
+- Regenerate: `src/lib/supabase/database.types.ts` (via `npm run db:types`)
+- Create: `src/lib/auth.ts`, `scripts/provision-admins.ts`
+- ~~Test: `tests/unit/supabase-clients.test.ts`~~ — already delivered; add `tests/unit/auth.test.ts` for `requireRole`
 
 **Interfaces:**
 - Consumes: every migration
@@ -3884,6 +4021,46 @@ SEED_ENV_FILE=.env.local npx tsx scripts/seed.ts
 ```
 
 Record the project ref and the confirmed EU region in `README.md` under `## Infrastructure`.
+
+- [ ] **Step 4b: Disable public signup on the HOSTED project and verify it**
+
+`supabase/config.toml` governs the **local CLI stack only**. Linking and
+pushing migrations does not carry its `[auth]` settings to the hosted project,
+whose auth configuration is dashboard state. So the hosted project ships with
+Supabase's default — public signup **enabled** — unless this step is done.
+
+That matters more than a normal default, because it is stated as a
+project-level fact that three sub-projects build on:
+`src/app/(admin)/admin/login/page.tsx` records that there is no sign-up route
+because sign-up is disabled at the project level, PRD §3 and §14.3 require it,
+and the admin portal has no other membership gate. Left enabled, anyone who
+knows the project URL and the public anon key — which is in the client bundle
+by design — can create themselves an account. RLS still denies them
+everything, since a row in `auth.users` with no `profiles` role grants no
+policy, but they are then an authenticated principal inside the tenant, which
+is not a boundary anyone should have to reason about.
+
+In the Supabase dashboard for the hosted project: **Authentication →
+Sign In / Providers → Email**, turn **"Allow new users to sign up"** off. Also
+confirm **"Allow anonymous sign-ins"** is off.
+
+Verify from outside the dashboard, against the hosted project, not localhost:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' \
+  -X POST "https://<project-ref>.supabase.co/auth/v1/signup" \
+  -H "apikey: $NEXT_PUBLIC_SUPABASE_ANON_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"signup-probe@example.com","password":"probe-not-a-real-password-1!"}'
+```
+
+Expected: `422` with `error_code": "signup_disabled"`. A `200` means signup is
+still open — stop and fix it before deploying. Then check no account was
+created: **Authentication → Users** must contain no `signup-probe@example.com`.
+
+Record in `README.md` under `## Infrastructure` that hosted signup is disabled
+and the date it was verified. Re-verify after any change to the project's auth
+settings.
 
 - [ ] **Step 5: Deploy to Vercel with protection enabled**
 
