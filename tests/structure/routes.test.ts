@@ -28,6 +28,42 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
+/**
+ * The manifest is a gitignored build artifact that `npm test` does not
+ * produce, so every assertion in this file is only as current as the last
+ * `npm run build`.
+ *
+ * A missing manifest is caught above and is loud. A *stale* one is the
+ * dangerous case: delete a route, run `npm test` without rebuilding, and every
+ * assertion below passes against a route table that no longer exists — a green
+ * suite certifying a structure the repository does not have. Comparing mtimes
+ * turns that silent false pass into an explicit instruction.
+ *
+ * Deliberately ordered first in the file so the diagnostic is the first thing
+ * a reader sees rather than being buried under whatever the stale manifest
+ * happens to make fail.
+ */
+describe('the build manifest these assertions read is current', () => {
+  it('is newer than every file under src/app', () => {
+    expect(existsSync(MANIFEST), `${MANIFEST} is missing — run \`npm run build\``).toBe(
+      true,
+    );
+
+    const manifestMtime = statSync(MANIFEST).mtimeMs;
+    const stale = walk('src/app')
+      .map((file) => ({ file, mtime: statSync(file).mtimeMs }))
+      .filter(({ mtime }) => mtime > manifestMtime)
+      .map(({ file }) => file);
+
+    expect(
+      stale,
+      `${MANIFEST} predates ${stale.length} file(s) under src/app, so the route ` +
+        `assertions in this file would check a stale route table — run ` +
+        `\`npm run build\` and re-run the suite. Newer: ${stale.join(', ')}`,
+    ).toEqual([]);
+  });
+});
+
 describe('route structure', () => {
   it('serves the home page from the (public) group at /', () => {
     expect(routes()['/(public)/page']).toBe('/');
