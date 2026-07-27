@@ -67,7 +67,7 @@ A reviewer should treat a visible string outside `t()` as a defect, and should *
 - `create-next-app` refuses a non-empty target directory unless every entry is on its allowlist. That allowlist includes `.git`, `.gitignore`, `.DS_Store` and `docs`, but **not `.claude`** — so scaffolding in place will fail here. Task 1 scaffolds to a temp directory and copies in.
 - The generated `.gitignore` contains `.env*`, which ignores `.env.example` too. Task 1 adds a `!.env.example` negation.
 - **TypeScript must stay on `^5`.** Next 16.2.12 rejects TypeScript 6 and newer outright: `TypeScript 7.0.2 does not provide the compiler API required by Next.js`. `create-next-app` pins `^5`. Never run a bare `npm install -D typescript`, which now resolves to 7.x and breaks the build.
-- With a root layout and **no page at all**, the build succeeds and prints a pages-router `Route (pages) / ─ ○ /404` table rather than an `app` table. That is the expected intermediate state at the end of Task 1.
+- At the end of Task 1 — root layout, no `page.tsx` — the build prints `Route (app) / ─ ○ /_not-found`. The app router is not empty even without a page, because `src/app/favicon.ico` is itself an app route (`/favicon.ico/route` in the manifest). A project with a layout, no page **and** no favicon instead falls back to a pages-router `Route (pages) / ─ ○ /404` table; that is not this project's state.
 - `npx supabase start` needs a running Docker daemon. Confirm `docker info` succeeds before starting Task 3.
 
 ---
@@ -773,14 +773,14 @@ npm run typecheck
 npm run lint
 ```
 
-Expected: the build **succeeds**, and because the app directory now holds a layout but no page at all, its route table reads exactly this — the pages-router 404 fallback, not an `app` table:
+Expected: the build **succeeds** and its route table reads exactly this:
 
 ```
-Route (pages)
-─ ○ /404
+Route (app)
+─ ○ /_not-found
 ```
 
-That is correct and expected at this point. Task 2 adds the pages, and the table becomes a `Route (app)` listing. Do not add a page here to make the table look more normal.
+`/_not-found` is the only entry because there is no `page.tsx` yet. The table says `Route (app)` rather than falling back to a pages-router `/404` because `src/app/favicon.ico` is itself an app route, so the app router has something in it. Both are correct and expected at this point — Task 2 adds the real pages. Do not add a page here to make the table look more normal.
 
 `typecheck` prints nothing. `lint` prints nothing.
 
