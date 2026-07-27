@@ -105,6 +105,21 @@ describe('supabase local config', () => {
     const block = config.slice(start, next === -1 ? undefined : next);
     expect(block).toMatch(/^enable_signup\s*=\s*false\s*$/m);
   });
+
+  it('requires a strong password of the staff accounts that are the only accounts', () => {
+    // The CLI default is 6 with no composition requirement. Every account on
+    // this project is staff with write access to a UN programme's reporting
+    // surface, and there is no self-service sign-up whose conversion a strict
+    // policy could cost. Line-anchored so a commented-out line does not
+    // satisfy it, and asserted as a lower bound so raising it later passes.
+    const length = /^minimum_password_length\s*=\s*(\d+)\s*$/m.exec(config);
+    expect(length, 'minimum_password_length is missing or commented out').not.toBeNull();
+    expect(Number(length![1])).toBeGreaterThanOrEqual(12);
+
+    expect(config).toMatch(
+      /^password_requirements\s*=\s*"lower_upper_letters_digits_symbols"\s*$/m,
+    );
+  });
 });
 
 describe('secrets are not committed', () => {

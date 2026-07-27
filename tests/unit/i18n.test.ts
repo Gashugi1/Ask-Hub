@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { t, DEFAULT_LOCALE } from '@/lib/i18n';
+import { t, DEFAULT_LOCALE, LOCALES, type Locale } from '@/lib/i18n';
 import en from '@/locales/en.json';
 import fr from '@/locales/fr.json';
 import pt from '@/locales/pt.json';
@@ -63,12 +63,27 @@ describe('t()', () => {
     expect(t('deadline.daysLeft')).toBe('{count} days left');
   });
 
-  it('falls back to English for an unknown locale', () => {
-    expect(t('site.name', undefined, 'xx')).toBe(dictionary['site.name']);
+  it('falls back to English per key, not per file, for an empty stub locale', () => {
+    // This is the fallback that matters: PRD 12.4 ships fr/pt/ar empty and
+    // fills them a string at a time, so every unfilled key must resolve to
+    // English while the filled ones do not.
+    expect(t('site.name', undefined, 'fr')).toBe(dictionary['site.name']);
+  });
+
+  it('still falls back at runtime for a locale that escaped the type', () => {
+    // `locale` is typed `Locale`, so `'xx'` is a compile error — the cast is
+    // deliberate and is what this test is about. A locale that arrives from a
+    // URL segment or a cookie is a runtime string, and a narrowing bug at that
+    // boundary must degrade to English rather than throw on the undefined
+    // dictionary. The type is the primary guard; this is the backstop.
+    expect(t('site.name', undefined, 'xx' as Locale)).toBe(dictionary['site.name']);
   });
 
   it('defaults to English', () => {
     expect(DEFAULT_LOCALE).toBe('en');
+    // LOCALES is the single source of truth for what a Locale may be, and the
+    // default must be a member of it.
+    expect(LOCALES).toContain(DEFAULT_LOCALE);
   });
 });
 
