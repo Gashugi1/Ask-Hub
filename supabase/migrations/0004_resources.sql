@@ -14,8 +14,20 @@ create table public.partners (
   constraint partners_logo_https
     check (logo_url is null or logo_url ~* '^https://'),
   -- PRD 14.5: SVG is an active-content XSS vector. Reject it.
+  -- The anchor set (end-of-string, ?, #, /) matters: without the trailing
+  -- `/` alternative, `.../logo.svg/banner.png` -- a real shape some CDN
+  -- and image-transform URLs use, with the extension mid-path -- slips
+  -- past the check. `svgz?` also catches `.svgz`, gzip-compressed SVG
+  -- with the same active-content risk. Case-insensitivity (!~*, not !~)
+  -- is load-bearing: it is the only thing that rejects `logo.SVG`.
+  -- Verified against Postgres directly (see Task 5 fix report): rejects
+  -- logo.svg, logo.SVG, logo.svg?v=2, logo.svg#frag, logo.svg/banner.png,
+  -- logo.svgz, logo.SVGZ; accepts logo.png, logo.jpg?w=300. Deliberately
+  -- over-rejects a query string that merely mentions .svg (e.g.
+  -- image.png?ref=banner.svg) -- accepted as the safe direction rather
+  -- than adding path/query-splitting complexity to a security check.
   constraint partners_logo_not_svg
-    check (logo_url is null or logo_url !~* '\.svg($|\?|#)')
+    check (logo_url is null or logo_url !~* '\.svgz?($|\?|#|/)')
 );
 
 -- name is `unique`, which already builds its own index. An explicit index
@@ -69,6 +81,11 @@ create table public.resources (
   name text not null,
   -- FK rather than text (design doc 5.3.1): one source of truth for
   -- logo, tier and official site.
+  -- `restrict`, not `cascade` or `set null`: deleting a partner must not
+  -- silently orphan (set null) or mass-delete (cascade) the curated
+  -- resources that point at it. Restrict forces an admin to explicitly
+  -- reassign or remove those resources first, rather than losing curated
+  -- content as a side effect of an unrelated delete.
   partner_id uuid not null references public.partners(id) on delete restrict,
   -- Denormalised from partners.tier for list-rendering performance --
   -- NOT a maintained mirror. Nothing syncs this column when a partner's
@@ -109,8 +126,12 @@ create table public.resources (
     check (external_url ~* '^https://'),
   constraint resources_banner_https
     check (banner_image_url is null or banner_image_url ~* '^https://'),
+  -- Same rationale and verified regex as partners_logo_not_svg above:
+  -- the `/` anchor catches `.svg` mid-path (some CDN/image-transform URLs
+  -- put the extension there, e.g. .../logo.svg/w_300), and `svgz?` also
+  -- catches gzip-compressed `.svgz`.
   constraint resources_banner_not_svg
-    check (banner_image_url is null or banner_image_url !~* '\.svg($|\?|#)')
+    check (banner_image_url is null or banner_image_url !~* '\.svgz?($|\?|#|/)')
 );
 
 create index resources_status_idx on public.resources (status);

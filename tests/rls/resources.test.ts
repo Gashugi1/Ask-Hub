@@ -41,6 +41,34 @@ describe('partners and resources', () => {
     expect(error?.code).toBe('23514');
   });
 
+  it('rejects an SVG banner image url with the extension mid-path', async () => {
+    // Regression case for a verified bypass: some CDN/image-transform URLs
+    // put the real extension mid-path rather than at the end (e.g.
+    // .../logo.svg/w_300). The original regex only anchored on
+    // end-of-string, `?` or `#`, so `.svg/...` slipped through uncaught.
+    const svc = serviceClient();
+    const { error } = await svc.from('resources').insert({
+      name: `Svg mid-path banner ${Date.now()}`, partner_id: partnerId, resource_type: 'Course',
+      need_primary: 'training', description: 'x',
+      external_url: 'https://example.org/apply',
+      banner_image_url: 'https://example.org/logo.svg/banner.png',
+    });
+    expect(error?.code).toBe('23514');
+  });
+
+  it('rejects an svgz banner image url', async () => {
+    // .svgz is gzip-compressed SVG and carries the same active-content
+    // risk as .svg; the constraint must catch it too.
+    const svc = serviceClient();
+    const { error } = await svc.from('resources').insert({
+      name: `Svgz banner ${Date.now()}`, partner_id: partnerId, resource_type: 'Course',
+      need_primary: 'training', description: 'x',
+      external_url: 'https://example.org/apply',
+      banner_image_url: 'https://example.org/logo.svgz',
+    });
+    expect(error?.code).toBe('23514');
+  });
+
   it('is not readable anonymously on the base table', async () => {
     // Insert a real row via service_role first so an unguarded anon read
     // would actually return something -- without this, resources is empty
