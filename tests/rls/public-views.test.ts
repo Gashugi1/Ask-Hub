@@ -191,19 +191,62 @@ describe('public-safe views', () => {
   // pg_class that covers every base table and cannot go stale; a weaker,
   // partial version does not belong here.
 
+  // A payload valid for the view's real columns, per view. This matters:
+  // if the payload names a column the view doesn't have (e.g. `name` on
+  // site_content_public), PostgREST rejects it at the schema-cache
+  // column-resolution stage (PGRST204) *before* the request ever reaches
+  // Postgres's permission check. That failure is real but proves nothing
+  // about whether anon holds a write grant -- it would happen identically
+  // even if anon had full insert privilege on the view. Using a payload
+  // that matches each view's actual columns forces the request through to
+  // Postgres so the assertion exercises the real permission check
+  // (SQLSTATE 42501) rather than an artifact of the wrong column name.
+  const INSERT_PAYLOAD: Record<(typeof PUBLIC_VIEWS)[number], Record<string, unknown>> = {
+    partners_public: { name: `Injected ${Date.now()}`, website_url: 'https://example.org' },
+    resources_public: { name: `Injected ${Date.now()}` },
+    headline_stats_public: { value: 'x', label: `Injected ${Date.now()}` },
+    compute_metrics_public: { value: 'x', label: `Injected ${Date.now()}` },
+    site_content_public: { key: `injected-${Date.now()}`, value: 'x', locale: 'en' },
+    programmes_public: { title: `Injected ${Date.now()}` },
+    impact_stories_public: { organisation: `Injected ${Date.now()}` },
+    need_counts_public: { need_primary: 'compute', live_count: 999 },
+  };
+
+  const UPDATE_PAYLOAD: Record<(typeof WRITABLE_SHAPE_VIEWS)[number], Record<string, unknown>> = {
+    partners_public: { name: `Overwritten ${Date.now()}` },
+    headline_stats_public: { label: `Overwritten ${Date.now()}` },
+    compute_metrics_public: { label: `Overwritten ${Date.now()}` },
+    site_content_public: { value: `Overwritten ${Date.now()}` },
+    programmes_public: { title: `Overwritten ${Date.now()}` },
+    impact_stories_public: { organisation: `Overwritten ${Date.now()}` },
+  };
+
+  // site_content_public has no `id` column (its key is key+locale), so the
+  // update's WHERE filter must name a column the view actually has -- and
+  // the filter value must be type-valid for that column (a non-uuid
+  // string against a uuid column errors at parse time, before Postgres
+  // ever reaches the permission check this test wants to exercise).
+  const UPDATE_FILTER: Record<(typeof WRITABLE_SHAPE_VIEWS)[number], [string, string]> = {
+    partners_public: ['id', '00000000-0000-0000-0000-000000000000'],
+    headline_stats_public: ['id', '00000000-0000-0000-0000-000000000000'],
+    compute_metrics_public: ['id', '00000000-0000-0000-0000-000000000000'],
+    site_content_public: ['key', 'no-such-key'],
+    programmes_public: ['id', '00000000-0000-0000-0000-000000000000'],
+    impact_stories_public: ['id', '00000000-0000-0000-0000-000000000000'],
+  };
+
   it('cannot be written through anonymously on any public view', async () => {
     const anon = anonClient();
     for (const view of PUBLIC_VIEWS) {
-      const { error: insertError } = await anon.from(view).insert({
-        name: `Injected ${Date.now()}`,
-      } as never);
+      const { error: insertError } = await anon.from(view).insert(INSERT_PAYLOAD[view] as never);
       expect(insertError, `${view} accepted an anonymous insert`).not.toBeNull();
     }
     for (const view of WRITABLE_SHAPE_VIEWS) {
+      const [column, value] = UPDATE_FILTER[view];
       const { error: updateError } = await anon
         .from(view)
-        .update({ name: `Overwritten ${Date.now()}` } as never)
-        .eq('id', '00000000-0000-0000-0000-000000000000');
+        .update(UPDATE_PAYLOAD[view] as never)
+        .eq(column, value);
       expect(updateError, `${view} accepted an anonymous update`).not.toBeNull();
     }
   });
