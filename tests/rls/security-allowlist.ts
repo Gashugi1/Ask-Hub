@@ -54,6 +54,11 @@ export const ANON_SELECTABLE: Record<string, Exception> = {
   },
 };
 
+// Keyed by `proname(identity_args)` (e.g. `"my_fn(a text, b int)"`), not
+// proname alone -- matching how G12 in tests/rls/schema-guards.test.ts
+// looks entries up and how it prints an offender, so two overloads of the
+// same function name cannot share one slot.
+//
 // Intentionally empty. Anonymous writes get no allow-list slot at all:
 // the public submission form, digest signup and contact form all need an
 // anonymous-facing insert, and the correct implementation is a server

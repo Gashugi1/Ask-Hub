@@ -298,6 +298,26 @@ as $$
   where vn.nspname = 'public'
     and v.relkind = 'v'
     and btn.nspname = 'public'
+    -- Same extension-member exclusion every other helper in this file
+    -- applies, checked against both sides of the dependency (the view
+    -- itself and the base table it reads): without it, a view or table
+    -- shipped by an extension into public would be in scope here even
+    -- though every other helper structurally excludes it. No live effect
+    -- today -- zero extension-owned relations exist in public -- but the
+    -- section comment above claims this exclusion applies everywhere in
+    -- this file, and this function was the one place that didn't.
+    and not exists (
+      select 1 from pg_catalog.pg_depend ext
+      where ext.classid = 'pg_catalog.pg_class'::regclass
+        and ext.objid = v.oid
+        and ext.deptype = 'e'
+    )
+    and not exists (
+      select 1 from pg_catalog.pg_depend ext
+      where ext.classid = 'pg_catalog.pg_class'::regclass
+        and ext.objid = bt.oid
+        and ext.deptype = 'e'
+    )
 $$;
 
 revoke all on function public.view_column_sources() from public, anon, authenticated;
