@@ -1,11 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { anonClient, serviceClient } from '../helpers/clients';
 
-const FORBIDDEN_COLUMNS = [
-  'views', 'clicks', 'ctr', 'submitter_email', 'internal_notes',
-  'note', 'source_ip_hash', 'status', 'ip_hash', 'user_agent',
-];
-
 // Ruling 1: eight views. compute_metrics_public is the one the brief's
 // contract omits from Produces/Interfaces; it is created and tested here
 // like the other seven.
@@ -20,7 +15,7 @@ const PUBLIC_VIEWS = [
   'need_counts_public',
 ] as const;
 
-// Ruling 5: five of the eight are a single-table, simple-column-list
+// Ruling 5: six of the eight are a single-table, simple-column-list
 // projection over their base table, which Postgres treats as an
 // auto-updatable view. If anon somehow held (or was ever mistakenly
 // granted) write privilege on one of these, an insert/update would go
@@ -37,10 +32,6 @@ const WRITABLE_SHAPE_VIEWS = [
   'programmes_public',
   'impact_stories_public',
 ] as const;
-
-interface ColumnNameRow {
-  column_name: string;
-}
 
 let livePartnerId: string;
 
@@ -112,28 +103,30 @@ describe('public-safe views', () => {
     expect(names).not.toContain(pipelineName);
   });
 
-  it('exposes no internal or analytics column on any public view', async () => {
-    const svc = serviceClient();
-    for (const view of PUBLIC_VIEWS) {
-      const { data, error } = await svc.rpc('column_names', { table_name: view });
-      expect(error, `column_names failed for ${view}`).toBeNull();
-      const columns = (data as ColumnNameRow[]).map((c) => c.column_name.toLowerCase());
-      expect(columns.length, `${view} returned no columns -- does it exist?`).toBeGreaterThan(0);
-      for (const forbidden of FORBIDDEN_COLUMNS) {
-        expect(columns, `${view} exposes ${forbidden}`).not.toContain(forbidden);
-      }
-    }
-  });
+  // Requirement 8 (Task 11b): the hand-list FORBIDDEN_COLUMNS this test
+  // used to check against (10 names) is deleted, not replaced in place,
+  // because it is superseded by tests/rls/schema-guards.test.ts's G7,
+  // which is strictly stronger: G7 is driven by the full catalog of 18
+  // @sensitive-marked columns (this hand-list held 10 and would have
+  // passed unchanged the day a 19th sensitive column -- e.g. `email` on
+  // some future table -- was added to a view, since nothing here scales
+  // with the schema), and it is alias-proof (resolved through
+  // view_column_sources()'s pg_rewrite/pg_depend walk, so renaming a
+  // forbidden column in a view's select list cannot dodge it, unlike a
+  // name-based list here ever could). Keeping both would mean two
+  // independently-maintained descriptions of the same fact drifting apart
+  // silently; G7 is the one that cannot go stale.
 
   it('computes closed state and days left without exposing status', async () => {
     const svc = serviceClient();
     const name = `Past deadline ${Date.now()}`;
-    await svc.from('resources').insert({
+    const { error } = await svc.from('resources').insert({
       name, partner_id: livePartnerId,
       resource_type: 'Course', need_primary: 'training',
       description: 'closed', external_url: 'https://example.org/d',
       status: 'live', deadline: '2020-01-01',
     });
+    expect(error).toBeNull();
 
     const { data } = await anonClient()
       .from('resources_public')
@@ -148,12 +141,13 @@ describe('public-safe views', () => {
     const svc = serviceClient();
     const name = `Deadline today ${Date.now()}`;
     const today = new Date().toISOString().slice(0, 10);
-    await svc.from('resources').insert({
+    const { error } = await svc.from('resources').insert({
       name, partner_id: livePartnerId,
       resource_type: 'Course', need_primary: 'training',
       description: 'due today', external_url: 'https://example.org/e',
       status: 'live', deadline: today,
     });
+    expect(error).toBeNull();
 
     const { data } = await anonClient()
       .from('resources_public')
@@ -167,12 +161,13 @@ describe('public-safe views', () => {
   it('reports rolling resources with a null days_left', async () => {
     const svc = serviceClient();
     const name = `Rolling resource ${Date.now()}`;
-    await svc.from('resources').insert({
+    const { error } = await svc.from('resources').insert({
       name, partner_id: livePartnerId,
       resource_type: 'Credits', need_primary: 'compute',
       description: 'rolling', external_url: 'https://example.org/f',
       status: 'live', deadline: null,
     });
+    expect(error).toBeNull();
 
     const { data } = await anonClient()
       .from('resources_public')
@@ -235,11 +230,32 @@ describe('public-safe views', () => {
     impact_stories_public: ['id', '00000000-0000-0000-0000-000000000000'],
   };
 
+  // Requirement 8 (Task 11b): assert the SQLSTATE, not merely that some
+  // error occurred. `not.toBeNull()` alone is the same shape that would
+  // let a PGRST204 schema-cache rejection (wrong column name in the
+  // payload) masquerade as a real permission denial -- confirmed directly
+  // against this database: the six single-table views are auto-updatable,
+  // so their write is stopped by an actual GRANT check (42501, "permission
+  // denied for view <name>"); resources_public (a join) and
+  // need_counts_public (a GROUP BY aggregate) are not automatically
+  // updatable at all, so Postgres rejects the write before any privilege
+  // is even checked (55000, "cannot insert into view").
+  const AUTO_UPDATABLE_CODE = '42501';
+  const NOT_AUTO_UPDATABLE_CODE = '55000';
+
   it('cannot be written through anonymously on any public view', async () => {
     const anon = anonClient();
+    const writableShape: readonly string[] = WRITABLE_SHAPE_VIEWS;
     for (const view of PUBLIC_VIEWS) {
       const { error: insertError } = await anon.from(view).insert(INSERT_PAYLOAD[view] as never);
       expect(insertError, `${view} accepted an anonymous insert`).not.toBeNull();
+      const expectedCode = writableShape.includes(view)
+        ? AUTO_UPDATABLE_CODE
+        : NOT_AUTO_UPDATABLE_CODE;
+      expect(
+        insertError!.code,
+        `${view} insert failed with SQLSTATE ${insertError!.code} ("${insertError!.message}"), expected ${expectedCode}`,
+      ).toBe(expectedCode);
     }
     for (const view of WRITABLE_SHAPE_VIEWS) {
       const [column, value] = UPDATE_FILTER[view];
@@ -248,6 +264,26 @@ describe('public-safe views', () => {
         .update(UPDATE_PAYLOAD[view] as never)
         .eq(column, value);
       expect(updateError, `${view} accepted an anonymous update`).not.toBeNull();
+      expect(
+        updateError!.code,
+        `${view} update failed with SQLSTATE ${updateError!.code} ("${updateError!.message}"), expected ${AUTO_UPDATABLE_CODE}`,
+      ).toBe(AUTO_UPDATABLE_CODE);
+    }
+  });
+
+  // Requirement 8: today only resources_public and need_counts_public are
+  // actually read anonymously by the rest of this file. Without this test,
+  // dropping a view from the anon SELECT grant (supabase/migrations/
+  // 0009_public_views.sql) would leave every other test in this file green
+  // while the public page backed by that view now 403s. Asserting `error`
+  // is null only, not a row count: five of the eight base tables are
+  // empty in a fresh reset, so a row-count assertion would be asserting
+  // fixture data, not the grant.
+  it('can be read anonymously on all eight public views', async () => {
+    const anon = anonClient();
+    for (const view of PUBLIC_VIEWS) {
+      const { error } = await anon.from(view).select().limit(1);
+      expect(error, `${view} could not be read anonymously: ${error?.message}`).toBeNull();
     }
   });
 
