@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { anonClient, roleClient, serviceClient, ensureTestUsers } from '../helpers/clients';
 
 // One valid, complete insert payload per table -- each of these would
@@ -18,9 +18,40 @@ function validPayloads(stamp: number) {
   } as const;
 }
 
+// House rule: a suite may add its own fixture rows (stamped, disposable),
+// but it must never mutate a row the migration authored -- `settings` and
+// `site_content` both hold real, meaningful keys (ga4_measurement_id,
+// welcome_band_heading, ...) that other tasks read and seed against, and
+// there is no `db:reset` between suite runs in normal CI/dev use. Either
+// restore the row you touched (capture-then-restore, in `afterAll`, using
+// `serviceClient()` so RLS can't block the restore) or, simpler, touch a
+// throwaway `Date.now()`-suffixed key you own and delete in `afterAll`.
+// This suite takes the throwaway-key approach for both tables below: it
+// proves the same permission boundary (can editor/admin write this table
+// at all) without ever reading or writing a real content/config key, and
+// cleanup is then an unconditional delete rather than a captured value to
+// remember and put back correctly.
+const suiteStamp = Date.now();
+const throwawaySettingsKey = `test_settings_probe_${suiteStamp}`;
+const throwawaySiteContentKey = `test_site_content_probe_${suiteStamp}`;
+
 describe('site content and settings', () => {
   beforeAll(async () => {
     await ensureTestUsers();
+    const svc = serviceClient();
+    const { error } = await svc
+      .from('settings')
+      .insert({ key: throwawaySettingsKey, value: '""' });
+    if (error) throw error;
+  });
+
+  afterAll(async () => {
+    // Unconditional cleanup, independent of which assertions above passed
+    // or failed, so a mid-suite failure never leaves either throwaway row
+    // behind.
+    const svc = serviceClient();
+    await svc.from('settings').delete().eq('key', throwawaySettingsKey);
+    await svc.from('site_content').delete().eq('key', throwawaySiteContentKey);
   });
 
   it('does not expose settings anonymously', async () => {
@@ -33,7 +64,7 @@ describe('site content and settings', () => {
     const { error } = await editor
       .from('site_content')
       .upsert(
-        { key: 'welcome_band_heading', value: 'Edited by editor', locale: 'en' },
+        { key: throwawaySiteContentKey, value: 'Edited by editor', locale: 'en' },
         { onConflict: 'key,locale' },
       );
     expect(error).toBeNull();
@@ -44,7 +75,7 @@ describe('site content and settings', () => {
     const { error } = await editor
       .from('settings')
       .update({ value: '"G-HACKED"' })
-      .eq('key', 'ga4_measurement_id');
+      .eq('key', throwawaySettingsKey);
 
     // A PostgREST UPDATE that matches zero rows (because the RLS USING
     // clause hides every row from editor) returns success with no error,
@@ -54,20 +85,22 @@ describe('site content and settings', () => {
     // against this stack (curl straight to PostgREST, and psql) rather
     // than assumed: sending the JS string '"G-HACKED"' (quotes included)
     // through a PostgREST update on a jsonb column does NOT get parsed as
-    // JSON text and unwrapped. PostgREST treats the parsed request value
-    // as opaque text and wraps it as-is into a jsonb string scalar, so the
-    // quote characters become part of the stored string content. A
-    // genuine successful write therefore reads back as the JS string
-    // '"G-HACKED"' with the quotes still in it, byte for byte identical to
-    // the input -- not the bare 'G-HACKED' that naive JSON-in/JSON-out
-    // reasoning would suggest. (Contrast contact_email below, seeded via a
-    // raw SQL `::jsonb` cast rather than a PostgREST request body: that
-    // path single-encodes correctly and reads back bare, with no quotes.)
+    // JSON text and unwrapped. PostgREST assigns the parsed JSON value
+    // directly to the jsonb column rather than casting text through
+    // Postgres's JSON parser, so the quote characters become part of the
+    // stored string content. A genuine successful write therefore reads
+    // back as the JS string '"G-HACKED"' with the quotes still in it,
+    // byte for byte identical to the input -- not the bare 'G-HACKED'
+    // that naive JSON-in/JSON-out reasoning would suggest. (Contrast
+    // contact_email below, seeded via a raw SQL `::jsonb` cast rather
+    // than a PostgREST request body: that path does parse, and reads
+    // back bare, with no quotes -- two different round-trip behaviours
+    // on the same column type.)
     const svc = serviceClient();
     const { data } = await svc
       .from('settings')
       .select('value')
-      .eq('key', 'ga4_measurement_id')
+      .eq('key', throwawaySettingsKey)
       .single();
     expect(data!.value).not.toBe('"G-HACKED"');
     if (error) expect(error.code).toBe('42501');
@@ -78,7 +111,7 @@ describe('site content and settings', () => {
     const { error } = await admin
       .from('settings')
       .update({ value: '"G-TESTONLY"' })
-      .eq('key', 'ga4_measurement_id');
+      .eq('key', throwawaySettingsKey);
     expect(error).toBeNull();
 
     // The bare success above would also occur if the update matched zero
@@ -90,7 +123,7 @@ describe('site content and settings', () => {
     const { data } = await svc
       .from('settings')
       .select('value')
-      .eq('key', 'ga4_measurement_id')
+      .eq('key', throwawaySettingsKey)
       .single();
     expect(data!.value).toBe('"G-TESTONLY"');
   });
