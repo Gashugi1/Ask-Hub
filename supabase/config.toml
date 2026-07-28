@@ -224,7 +224,19 @@ web3 = 30
 
 [auth.email]
 # Allow/disallow new user signups via email to your project.
-enable_signup = false
+#
+# This must stay `true`, even though there is no public sign-up route and
+# self-registration is unwanted (PRD 3, 14.3; enforced by the top-level
+# `[auth] enable_signup = false` above and by no app route ever calling
+# `auth.signUp()`). Verified directly against this stack: when this
+# email-provider-level flag is `false`, GoTrue disables the email provider
+# entirely -- not just the signup grant -- so `signInWithPassword` fails
+# for every already-provisioned user with "Email logins are disabled". This
+# is a known upstream conflation (supabase/auth#330: disabling email signup
+# disables email login too). Flipping only this flag to `true` restores
+# login for admin-provisioned accounts while `[auth] enable_signup = false`
+# still blocks the self-service signup grant GoTrue would otherwise accept.
+enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
