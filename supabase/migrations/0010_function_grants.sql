@@ -1,0 +1,41 @@
+-- Postgres grants EXECUTE to PUBLIC on every new function by default --
+-- confirmed directly: public.set_updated_at() has proacl = NULL (never
+-- explicitly granted or revoked), and has_function_privilege('anon', ...,
+-- 'EXECUTE') is nonetheless true, because a NULL proacl means "use the
+-- built-in default", which for a function is EXECUTE to PUBLIC. PostgREST
+-- exposes every function in the `public` schema at /rpc/<name>, so this is
+-- the function-level analogue of the table-level Dxtm residue that
+-- supabase/migrations/README.md already has every table migration strip
+-- explicitly.
+--
+-- The function is only ever invoked as a trigger (`before update ... for
+-- each row execute function public.set_updated_at()`), and a trigger runs
+-- as the table owner regardless of which roles hold EXECUTE on the
+-- function being invoked -- confirmed by re-running `supabase db reset`
+-- and updating a row as `authenticated` afterwards; `updated_at` still
+-- advances. Revoking EXECUTE from PUBLIC/anon/authenticated therefore
+-- closes the only path any of those roles had into this function (calling
+-- it directly via /rpc/set_updated_at, which would otherwise silently
+-- succeed and return the trigger pseudo-type) without touching the one
+-- path it is meant to be reachable by.
+--
+-- A new numbered migration, not an edit to 0001_extensions.sql where the
+-- function is defined: this project's convention is new migrations only,
+-- never appending to one already shipped (see 0005_community.sql's own
+-- comment on the same point).
+revoke all on function public.set_updated_at() from public, anon, authenticated;
+
+-- Same residue, same fix, a second instance Task 11b's G12 guard found
+-- that the brief's own F4 did not name: public.audit_log_append_only()
+-- (defined in 0007_logs.sql) also carries no explicit revoke, so it is
+-- executable by anon/PUBLIC by the same Postgres default -- confirmed
+-- directly, the same way as set_updated_at() above. It is only ever
+-- invoked as the before-update/before-delete trigger body enforcing
+-- audit_log's append-only invariant; calling it directly errors with
+-- "trigger functions can only be called as triggers" before its body
+-- ever runs, so nothing is exploitable today, but leaving the residue in
+-- place is the same inconsistency G12 exists to catch, and the same
+-- "not by withholding EXECUTE from the one caller that needs it" fix
+-- applies: a trigger runs regardless of the invoking session's EXECUTE
+-- privilege on the function it calls.
+revoke all on function public.audit_log_append_only() from public, anon, authenticated;

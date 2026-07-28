@@ -96,11 +96,39 @@ where r.status = 'live'
 group by r.need_primary;
 
 -- Views carry no RLS policies of their own -- security_invoker = false
--- above is what makes each one readable at all. This single grant is the
--- only privilege anon or authenticated ever hold on this public surface;
--- neither role holds insert/update/delete on any of these eight views, so
--- none of them can be written through, whatever shape Postgres considers
--- them (see the anonymous-write test in tests/rls/public-views.test.ts).
+-- above is what makes each one readable at all.
+--
+-- A newly created view, like a newly created table, inherits a default
+-- ACL from pg_default_acl for schema public -- confirmed directly: before
+-- this revoke, anon's relacl entry on every one of these eight views was
+-- `rDxtm`, not merely `r`. The four extra letters (TRUNCATE, REFERENCES,
+-- TRIGGER, MAINTAIN) are the same residue supabase/migrations/README.md
+-- already has every table migration strip explicitly; this file never had
+-- the equivalent revoke, so the eight views quietly kept it. None of the
+-- four is exploitable on a plain view -- TRUNCATE and MAINTAIN are no-ops
+-- without table storage, REFERENCES and TRIGGER need a target that doesn't
+-- exist here -- but leaving it in place is exactly the inconsistency a
+-- schema-wide guard (tests/rls/schema-guards.test.ts G3/G4) exists to
+-- surface, and the previous comment below claiming SELECT was "the only
+-- privilege anon or authenticated ever hold on this public surface" was
+-- demonstrably false while that residue stood.
+revoke all on
+  public.partners_public,
+  public.resources_public,
+  public.headline_stats_public,
+  public.compute_metrics_public,
+  public.site_content_public,
+  public.programmes_public,
+  public.impact_stories_public,
+  public.need_counts_public
+from anon, authenticated;
+
+-- SELECT is now the only privilege anon or authenticated hold on this
+-- public surface, the revoke above having just stripped the inherited
+-- residue: neither role holds insert/update/delete on any of these eight
+-- views, so none of them can be written through, whatever shape Postgres
+-- considers them (see the anonymous-write test in
+-- tests/rls/public-views.test.ts).
 grant select on
   public.partners_public,
   public.resources_public,
