@@ -23,11 +23,21 @@ Every table migration must therefore follow this shape:
 
 ```sql
 alter table public.X enable row level security;
-revoke all on table public.X from anon;
+revoke all on table public.X from anon, authenticated;
 grant select, insert, update, delete on public.X to authenticated;
 grant all on public.X to service_role;
 -- then the policies
 ```
+
+The revoke covers `authenticated`, not just `anon`. That same `Dxtm`
+default residue (TRUNCATE, REFERENCES, TRIGGER, MAINTAIN) lands on
+`authenticated` too, and TRUNCATE is not subject to row-level security --
+no policy can stop it. A role that is meant to hold no write privilege at
+all (a role with no insert/update/delete policy on the table, such as
+`editor` or `viewer` on most tables) would otherwise still be able to
+empty it outright via TRUNCATE, entirely outside what RLS governs.
+Revoking from `authenticated` first and re-granting exactly the four DML
+verbs removes that residue without changing the intended grant.
 
 Anonymous access, where a table is meant to be publicly readable at all,
 goes through a public-safe view instead of a direct grant to `anon` --

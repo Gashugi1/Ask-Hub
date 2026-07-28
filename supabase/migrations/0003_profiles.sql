@@ -29,7 +29,14 @@ alter table public.profiles enable row level security;
 -- fails on a permission check before RLS is ever evaluated. `editor` and
 -- `viewer` are still denied writes: not by withholding the grant, but by
 -- having no write policy, which is what the policies further down encode.
-revoke all on table public.profiles from anon;
+--
+-- The revoke covers `authenticated` too, not just `anon`: that same
+-- default residue includes TRUNCATE, and TRUNCATE is not subject to row
+-- level security. Left in place, `viewer` -- which has no write policy at
+-- all -- would still hold a privilege that empties the table outright, no
+-- policy able to stop it. Revoking first and re-granting exactly the four
+-- verbs below removes the residue without changing the intended grant.
+revoke all on table public.profiles from anon, authenticated;
 grant select, insert, update, delete on public.profiles to authenticated;
 grant all on public.profiles to service_role;
 
@@ -108,6 +115,14 @@ begin
   return new;
 end;
 $$;
+
+-- Symmetric with current_app_role() above. Not exploitable today --
+-- calling this as anon errors with "trigger functions can only be called
+-- as triggers" before the body ever runs -- but leaving it ungranted-only
+-- is the precedent that matters: a later task copying this file's shape
+-- for a non-trigger SECURITY DEFINER function without this revoke would
+-- create a real hole.
+revoke all on function public.handle_new_user() from public, anon, authenticated;
 
 create trigger on_auth_user_created
   after insert on auth.users
