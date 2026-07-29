@@ -15,15 +15,18 @@ export interface Exception {
   why: string;
 }
 
-// The eight public-safe views created by supabase/migrations/0009_public_views.sql.
-// This is the entire anonymous read surface (CLAUDE.md: "Anonymous reads
-// go through public-safe views that exclude views, clicks, CTR, submitter
-// emails and internal notes").
+// The seven public-safe views created by supabase/migrations/0009_public_views.sql
+// and rebuilt (resources_public) or removed (partners_public) by
+// supabase/migrations/0013_reconcile_partners.sql. This is the entire
+// anonymous read surface (CLAUDE.md: "Anonymous reads go through
+// public-safe views that exclude views, clicks, CTR, submitter emails and
+// internal notes").
+//
+// partners_public is gone: the human ruling behind Task 12r denormalised
+// partner identity into a plain `resources.partner` string and dropped
+// the partners table entirely, so there is no longer a separate partners
+// entity for this view to project.
 export const ANON_SELECTABLE: Record<string, Exception> = {
-  partners_public: {
-    approvedIn: 'SP1-T11',
-    why: 'Public-safe projection of partners for the site footer and partner strip; excludes no sensitive column because partners carries none.',
-  },
   resources_public: {
     approvedIn: 'SP1-T11',
     why: 'The public resource directory itself, filtered to status = live and excluding views/clicks/ctr and the internal status column.',
@@ -68,5 +71,5 @@ export const ANON_SELECTABLE: Record<string, Exception> = {
 // that shortcut, so there is no slot to fill.
 export const ANON_EXECUTABLE: Record<string, Exception> = {};
 
-export const EXPECTED_ANON_SELECTABLE = 8;
+export const EXPECTED_ANON_SELECTABLE = 7;
 export const EXPECTED_ANON_EXECUTABLE = 0;

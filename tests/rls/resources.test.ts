@@ -1,29 +1,16 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { anonClient, roleClient, serviceClient, ensureTestUsers } from '../helpers/clients';
 
-let partnerId: string;
-
 describe('partners and resources', () => {
   beforeAll(async () => {
     await ensureTestUsers();
-    const svc = serviceClient();
-    const { data, error } = await svc
-      .from('partners')
-      .insert({
-        name: `Test Partner ${Date.now()}`,
-        website_url: 'https://example.org',
-        tier: 'network',
-      })
-      .select('id')
-      .single();
-    if (error) throw error;
-    partnerId = data.id;
   });
 
   it('rejects a non-https external_url', async () => {
     const svc = serviceClient();
     const { error } = await svc.from('resources').insert({
-      name: `Insecure ${Date.now()}`, partner_id: partnerId, resource_type: 'Course',
+      name: `Insecure ${Date.now()}`, partner: 'Test Partner', partner_tier: 'network',
+      resource_type: 'Course',
       need_primary: 'training', description: 'x',
       external_url: 'http://example.org/apply',
     });
@@ -33,7 +20,8 @@ describe('partners and resources', () => {
   it('rejects an SVG banner image url', async () => {
     const svc = serviceClient();
     const { error } = await svc.from('resources').insert({
-      name: `Svg banner ${Date.now()}`, partner_id: partnerId, resource_type: 'Course',
+      name: `Svg banner ${Date.now()}`, partner: 'Test Partner', partner_tier: 'network',
+      resource_type: 'Course',
       need_primary: 'training', description: 'x',
       external_url: 'https://example.org/apply',
       banner_image_url: 'https://example.org/logo.svg',
@@ -48,7 +36,8 @@ describe('partners and resources', () => {
     // end-of-string, `?` or `#`, so `.svg/...` slipped through uncaught.
     const svc = serviceClient();
     const { error } = await svc.from('resources').insert({
-      name: `Svg mid-path banner ${Date.now()}`, partner_id: partnerId, resource_type: 'Course',
+      name: `Svg mid-path banner ${Date.now()}`, partner: 'Test Partner', partner_tier: 'network',
+      resource_type: 'Course',
       need_primary: 'training', description: 'x',
       external_url: 'https://example.org/apply',
       banner_image_url: 'https://example.org/logo.svg/banner.png',
@@ -61,7 +50,8 @@ describe('partners and resources', () => {
     // risk as .svg; the constraint must catch it too.
     const svc = serviceClient();
     const { error } = await svc.from('resources').insert({
-      name: `Svgz banner ${Date.now()}`, partner_id: partnerId, resource_type: 'Course',
+      name: `Svgz banner ${Date.now()}`, partner: 'Test Partner', partner_tier: 'network',
+      resource_type: 'Course',
       need_primary: 'training', description: 'x',
       external_url: 'https://example.org/apply',
       banner_image_url: 'https://example.org/logo.svgz',
@@ -69,15 +59,21 @@ describe('partners and resources', () => {
     expect(error?.code).toBe('23514');
   });
 
+  // Note: partner logos no longer exist anywhere in the schema -- the
+  // partners table (and its partners_logo_not_svg constraint) is gone per
+  // Task 12r's denormalisation ruling (H8). There is nothing left to guard
+  // on that side; the two SVG regression cases above still cover
+  // resources.banner_image_url, whose constraint is untouched.
+
   it('is not readable anonymously on the base table', async () => {
     // Insert a real row via service_role first so an unguarded anon read
     // would actually return something -- without this, resources is empty
-    // at this point in the file (the two preceding cases are constraint
+    // at this point in the file (the preceding cases are constraint
     // violations that never persist), and the length assertion alone would
     // pass vacuously even if anon held full SELECT.
     const svc = serviceClient();
     const { error: insertError } = await svc.from('resources').insert({
-      name: `Anon probe ${Date.now()}`, partner_id: partnerId,
+      name: `Anon probe ${Date.now()}`, partner: 'Test Partner', partner_tier: 'network',
       resource_type: 'Course', need_primary: 'training',
       description: 'x', external_url: 'https://example.org/apply',
     });
@@ -91,22 +87,19 @@ describe('partners and resources', () => {
     expect(error?.code).toBe('42501');
   });
 
-  it('is not readable anonymously on partners', async () => {
-    // partners already has a row by this point (the beforeAll insert), so
-    // this needs no extra setup -- just assert anon is denied the same way
-    // resources is. The public site reads both tables only through a later
-    // *_public view; neither base table is anon-readable.
-    const { data, error } = await anonClient().from('partners').select('id');
-    expect(data ?? []).toHaveLength(0);
-    expect(error?.code).toBe('42501');
-  });
+  // "is not readable anonymously on partners" is deleted: the partners
+  // table no longer exists (Task 12r). tests/rls/schema-guards.test.ts's
+  // G2 already asserts, catalog-wide, that anon holds no SELECT/INSERT/
+  // UPDATE/DELETE on any base table -- a strict superset of what that case
+  // checked, so nothing is lost by removing it rather than replacing it
+  // with a weaker per-table variant.
 
   it('lets editor create a resource', async () => {
     const client = await roleClient('editor');
     const { data, error } = await client
       .from('resources')
       .insert({
-        name: `Editor created ${Date.now()}`, partner_id: partnerId,
+        name: `Editor created ${Date.now()}`, partner: 'Test Partner', partner_tier: 'network',
         resource_type: 'Credits', need_primary: 'compute',
         description: 'Created by editor in the RLS test.',
         external_url: 'https://example.org/apply',
@@ -120,7 +113,7 @@ describe('partners and resources', () => {
   it('does not let viewer create a resource', async () => {
     const client = await roleClient('viewer');
     const { error } = await client.from('resources').insert({
-      name: `Viewer created ${Date.now()}`, partner_id: partnerId,
+      name: `Viewer created ${Date.now()}`, partner: 'Test Partner', partner_tier: 'network',
       resource_type: 'Credits', need_primary: 'compute',
       description: 'Should never persist.',
       external_url: 'https://example.org/apply',
@@ -135,7 +128,7 @@ describe('partners and resources', () => {
     const { data: seeded } = await svc
       .from('resources')
       .insert({
-        name: `Untouchable ${Date.now()}`, partner_id: partnerId,
+        name: `Untouchable ${Date.now()}`, partner: 'Test Partner', partner_tier: 'network',
         resource_type: 'Credits', need_primary: 'compute',
         description: 'original', external_url: 'https://example.org/apply',
       })
@@ -158,12 +151,47 @@ describe('partners and resources', () => {
     const { data } = await svc
       .from('resources')
       .insert({
-        name: `Default status ${Date.now()}`, partner_id: partnerId,
+        name: `Default status ${Date.now()}`, partner: 'Test Partner', partner_tier: 'network',
         resource_type: 'Course', need_primary: 'training',
         description: 'x', external_url: 'https://example.org/apply',
       })
       .select('status')
       .single();
     expect(data!.status).toBe('pipeline');
+  });
+
+  // Ruling H10: exclusivity replaces is_exclusive boolean because the
+  // prototype's field is three-state and a boolean cannot distinguish
+  // "early access" from "exclusive to AskHub" -- rendering one as the
+  // other overstates the claim. This case is the direct test of that
+  // distinction: both real values are accepted, and a third is rejected
+  // at the enum level (22P02, invalid input value for enum), not merely
+  // by a CHECK constraint.
+  it('accepts exclusive and early_access but rejects any other exclusivity value', async () => {
+    const svc = serviceClient();
+
+    const exclusive = await svc.from('resources').insert({
+      name: `Exclusive resource ${Date.now()}`, partner: 'Test Partner', partner_tier: 'network',
+      resource_type: 'Course', need_primary: 'training',
+      description: 'x', external_url: 'https://example.org/apply',
+      exclusivity: 'exclusive',
+    });
+    expect(exclusive.error).toBeNull();
+
+    const earlyAccess = await svc.from('resources').insert({
+      name: `Early access resource ${Date.now()}`, partner: 'Test Partner', partner_tier: 'network',
+      resource_type: 'Course', need_primary: 'training',
+      description: 'x', external_url: 'https://example.org/apply',
+      exclusivity: 'early_access',
+    });
+    expect(earlyAccess.error).toBeNull();
+
+    const bogus = await svc.from('resources').insert({
+      name: `Bogus exclusivity resource ${Date.now()}`, partner: 'Test Partner', partner_tier: 'network',
+      resource_type: 'Course', need_primary: 'training',
+      description: 'x', external_url: 'https://example.org/apply',
+      exclusivity: 'not_a_real_value',
+    });
+    expect(bogus.error?.code).toBe('22P02');
   });
 });

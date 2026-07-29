@@ -6,7 +6,7 @@ const EXPECTED: Record<string, string[]> = {
   resource_status: ['live', 'pipeline', 'reference'],
   need_type: ['compute', 'training', 'funding', 'accelerator', 'partners'],
   geo_scope: ['global', 'all_africa', 'partner_countries', 'specific'],
-  partner_tier: ['strategic', 'network', 'institutional', 'other'],
+  partner_tier: ['strategic', 'government', 'development_partner', 'academic', 'network'],
   submission_type: ['new_resource', 'update_suggestion'],
   submission_status: ['pending', 'approved', 'rejected'],
   partnership_stage: ['prospecting', 'in_discussion', 'active', 'delivered'],
