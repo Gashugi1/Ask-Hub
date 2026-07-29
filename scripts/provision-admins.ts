@@ -48,6 +48,21 @@ function stepFail(message: string): never {
   throw new ProvisionStepError(message);
 }
 
+/**
+ * Thrown when the operator sends Ctrl-D (EOF, byte 0x04) at a password
+ * prompt. Raw mode is what makes this need explicit handling: in canonical
+ * mode the tty driver turns Ctrl-D into EOF, but raw mode disables that
+ * translation, so without this check the byte would fall through to
+ * `value += char` and silently corrupt the password with an invisible
+ * control character -- the operator would not find out until a later
+ * sign-in failed, which is exactly the class of lockout this task exists to
+ * remove. Ctrl-D is common muscle memory for "cancel", so it is treated as
+ * an explicit, reported cancellation rather than either appended silently or
+ * swallowed with no feedback (the operator would have no way to tell a
+ * swallowed keystroke from an unresponsive terminal).
+ */
+class OperatorCancelledError extends Error {}
+
 const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -88,17 +103,25 @@ if (emails.length < 2) {
   );
 }
 
-// Provisioning an admin is a deliberate human act: the operator must be
-// present to type each password. A pipe, redirect, or CI runner reaching
-// this line has no operator behind it, so refuse loudly now rather than
-// hanging on a prompt that will never be answered, or silently reading
-// piped bytes as if they were a typed password.
-if (!process.stdin.isTTY) {
+// Provisioning an admin is a deliberate human act: the operator must be able
+// to both see each prompt and type the answer to it. A pipe, redirect, or CI
+// runner reaching this line has no operator behind it, so refuse loudly now
+// rather than hanging on a prompt that will never be answered, silently
+// reading piped bytes as if they were a typed password, or -- the stdout
+// case -- printing prompts nobody can see while the operator types a
+// password blind into a redirected file. Named explicitly so the message
+// says which stream is the problem rather than a generic "not a terminal".
+const nonTtyStreams = [
+  !process.stdin.isTTY ? 'stdin' : null,
+  !process.stdout.isTTY ? 'stdout' : null,
+].filter((name): name is string => name !== null);
+if (nonTtyStreams.length > 0) {
   fail(
-    'stdin is not a terminal. This script collects admin passwords ' +
-      'interactively and refuses to run where there is no operator present ' +
-      'to type them -- piping input, redirecting from a file, and running ' +
-      'under CI are all refused for the same reason.',
+    `${nonTtyStreams.join(' and ')} ${nonTtyStreams.length === 1 ? 'is' : 'are'} not a terminal. ` +
+      'This script collects admin passwords interactively and refuses to run ' +
+      'where there is no operator present to see the prompts and type the ' +
+      'answers -- piping or redirecting input, redirecting output, and ' +
+      'running under CI are all refused for the same reason.',
   );
 }
 
@@ -185,10 +208,25 @@ function readHiddenLine(promptText: string): Promise<string> {
     const onStreamError = (error: Error) => {
       finish({ ok: false, error });
     };
-    const onData = (chunk: Buffer) => {
-      for (const char of chunk.toString('utf8')) {
+    // `stdin.setEncoding('utf8')` below runs before this listener is
+    // attached, so `data` delivers decoded strings, not Buffers -- typed
+    // accordingly rather than as `Buffer` with a `.toString()` call that
+    // would only coincidentally work (String.prototype.toString() ignores
+    // its argument and returns the string unchanged).
+    const onData = (chunk: string) => {
+      for (const char of chunk) {
         if (char === '') {
           onSigint();
+          return;
+        }
+        if (char === '') {
+          // EOF/Ctrl-D: an explicit, reported cancel -- see
+          // OperatorCancelledError's doc comment for why this needs its own
+          // branch instead of falling through to the default append below.
+          finish({
+            ok: false,
+            error: new OperatorCancelledError('operator sent Ctrl-D (EOF) while entering a password'),
+          });
           return;
         }
         if (char === '\r' || char === '\n') {
@@ -378,18 +416,34 @@ async function main() {
     try {
       result = await provisionOne(email);
     } catch (error) {
-      const stepMessage = error instanceof ProvisionStepError ? error.message : undefined;
       const provisioned = results.map((r) => r.email);
+      // Shared between the operator-cancel and step-failure branches below:
+      // a cancel mid-run leaves the same real, un-rolled-back accounts a
+      // failure does, so the operator needs the same partial-state notice
+      // either way.
+      const partialNote =
+        provisioned.length > 0
+          ? `\nPartial run: ${provisioned.join(', ')} ${
+              provisioned.length === 1 ? 'was' : 'were'
+            } already provisioned and promoted to admin before this failure. ` +
+            'That account is real and was not rolled back -- do not attempt to ' +
+            're-provision it, and do not assume this run left no trace.'
+          : '\nNo accounts were provisioned before this failure.';
+
+      if (error instanceof OperatorCancelledError) {
+        // Exit 1, not 130: 130 is the conventional code for a delivered
+        // SIGINT specifically (already used by the Ctrl-C/SIGINT path in
+        // readHiddenLine), whereas this is an EOF-based cancel surfaced as
+        // an ordinary thrown error, so it takes the same exit code as every
+        // other operator-facing refusal in this script via fail().
+        fail(`run cancelled while provisioning ${email}: ${error.message}.` + partialNote);
+      }
+
+      const stepMessage = error instanceof ProvisionStepError ? error.message : undefined;
       fail(
         `provisioning ${email} failed: ` +
           (stepMessage ?? (error instanceof Error ? error.message : String(error))) +
-          (provisioned.length > 0
-            ? `\nPartial run: ${provisioned.join(', ')} ${
-                provisioned.length === 1 ? 'was' : 'were'
-              } already provisioned and promoted to admin before this failure. ` +
-              'That account is real and was not rolled back -- do not attempt to ' +
-              're-provision it, and do not assume this run left no trace.'
-            : '\nNo accounts were provisioned before this failure.'),
+          partialNote,
       );
     }
     printResult(result);
