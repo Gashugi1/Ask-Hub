@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { anonClient, roleClient, serviceClient, ensureTestUsers } from '../helpers/clients';
 
-describe('partners and resources', () => {
+describe('resources', () => {
   beforeAll(async () => {
     await ensureTestUsers();
   });

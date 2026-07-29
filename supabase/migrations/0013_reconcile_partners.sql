@@ -131,23 +131,25 @@ alter table public.resources
 -- join -- partners is gone) but keeps the output column name
 -- `partner_name` so the view's contract stays descriptive; drops
 -- partner_logo_url and partner_website_url entirely, since those columns
--- no longer exist anywhere in the schema; projects `exclusivity` where it
--- previously projected `is_exclusive` -- cast to text, not the bare enum.
--- tests/rls/schema-guards.test.ts's G14 allow-lists only
--- {need_type, geo_scope, partner_tier} as enum types a *_public view may
--- expose; G14's own remediation is exactly this shape for resources.status
--- ("compute [a derived value] in the view instead of projecting the enum
--- itself" -- the is_closed boolean below, not status). The same move
--- applies here: the text cast carries the same two values a client needs
--- ('exclusive' / 'early_access' / null) without adding public.exclusivity
--- to G14's allow-list, which is not this migration's call to make. Still
--- filters on `status = 'live'`
--- without ever projecting `status` (PRD 4.2: a past deadline never
--- transitions status, so status itself is deliberately absent from this
--- view), and still computes is_closed/days_left with the same boundary:
--- a deadline of exactly current_date is NOT closed (matches
--- src/lib/deadline.ts: daysLeft < 0 is the only closed condition,
--- daysLeft === 0 is "expiring", not "closed").
+-- no longer exist anywhere in the schema; projects the bare `exclusivity`
+-- enum where it previously projected `is_exclusive`. tests/rls/
+-- schema-guards.test.ts's G14 allow-lists exclusivity alongside need_type,
+-- geo_scope and partner_tier as public-safe enum types -- see that
+-- guard's comment for why exclusivity (a two-value public badge with no
+-- internal-workflow meaning) belongs on that list and resource_status does
+-- not. Projecting the real enum, not a `::text` cast, is what lets the
+-- generated Supabase types make the badge's render switch exhaustive over
+-- exactly {'exclusive','early_access'} -- the whole point of rejecting a
+-- boolean here (ruling H10) was to stop "early access" rendering as
+-- "exclusive"; a widened `string` type would silently reopen that door in
+-- the render layer with nothing left to stop it.
+--
+-- Still filters on `status = 'live'` without ever projecting `status`
+-- (PRD 4.2: a past deadline never transitions status, so status itself is
+-- deliberately absent from this view), and still computes is_closed/
+-- days_left with the same boundary: a deadline of exactly current_date is
+-- NOT closed (matches src/lib/deadline.ts: daysLeft < 0 is the only closed
+-- condition, daysLeft === 0 is "expiring", not "closed").
 create view public.resources_public
 with (security_invoker = false) as
 select
@@ -172,7 +174,7 @@ select
   r.geo_scope,
   r.deadline,
   r.is_featured,
-  r.exclusivity::text as exclusivity,
+  r.exclusivity,
   r.sort_order,
   r.added_date,
   (r.deadline is not null and r.deadline < current_date) as is_closed,
@@ -189,3 +191,22 @@ where r.status = 'live';
 -- exists.
 revoke all on public.resources_public from anon, authenticated;
 grant select on public.resources_public to anon, authenticated;
+
+-- Posture change worth recording, not just leaving to be discovered: the
+-- pre-Task-12r resources_public was a join (resources + partners), which
+-- meant Postgres refused any write through it outright (SQLSTATE 55000,
+-- "cannot insert into view") regardless of grants -- a structural backstop
+-- independent of the revoke/grant pair above. With partners gone, this
+-- view is a single-table projection again, and confirmed directly against
+-- this database (`select pg_relation_is_updatable('public.resources_public
+-- '::regclass, false)` returns 28: INSERT|UPDATE|DELETE all set) it is
+-- fully auto-updatable now that security_invoker = false makes it run as
+-- the view owner. Nothing is wrong today -- the revoke/grant above leaves
+-- anon and authenticated holding SELECT only, and
+-- tests/rls/schema-guards.test.ts's G3 asserts that catalog-wide -- but
+-- the join's defence-in-depth is gone: a future `grant insert` to anon on
+-- this view (accidental or not) would now write through as the view
+-- owner and bypass resources' RLS entirely, where it used to fail before
+-- any grant was even checked. The grant is the only thing standing
+-- between; this comment exists so that is a known posture, not a surprise
+-- rediscovered later.

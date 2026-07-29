@@ -171,6 +171,36 @@ describe('public-safe views', () => {
     expect(data!.is_closed).toBe(false);
   });
 
+  // Nothing else in this file pins that resources_public actually exposes
+  // the exclusivity badge -- the positive column-list check was retired in
+  // favour of tests/rls/schema-guards.test.ts's G7, which only catches
+  // *over*-exposure. A future rebuild of this view could silently drop
+  // the column (or revert to projecting is_exclusive) and every guard in
+  // this suite would stay green, even though the badge is the entire
+  // reason ruling H10 replaced is_exclusive with this enum. This reads the
+  // value back through the anon client, not the service client, so it
+  // proves the public surface actually carries it, not merely that the
+  // column exists on the base table.
+  it('exposes the exclusivity badge value anonymously', async () => {
+    const svc = serviceClient();
+    const name = `Exclusive resource ${Date.now()}`;
+    const { error } = await svc.from('resources').insert({
+      name, partner: 'Public View Partner', partner_tier: 'strategic',
+      resource_type: 'Credits', need_primary: 'compute',
+      description: 'exclusive fixture', external_url: 'https://example.org/h',
+      status: 'live', exclusivity: 'exclusive',
+    });
+    expect(error).toBeNull();
+
+    const { data, error: readError } = await anonClient()
+      .from('resources_public')
+      .select('exclusivity')
+      .eq('name', name)
+      .single();
+    expect(readError).toBeNull();
+    expect(data!.exclusivity).toBe('exclusive');
+  });
+
   // Ruling 6: the brief's hand-written "leaves the base tables unreachable
   // anonymously" case is deleted here. It lists six of sixteen base tables
   // and asserts toHaveLength(0), which is satisfied by a permission error,
