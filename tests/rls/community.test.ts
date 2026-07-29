@@ -50,22 +50,13 @@ describe('community tables', () => {
     await ensureTestUsers();
     const svc = serviceClient();
     const stamp = Date.now();
-    const { data: partner, error: partnerErr } = await svc
-      .from('partners')
-      .insert({
-        name: `Community suite partner ${stamp}`,
-        website_url: 'https://example.org',
-        tier: 'network',
-      })
-      .select('id')
-      .single();
-    if (partnerErr) throw partnerErr;
 
     const { data: resource, error: resourceErr } = await svc
       .from('resources')
       .insert({
         name: `Community suite resource ${stamp}`,
-        partner_id: partner!.id,
+        partner: `Community suite partner ${stamp}`,
+        partner_tier: 'network',
         resource_type: 'Course',
         need_primary: 'training',
         description: 'x',

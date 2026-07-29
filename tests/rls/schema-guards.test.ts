@@ -688,8 +688,8 @@ describe('Tier 2 — allow-listed', () => {
     ).toEqual([]);
   });
 
-  it('G14: every *_public view is typed only from {need_type, geo_scope, partner_tier} among public enums', () => {
-    const ALLOWED = new Set(['need_type', 'geo_scope', 'partner_tier']);
+  it('G14: every *_public view is typed only from {need_type, geo_scope, partner_tier, exclusivity} among public enums', () => {
+    const ALLOWED = new Set(['need_type', 'geo_scope', 'partner_tier', 'exclusivity']);
     const offenders = relationColumns
       .filter((c) => c.relkind === 'v' && /_public$/.test(c.relname))
       .filter(
@@ -702,11 +702,11 @@ describe('Tier 2 — allow-listed', () => {
       guardMessage({
         offenders,
         rule:
-          `${CLAUDE_MD}: "Anonymous reads go through public-safe views that exclude ... internal notes" — extended here to internal-only enum types. Only need_type, geo_scope and partner_tier may appear as a *_public view's output column type among public's enums.`,
+          `${CLAUDE_MD}: "Anonymous reads go through public-safe views that exclude ... internal notes" — extended here to internal-only enum types. Only need_type, geo_scope, partner_tier and exclusivity may appear as a *_public view's output column type among public's enums.`,
         why:
-          "Type-based, so alias-proof for resources.status specifically: resources_public legitimately filters `where status = 'live'` (and Postgres's rewrite dependency tracking makes view_column_sources() report that qual reference — confirmed directly against this database), so status cannot be marked @sensitive without making G7 flag the one view that correctly filters on it. Any projection of resources.status as an output column, however renamed, still carries type public.resource_status, so G14 catches it where a name-based check could be dodged by an alias. submission_status, partnership_stage, audit_action and app_role reaching the public surface would be defects for the same reason.",
+          "Type-based, so alias-proof for resources.status specifically: resources_public legitimately filters `where status = 'live'` (and Postgres's rewrite dependency tracking makes view_column_sources() report that qual reference — confirmed directly against this database), so status cannot be marked @sensitive without making G7 flag the one view that correctly filters on it. Any projection of resources.status as an output column, however renamed, still carries type public.resource_status, so G14 catches it where a name-based check could be dodged by an alias. submission_status, partnership_stage, audit_action and app_role reaching the public surface would be defects for the same reason. exclusivity (Task 12r) is allow-listed for the opposite reason those five are excluded: it is a two-value **public badge** with no internal-workflow meaning at all — 'exclusive' or 'early_access', displayed on the public site by design (ruling H10) — unlike resource_status/submission_status/partnership_stage/audit_action/app_role, which describe internal pipeline or access state and must never reach the public surface. The line a new enum must be judged against is exactly that: does its value describe something the public site is meant to show (allow-list it, by name, here), or internal state a public visitor must never see (keep it off this list, and prefer a derived column — the is_closed boolean, not status — if only part of the meaning needs to be public). Note also what this guard cannot see: a `::text` cast of a disallowed enum (e.g. `r.status::text as availability`) erases the type before G14's introspection ever runs, and G7 does not backstop it either since resources.status is deliberately unmarked (marking it @sensitive would make G7 flag the one view that legitimately filters on it). G14 is not a complete defence against that specific bypass — review remains load-bearing for a cast that erases an enum's type rather than exposing it honestly.",
         remediation:
-          'Remove the column from the view\'s select list in supabase/migrations/0009_public_views.sql. If only a derived boolean/label is needed (the resources_public shape: is_closed, not status), compute that in the view instead of projecting the enum itself.',
+          'Remove the column from the view\'s select list in supabase/migrations/0009_public_views.sql (or supabase/migrations/0013_reconcile_partners.sql for resources_public). If only a derived boolean/label is needed (the resources_public shape: is_closed, not status), compute that in the view instead of projecting the enum itself. If the enum is a genuine public-safe value like exclusivity, add it to ALLOWED here with a why explaining which side of the public/internal line it falls on — never dodge the guard with a `::text` cast instead.',
         exception: NO_ALLOWLIST,
       }),
     ).toEqual([]);

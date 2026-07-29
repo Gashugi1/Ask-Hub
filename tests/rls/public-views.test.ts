@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { anonClient, serviceClient } from '../helpers/clients';
 
-// Ruling 1: eight views. compute_metrics_public is the one the brief's
+// Ruling 1: seven views. compute_metrics_public is the one the brief's
 // contract omits from Produces/Interfaces; it is created and tested here
-// like the other seven.
+// like the other six. partners_public is gone as of Task 12r: the
+// partners table it projected was dropped when partner identity was
+// denormalised onto resources.partner.
 const PUBLIC_VIEWS = [
-  'partners_public',
   'resources_public',
   'headline_stats_public',
   'compute_metrics_public',
@@ -15,17 +16,21 @@ const PUBLIC_VIEWS = [
   'need_counts_public',
 ] as const;
 
-// Ruling 5: six of the eight are a single-table, simple-column-list
-// projection over their base table, which Postgres treats as an
-// auto-updatable view. If anon somehow held (or was ever mistakenly
-// granted) write privilege on one of these, an insert/update would go
-// through as the view owner, bypassing the base table's RLS entirely.
-// resources_public is a join and need_counts_public is an aggregate, so
-// neither is auto-updatable -- but every view is still asserted here so
-// this test stays a real guard rather than one that only exercises the
-// safe case.
+// Ruling 5: six of the seven are auto-updatable, which Postgres decides
+// per write, not merely by inspecting the view's shape once. If anon
+// somehow held (or was ever mistakenly granted) write privilege on one of
+// these, an insert/update would go through as the view owner, bypassing
+// the base table's RLS entirely. resources_public is a join no longer --
+// it is a filtered single-table projection today (partners is gone) --
+// and confirmed directly against this database (pg_relation_is_updatable)
+// to remain auto-updatable despite its is_closed/days_left computed
+// columns: Postgres only disqualifies a write that actually targets a
+// computed column, and neither INSERT nor UPDATE here does. Only
+// need_counts_public (a GROUP BY aggregate) is not auto-updatable -- but
+// every view is still asserted here so this test stays a real guard
+// rather than one that only exercises the safe case.
 const WRITABLE_SHAPE_VIEWS = [
-  'partners_public',
+  'resources_public',
   'headline_stats_public',
   'compute_metrics_public',
   'site_content_public',
@@ -33,37 +38,25 @@ const WRITABLE_SHAPE_VIEWS = [
   'impact_stories_public',
 ] as const;
 
-let livePartnerId: string;
-
 describe('public-safe views', () => {
   beforeAll(async () => {
     const svc = serviceClient();
-    const { data: partner, error: partnerError } = await svc
-      .from('partners')
-      .insert({
-        name: `Public View Partner ${Date.now()}`,
-        website_url: 'https://example.org', tier: 'strategic',
-      })
-      .select('id')
-      .single();
-    if (partnerError) throw partnerError;
-    livePartnerId = partner!.id;
 
     const { error: resourcesError } = await svc.from('resources').insert([
       {
-        name: `Live and visible ${Date.now()}`, partner_id: livePartnerId,
+        name: `Live and visible ${Date.now()}`, partner: 'Public View Partner', partner_tier: 'strategic',
         resource_type: 'Credits', need_primary: 'compute',
         description: 'live', external_url: 'https://example.org/a',
         status: 'live',
       },
       {
-        name: `Pipeline and hidden ${Date.now()}`, partner_id: livePartnerId,
+        name: `Pipeline and hidden ${Date.now()}`, partner: 'Public View Partner', partner_tier: 'strategic',
         resource_type: 'Credits', need_primary: 'compute',
         description: 'pipeline', external_url: 'https://example.org/b',
         status: 'pipeline',
       },
       {
-        name: `Reference and hidden ${Date.now()}`, partner_id: livePartnerId,
+        name: `Reference and hidden ${Date.now()}`, partner: 'Public View Partner', partner_tier: 'strategic',
         resource_type: 'Credits', need_primary: 'compute',
         description: 'reference', external_url: 'https://example.org/c',
         status: 'reference',
@@ -79,13 +72,13 @@ describe('public-safe views', () => {
     const pipelineName = `Pipeline scoped ${stamp}`;
     const { error } = await svc.from('resources').insert([
       {
-        name: liveName, partner_id: livePartnerId,
+        name: liveName, partner: 'Public View Partner', partner_tier: 'strategic',
         resource_type: 'Credits', need_primary: 'compute',
         description: 'live', external_url: 'https://example.org/live',
         status: 'live',
       },
       {
-        name: pipelineName, partner_id: livePartnerId,
+        name: pipelineName, partner: 'Public View Partner', partner_tier: 'strategic',
         resource_type: 'Credits', need_primary: 'compute',
         description: 'pipeline', external_url: 'https://example.org/pipeline',
         status: 'pipeline',
@@ -121,7 +114,7 @@ describe('public-safe views', () => {
     const svc = serviceClient();
     const name = `Past deadline ${Date.now()}`;
     const { error } = await svc.from('resources').insert({
-      name, partner_id: livePartnerId,
+      name, partner: 'Public View Partner', partner_tier: 'strategic',
       resource_type: 'Course', need_primary: 'training',
       description: 'closed', external_url: 'https://example.org/d',
       status: 'live', deadline: '2020-01-01',
@@ -142,7 +135,7 @@ describe('public-safe views', () => {
     const name = `Deadline today ${Date.now()}`;
     const today = new Date().toISOString().slice(0, 10);
     const { error } = await svc.from('resources').insert({
-      name, partner_id: livePartnerId,
+      name, partner: 'Public View Partner', partner_tier: 'strategic',
       resource_type: 'Course', need_primary: 'training',
       description: 'due today', external_url: 'https://example.org/e',
       status: 'live', deadline: today,
@@ -162,7 +155,7 @@ describe('public-safe views', () => {
     const svc = serviceClient();
     const name = `Rolling resource ${Date.now()}`;
     const { error } = await svc.from('resources').insert({
-      name, partner_id: livePartnerId,
+      name, partner: 'Public View Partner', partner_tier: 'strategic',
       resource_type: 'Credits', need_primary: 'compute',
       description: 'rolling', external_url: 'https://example.org/f',
       status: 'live', deadline: null,
@@ -176,6 +169,36 @@ describe('public-safe views', () => {
       .single();
     expect(data!.days_left).toBeNull();
     expect(data!.is_closed).toBe(false);
+  });
+
+  // Nothing else in this file pins that resources_public actually exposes
+  // the exclusivity badge -- the positive column-list check was retired in
+  // favour of tests/rls/schema-guards.test.ts's G7, which only catches
+  // *over*-exposure. A future rebuild of this view could silently drop
+  // the column (or revert to projecting is_exclusive) and every guard in
+  // this suite would stay green, even though the badge is the entire
+  // reason ruling H10 replaced is_exclusive with this enum. This reads the
+  // value back through the anon client, not the service client, so it
+  // proves the public surface actually carries it, not merely that the
+  // column exists on the base table.
+  it('exposes the exclusivity badge value anonymously', async () => {
+    const svc = serviceClient();
+    const name = `Exclusive resource ${Date.now()}`;
+    const { error } = await svc.from('resources').insert({
+      name, partner: 'Public View Partner', partner_tier: 'strategic',
+      resource_type: 'Credits', need_primary: 'compute',
+      description: 'exclusive fixture', external_url: 'https://example.org/h',
+      status: 'live', exclusivity: 'exclusive',
+    });
+    expect(error).toBeNull();
+
+    const { data, error: readError } = await anonClient()
+      .from('resources_public')
+      .select('exclusivity')
+      .eq('name', name)
+      .single();
+    expect(readError).toBeNull();
+    expect(data!.exclusivity).toBe('exclusive');
   });
 
   // Ruling 6: the brief's hand-written "leaves the base tables unreachable
@@ -197,7 +220,6 @@ describe('public-safe views', () => {
   // Postgres so the assertion exercises the real permission check
   // (SQLSTATE 42501) rather than an artifact of the wrong column name.
   const INSERT_PAYLOAD: Record<(typeof PUBLIC_VIEWS)[number], Record<string, unknown>> = {
-    partners_public: { name: `Injected ${Date.now()}`, website_url: 'https://example.org' },
     resources_public: { name: `Injected ${Date.now()}` },
     headline_stats_public: { value: 'x', label: `Injected ${Date.now()}` },
     compute_metrics_public: { value: 'x', label: `Injected ${Date.now()}` },
@@ -208,7 +230,7 @@ describe('public-safe views', () => {
   };
 
   const UPDATE_PAYLOAD: Record<(typeof WRITABLE_SHAPE_VIEWS)[number], Record<string, unknown>> = {
-    partners_public: { name: `Overwritten ${Date.now()}` },
+    resources_public: { name: `Overwritten ${Date.now()}` },
     headline_stats_public: { label: `Overwritten ${Date.now()}` },
     compute_metrics_public: { label: `Overwritten ${Date.now()}` },
     site_content_public: { value: `Overwritten ${Date.now()}` },
@@ -222,7 +244,7 @@ describe('public-safe views', () => {
   // string against a uuid column errors at parse time, before Postgres
   // ever reaches the permission check this test wants to exercise).
   const UPDATE_FILTER: Record<(typeof WRITABLE_SHAPE_VIEWS)[number], [string, string]> = {
-    partners_public: ['id', '00000000-0000-0000-0000-000000000000'],
+    resources_public: ['id', '00000000-0000-0000-0000-000000000000'],
     headline_stats_public: ['id', '00000000-0000-0000-0000-000000000000'],
     compute_metrics_public: ['id', '00000000-0000-0000-0000-000000000000'],
     site_content_public: ['key', 'no-such-key'],
@@ -234,12 +256,13 @@ describe('public-safe views', () => {
   // error occurred. `not.toBeNull()` alone is the same shape that would
   // let a PGRST204 schema-cache rejection (wrong column name in the
   // payload) masquerade as a real permission denial -- confirmed directly
-  // against this database: the six single-table views are auto-updatable,
-  // so their write is stopped by an actual GRANT check (42501, "permission
-  // denied for view <name>"); resources_public (a join) and
-  // need_counts_public (a GROUP BY aggregate) are not automatically
-  // updatable at all, so Postgres rejects the write before any privilege
-  // is even checked (55000, "cannot insert into view").
+  // against this database: the six single-table views (including
+  // resources_public, post-Task 12r) are auto-updatable, so their write is
+  // stopped by an actual GRANT check (42501, "permission denied for view
+  // <name>"); need_counts_public (a GROUP BY aggregate) is the only one
+  // that is not automatically updatable at all, so Postgres rejects the
+  // write before any privilege is even checked (55000, "cannot insert into
+  // view").
   const AUTO_UPDATABLE_CODE = '42501';
   const NOT_AUTO_UPDATABLE_CODE = '55000';
 
@@ -274,12 +297,14 @@ describe('public-safe views', () => {
   // Requirement 8: today only resources_public and need_counts_public are
   // actually read anonymously by the rest of this file. Without this test,
   // dropping a view from the anon SELECT grant (supabase/migrations/
-  // 0009_public_views.sql) would leave every other test in this file green
-  // while the public page backed by that view now 403s. Asserting `error`
-  // is null only, not a row count: five of the eight base tables are
-  // empty in a fresh reset, so a row-count assertion would be asserting
-  // fixture data, not the grant.
-  it('can be read anonymously on all eight public views', async () => {
+  // 0009_public_views.sql, as rebuilt by 0013_reconcile_partners.sql)
+  // would leave every other test in this file green while the public page
+  // backed by that view now 403s. Asserting `error` is null only, not a
+  // row count: five of the six base tables underlying these seven views
+  // are empty in a fresh reset (only resources gets fixture rows in this
+  // file), so a row-count assertion would be asserting fixture data, not
+  // the grant.
+  it('can be read anonymously on all seven public views', async () => {
     const anon = anonClient();
     for (const view of PUBLIC_VIEWS) {
       const { error } = await anon.from(view).select().limit(1);
@@ -299,7 +324,7 @@ describe('public-safe views', () => {
     const beforeCount = (before?.live_count as number | undefined) ?? 0;
 
     const { error } = await svc.from('resources').insert({
-      name, partner_id: livePartnerId,
+      name, partner: 'Public View Partner', partner_tier: 'strategic',
       resource_type: 'Credits', need_primary: 'compute',
       description: 'need count fixture', external_url: 'https://example.org/g',
       status: 'live',
