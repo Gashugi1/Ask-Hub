@@ -11,17 +11,34 @@
  * and copy are supplied. Do not treat any name, URL, description or figure
  * here as confirmed, current, or delivered.
  *
- * Two categories of prototype content are deliberately absent, not
- * forgotten: `impact_stories`, `headline_stats` and `compute_metrics` get no
- * rows (the prototype's numbers are unsourced demo figures, and CLAUDE.md
- * forbids seeding a plausible-looking metric onto a UN programme's
- * reporting surface); and the four tables that would carry a real person's
- * email address, a public proposal, a digest send history, or per-visit
- * analytics get no rows either (the prototype's version of each is
- * fabricated personal data / reporting history that must never enter a real
- * system, even as a placeholder — deliberately not named here; see the note
- * on scripts/seed.ts for why). See task-12a-brief.md for the full table of
- * what is and is not seeded.
+ * Three categories of prototype content are deliberately absent, not
+ * forgotten:
+ *   - `impact_stories`, `headline_stats` and `compute_metrics` get no rows
+ *     (the prototype's numbers are unsourced demo figures, and CLAUDE.md
+ *     forbids seeding a plausible-looking metric onto a UN programme's
+ *     reporting surface).
+ *   - `programmes` gets no rows either, on later human review: every one of
+ *     the prototype's six programme descriptions carries an unattested AI
+ *     Hub performance figure of its own — "120 companies... 376
+ *     applications", "10 ventures... 135 applications", "Mobilising up to
+ *     $10B by 2035, targeting up to 45M jobs" — and `programmes_public` is
+ *     anon-readable, so seeding them would put the same class of unattested
+ *     claim CLAUDE.md forbids in front of a public visitor, just in prose
+ *     rather than in a number column. This is a different case from the
+ *     `resources` descriptions kept below: "Up to $150K in Azure credits" is
+ *     Microsoft's own offer terms (directory content about someone else's
+ *     programme, inherent to what a directory is), not the AI Hub reporting
+ *     its own performance. `programmes` stays empty until the client
+ *     supplies attested copy, consistent with the three tables above.
+ *   - The four tables that would carry a real person's email address, a
+ *     public proposal, a digest send history, or per-visit analytics get no
+ *     rows either (the prototype's version of each is fabricated personal
+ *     data / reporting history that must never enter a real system, even as
+ *     a placeholder — deliberately not named here; see the note on
+ *     scripts/seed.ts for why).
+ * See task-12a-brief.md for the full table of what is and is not seeded
+ * (programmes at 0 rows is a later human decision, made after that brief was
+ * written — see task-12a-report.md's fix report for the full reasoning).
  *
  * No `@/*` imports here or anywhere under scripts/: vitest aliases `@` to
  * `./src`, but `tsx` (which runs `npm run seed`) does not, so a module that
@@ -656,63 +673,12 @@ export const RESOURCES: readonly SeedResource[] = [
 ];
 
 // ============================================================================
-// Programmes — 6 rows, transcribed from the prototype's `programmes` array.
+// Programmes are NOT seeded. See the file header above for why: all six of
+// the prototype's programme descriptions carry an unattested AI Hub
+// performance figure, and programmes_public is anon-readable. `programmes`
+// stays at 0 rows, same as impact_stories/headline_stats/compute_metrics,
+// until the client supplies attested copy.
 // ============================================================================
-//
-// `name` -> `title`, `timeline` -> `timeframe`, `summary` -> `description`,
-// per the brief. `seed_key` is this seed's own invention (the column exists
-// precisely so a launch-content seed has a stable upsert target — see
-// supabase/migrations/0006_site.sql) — built from the prototype's own `pgN`
-// ids so it stays traceable back to this source.
-export interface SeedProgramme {
-  seed_key: string;
-  title: string;
-  timeframe: string;
-  description: string;
-}
-
-export const PROGRAMMES: readonly SeedProgramme[] = [
-  {
-    seed_key: 'prototype-pg1',
-    title: 'Compute & Talent Accelerator',
-    timeframe: 'Nov 2025 – Jun 2026 · 6-month flagship',
-    description:
-      '120 companies across two tracks: Compute Ready (20 ventures) and Compute Curious (100 organisations). 376 applications.',
-  },
-  {
-    seed_key: 'prototype-pg2',
-    title: 'AI Infrastructure Builder',
-    timeframe: '12-month track',
-    description:
-      '10 ventures spanning 70+ data centres across the 18 partner countries. 135 applications.',
-  },
-  {
-    seed_key: 'prototype-pg3',
-    title: 'Cyber4Africa',
-    timeframe: 'Launched 28 May 2026 · 6-month',
-    description:
-      'With Cyber 4.0 and Cisco Kenya — focus on health, fintech, govtech, energy, and AI infrastructure.',
-  },
-  {
-    seed_key: 'prototype-pg4',
-    title: 'AI Diffusion Pathways – Voice AI',
-    timeframe: 'Italy–India–Kenya trilateral',
-    description:
-      'Offline-first Swahili and Luganda voice AI — part of “100 AI Diffusion Pathways by 2030”.',
-  },
-  {
-    seed_key: 'prototype-pg5',
-    title: 'AI 10 Billion Initiative',
-    timeframe: 'AfDB + UNDP · to 2035',
-    description: 'Mobilising up to $10B by 2035, targeting up to 45M jobs.',
-  },
-  {
-    seed_key: 'prototype-pg6',
-    title: 'Startup Accelerator Pilot',
-    timeframe: '2024 pilot',
-    description: 'Finalists showcased at G7 San Francisco.',
-  },
-];
 
 // ============================================================================
 // Site content — the prototype's `settings.welcome` and `settings.identity`,
