@@ -75,25 +75,31 @@ describe('globals.css', () => {
 });
 
 /**
- * CLAUDE.md: no hardcoded colours, use design tokens. The token block itself
- * is SP1 Task 2, so until then the correct number of colour values in this
- * repository is zero, and SP1 Task 2 is told to rely on this guard.
+ * CLAUDE.md: no hardcoded colours, use design tokens. SP1 Task 2 lands the
+ * real `@theme` block in `src/app/globals.css` — the one place a colour
+ * literal is *supposed* to appear, because that block is the definition
+ * site of the tokens everything else must reference. Narrowed here, not
+ * deleted: the brief's own comment on this guard is explicit that deleting
+ * it would let SP2 and SP3 land hardcoded colours in components with
+ * nothing to catch them.
  *
- * Two widenings over the original, both of which the guard needed to be
- * worth relying on:
+ * Everywhere else a colour literal is still the exact defect this guard
+ * exists to catch — including the rest of `globals.css` outside `@theme`
+ * (the `@font-face` blocks, the `body` rule) and, most likely in practice,
+ * a component's `style={{ color: '#1F5FBF' }}` or a `bg-[#1F5FBF]`
+ * arbitrary Tailwind value in a `.tsx` file.
+ *
+ * Two widenings kept from the original guard, both still load-bearing:
  *
  *  - Every notation, not only hex. Tailwind v4 tokens are conventionally
- *    written in `oklch()`, so a hex-only guard would have missed the single
- *    most likely form of the mistake it exists to catch.
+ *    written in `oklch()` (and the `@theme` block's own shadow uses
+ *    `rgb()`), so a hex-only guard would have missed the single most
+ *    likely form of the mistake it exists to catch.
  *  - Every file under `src/`, not `globals.css` alone. A hardcoded colour is
  *    far more likely to arrive as `style={{ color: '#1F5FBF' }}` or a
- *    `bg-[#1F5FBF]` arbitrary value in a `.tsx` file than in the one CSS file
- *    whose comment already forbids it.
- *
- * When SP1 Task 2 lands the real `@theme` block, this guard must be narrowed
- * deliberately — to "colours only inside `@theme`" — not simply deleted.
+ *    `bg-[#1F5FBF]` arbitrary value in a `.tsx` file than in CSS.
  */
-describe('no hardcoded colour anywhere in src/ — tokens are SP1 Task 2', () => {
+describe('no hardcoded colour outside the @theme token block', () => {
   function sourceFiles(dir = 'src', out: string[] = []): string[] {
     for (const entry of readdirSync(dir)) {
       const full = join(dir, entry);
@@ -101,6 +107,32 @@ describe('no hardcoded colour anywhere in src/ — tokens are SP1 Task 2', () =>
       else if (/\.(ts|tsx|css|json)$/.test(entry)) out.push(full);
     }
     return out;
+  }
+
+  /**
+   * Which lines of `globals.css` fall inside its `@theme { ... }` block,
+   * found by brace depth from the `@theme` keyword rather than a fixed line
+   * range, so the exemption tracks the block as it grows and does not leak
+   * into the `@font-face` or `body` rules that sit outside it in the same
+   * file.
+   */
+  function themeBlockLines(lines: string[]): boolean[] {
+    const inside = new Array<boolean>(lines.length).fill(false);
+    let depth = 0;
+    let inTheme = false;
+    lines.forEach((line, i) => {
+      if (!inTheme) {
+        if (!line.includes('@theme')) return;
+        inTheme = true;
+      }
+      inside[i] = true;
+      for (const ch of line) {
+        if (ch === '{') depth++;
+        else if (ch === '}') depth--;
+      }
+      if (depth <= 0) inTheme = false;
+    });
+    return inside;
   }
 
   const NOTATIONS: Record<string, RegExp> = {
@@ -113,17 +145,22 @@ describe('no hardcoded colour anywhere in src/ — tokens are SP1 Task 2', () =>
   };
 
   for (const [notation, pattern] of Object.entries(NOTATIONS)) {
-    it(`declares no ${notation} colour value`, () => {
+    it(`declares no ${notation} colour value outside @theme`, () => {
       const offenders = sourceFiles()
-        .flatMap((file) =>
-          readFileSync(file, 'utf8')
-            .split('\n')
-            .map((line, index) => ({ file, line: index + 1, text: line }))
-            .filter(({ text }) => pattern.test(text)),
-        )
+        .flatMap((file) => {
+          const lines = readFileSync(file, 'utf8').split('\n');
+          const exempt =
+            file === 'src/app/globals.css' ? themeBlockLines(lines) : lines.map(() => false);
+          return lines
+            .map((text, index) => ({ file, line: index + 1, text, exempt: exempt[index] }))
+            .filter(({ text, exempt }) => !exempt && pattern.test(text));
+        })
         .map(({ file, line, text }) => `${file}:${line}: ${text.trim()}`);
 
-      expect(offenders, `hardcoded ${notation} colour — use a design token`).toEqual([]);
+      expect(
+        offenders,
+        `hardcoded ${notation} colour outside @theme — use a design token`,
+      ).toEqual([]);
     });
   }
 });

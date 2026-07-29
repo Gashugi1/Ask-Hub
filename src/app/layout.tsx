@@ -17,6 +17,19 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className="h-full antialiased">
+      <head>
+        {/* Self-hosted Outfit (SP1 Task 2): preloaded to protect LCP since
+            it is the body font. Self-hosted rather than loaded from
+            Google's font CDN, to keep that round trip off the critical
+            rendering path — see globals.css and the design doc. */}
+        <link
+          rel="preload"
+          href="/fonts/outfit-latin.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );
