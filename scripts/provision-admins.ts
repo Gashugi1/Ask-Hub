@@ -29,6 +29,17 @@ function fail(message: string): never {
   process.exit(1);
 }
 
+/**
+ * Thrown by per-email provisioning steps instead of exiting immediately, so
+ * `main()` can report which emails already succeeded -- and already hold a
+ * real, promoted account with a password printed -- before the process ends.
+ */
+class ProvisionStepError extends Error {}
+
+function stepFail(message: string): never {
+  throw new ProvisionStepError(message);
+}
+
 const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -100,7 +111,7 @@ async function findUserIdByEmail(email: string): Promise<string | undefined> {
   const perPage = 200;
   for (;;) {
     const { data, error } = await client.auth.admin.listUsers({ page, perPage });
-    if (error) fail(`listUsers failed while looking up ${email}: ${error.message}`);
+    if (error) stepFail(`listUsers failed while looking up ${email}: ${error.message}`);
     const found = data.users.find((u) => u.email === email);
     if (found) return found.id;
     if (data.users.length < perPage) return undefined;
@@ -124,11 +135,11 @@ async function waitForProfileId(userId: string, email: string): Promise<string> 
       .select('id')
       .eq('user_id', userId)
       .maybeSingle();
-    if (error) fail(`profiles lookup failed for ${email}: ${error.message}`);
+    if (error) stepFail(`profiles lookup failed for ${email}: ${error.message}`);
     if (data) return data.id;
     if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
-  fail(
+  stepFail(
     `profiles row for ${email} (user_id ${userId}) never appeared after ` +
       `${attempts} attempts. handle_new_user() may be missing or failing -- ` +
       'this user exists in auth.users with no matching profile and needs manual attention.',
@@ -158,12 +169,29 @@ async function provisionOne(email: string): Promise<ProvisionResult> {
   if (created.error) {
     // "Already registered" is an expected outcome, not a failure: the email
     // was provisioned before, and this run should promote, not error.
-    if (!/already been registered|already exists/i.test(created.error.message)) {
-      fail(`createUser failed for ${email}: ${created.error.message}`);
+    //
+    // Checked against `.code` first: GoTrue's documented, versioned
+    // `ErrorCode` union (@supabase/auth-js error-codes.d.ts) includes
+    // `email_exists` and `user_already_exists` for exactly this case. Verified
+    // empirically against the installed @supabase/supabase-js@2.110.8 on the
+    // local stack: calling createUser with an email that already exists
+    // returns `{ code: 'email_exists', message: 'A user with this email
+    // address has already been registered' }`. The message text is rendered
+    // by the Auth server, not the SDK, so it can be rephrased by a Supabase
+    // Auth upgrade independently of this package's version -- the message
+    // regex below is kept only as a fallback for an older Auth server that
+    // does not populate `code` at all.
+    const isAlreadyRegistered =
+      created.error.code === 'email_exists' ||
+      created.error.code === 'user_already_exists' ||
+      created.error.code === 'identity_already_exists' ||
+      /already been registered|already exists/i.test(created.error.message);
+    if (!isAlreadyRegistered) {
+      stepFail(`createUser failed for ${email}: ${created.error.message}`);
     }
     const existingId = await findUserIdByEmail(email);
     if (!existingId) {
-      fail(`${email} was reported already registered but could not be found via listUsers`);
+      stepFail(`${email} was reported already registered but could not be found via listUsers`);
     }
     userId = existingId;
     outcome = 'promoted';
@@ -171,7 +199,7 @@ async function provisionOne(email: string): Promise<ProvisionResult> {
     // Null-check before dereferencing: createUser resolving without an error
     // is not itself a guarantee the user payload is present.
     if (!created.data.user) {
-      fail(`createUser for ${email} returned no error but no user either`);
+      stepFail(`createUser for ${email} returned no error but no user either`);
     }
     userId = created.data.user.id;
     outcome = 'created';
@@ -182,31 +210,54 @@ async function provisionOne(email: string): Promise<ProvisionResult> {
     .from('profiles')
     .update({ role: 'admin', is_active: true })
     .eq('id', profileId);
-  if (updateError) fail(`promoting ${email} to admin failed: ${updateError.message}`);
+  if (updateError) stepFail(`promoting ${email} to admin failed: ${updateError.message}`);
 
   return { email, outcome, password: outcome === 'created' ? password : undefined };
 }
 
+function printResult(result: ProvisionResult): void {
+  if (result.outcome === 'created') {
+    console.log(`  ${result.email}: created`);
+    // Printed once, to stdout only, immediately after this email's own
+    // provisioning succeeds -- never written to a file, never logged a
+    // second time, and never batched until the end. A later email's failure
+    // must not cost this password its only printed copy: the account this
+    // password belongs to is already real and already promoted to admin by
+    // the time this line runs.
+    console.log(`    temporary password: ${result.password}`);
+    console.log(
+      '    Deliver this password securely (not by plain email) and require ' +
+        'a change at first sign-in.',
+    );
+  } else {
+    console.log(`  ${result.email}: already existed, promoted to admin`);
+  }
+}
+
 async function main() {
   const results: ProvisionResult[] = [];
+  console.log('Provisioning admins:');
   for (const email of emails) {
-    results.push(await provisionOne(email));
-  }
-
-  console.log('\nProvisioned admins:');
-  for (const result of results) {
-    if (result.outcome === 'created') {
-      console.log(`  ${result.email}: created`);
-      // Printed once, to stdout only -- never written to a file, never logged
-      // a second time. Deliver it out-of-band; it will not be shown again.
-      console.log(`    temporary password: ${result.password}`);
-      console.log(
-        '    Deliver this password securely (not by plain email) and require ' +
-          'a change at first sign-in.',
+    let result: ProvisionResult;
+    try {
+      result = await provisionOne(email);
+    } catch (error) {
+      const stepMessage = error instanceof ProvisionStepError ? error.message : undefined;
+      const provisioned = results.map((r) => r.email);
+      fail(
+        `provisioning ${email} failed: ` +
+          (stepMessage ?? (error instanceof Error ? error.message : String(error))) +
+          (provisioned.length > 0
+            ? `\nPartial run: ${provisioned.join(', ')} ${
+                provisioned.length === 1 ? 'was' : 'were'
+              } already provisioned and promoted to admin before this failure. ` +
+              'That account is real and was not rolled back -- do not attempt to ' +
+              're-provision it, and do not assume this run left no trace.'
+            : '\nNo accounts were provisioned before this failure.'),
       );
-    } else {
-      console.log(`  ${result.email}: already existed, promoted to admin`);
     }
+    printResult(result);
+    results.push(result);
   }
 
   const { count, error: countError } = await client
