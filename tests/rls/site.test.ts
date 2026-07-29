@@ -11,8 +11,20 @@ function validPayloads(stamp: number) {
   return {
     programmes: { title: `Viewer write attempt ${stamp}` },
     impact_stories: { organisation: `Viewer write attempt org ${stamp}` },
-    headline_stats: { value: '1', label: `Viewer write attempt ${stamp}` },
-    compute_metrics: { value: '1', label: `Viewer write attempt ${stamp}` },
+    headline_stats: {
+      value: '1',
+      label: `Viewer write attempt ${stamp}`,
+      source: `Viewer write attempt dataset ${stamp}`,
+      attested_by: 'Test Attester',
+      attested_on: '2026-01-01',
+    },
+    compute_metrics: {
+      value: '1',
+      label: `Viewer write attempt ${stamp}`,
+      source: `Viewer write attempt dataset ${stamp}`,
+      attested_by: 'Test Attester',
+      attested_on: '2026-01-01',
+    },
     site_content: { key: `viewer_write_attempt_${stamp}`, value: 'x', locale: 'en' },
     settings: { key: `viewer_write_attempt_${stamp}`, value: '"x"' },
   } as const;
@@ -143,6 +155,63 @@ describe('site content and settings', () => {
       const { error } = await viewer.from(table).insert(payloads[table] as never);
       expect(error?.code, `viewer wrote to ${table}`).toBe('42501');
     }
+  });
+
+  // Task 12p: provenance (source, attested_by, attested_on) is now
+  // structural, not merely conventional. These probes use serviceClient()
+  // -- which bypasses RLS entirely -- specifically so the failure proves
+  // the NOT NULL / non-blank CHECK constraints themselves, not a policy
+  // denial: if these ran as viewer/editor, a 42501 permission error could
+  // mask a payload that was never actually provenance-complete. Both
+  // tables are covered (not just headline_stats) because each carries its
+  // own pair of `_source_not_blank` / `_attested_by_not_blank`
+  // constraints, added independently in supabase/migrations/
+  // 0015_stat_provenance.sql -- a bug in one table's constraint would not
+  // be caught by testing only the other.
+  it('rejects a headline_stats insert with no provenance at all', async () => {
+    const svc = serviceClient();
+    const stamp = Date.now();
+    const { error } = await svc.from('headline_stats').insert({
+      value: '1',
+      label: `Provenance-free headline stat ${stamp}`,
+    } as never);
+    expect(error?.code).toBe('23502');
+  });
+
+  it('rejects a headline_stats insert with a blank source', async () => {
+    const svc = serviceClient();
+    const stamp = Date.now();
+    const { error } = await svc.from('headline_stats').insert({
+      value: '1',
+      label: `Blank-source headline stat ${stamp}`,
+      source: '   ',
+      attested_by: 'Test Attester',
+      attested_on: '2026-01-01',
+    } as never);
+    expect(error?.code).toBe('23514');
+  });
+
+  it('rejects a compute_metrics insert with no provenance at all', async () => {
+    const svc = serviceClient();
+    const stamp = Date.now();
+    const { error } = await svc.from('compute_metrics').insert({
+      value: '1',
+      label: `Provenance-free compute metric ${stamp}`,
+    } as never);
+    expect(error?.code).toBe('23502');
+  });
+
+  it('rejects a compute_metrics insert with a blank source', async () => {
+    const svc = serviceClient();
+    const stamp = Date.now();
+    const { error } = await svc.from('compute_metrics').insert({
+      value: '1',
+      label: `Blank-source compute metric ${stamp}`,
+      source: '   ',
+      attested_by: 'Test Attester',
+      attested_on: '2026-01-01',
+    } as never);
+    expect(error?.code).toBe('23514');
   });
 
   it('ships both feature flags off', async () => {
