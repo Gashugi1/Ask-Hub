@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { themeBlockLines } from './theme-block';
 
 const REQUIRED = [
   'src/app/layout.tsx',
@@ -98,6 +99,14 @@ describe('globals.css', () => {
  *  - Every file under `src/`, not `globals.css` alone. A hardcoded colour is
  *    far more likely to arrive as `style={{ color: '#1F5FBF' }}` or a
  *    `bg-[#1F5FBF]` arbitrary value in a `.tsx` file than in CSS.
+ *
+ * `themeBlockLines` (./theme-block.ts) locates the real `@theme { ... }`
+ * at-rule rather than treating any line containing the word "@theme" as
+ * inside it, and strips CSS comments before counting braces — otherwise a
+ * comment merely mentioning "@theme", or one with a stray unmatched brace,
+ * could open or extend the exemption window past the real block's close.
+ * See that module's own tests (theme-block.test.ts) for the fixtures this
+ * is designed to survive.
  */
 describe('no hardcoded colour outside the @theme token block', () => {
   function sourceFiles(dir = 'src', out: string[] = []): string[] {
@@ -107,32 +116,6 @@ describe('no hardcoded colour outside the @theme token block', () => {
       else if (/\.(ts|tsx|css|json)$/.test(entry)) out.push(full);
     }
     return out;
-  }
-
-  /**
-   * Which lines of `globals.css` fall inside its `@theme { ... }` block,
-   * found by brace depth from the `@theme` keyword rather than a fixed line
-   * range, so the exemption tracks the block as it grows and does not leak
-   * into the `@font-face` or `body` rules that sit outside it in the same
-   * file.
-   */
-  function themeBlockLines(lines: string[]): boolean[] {
-    const inside = new Array<boolean>(lines.length).fill(false);
-    let depth = 0;
-    let inTheme = false;
-    lines.forEach((line, i) => {
-      if (!inTheme) {
-        if (!line.includes('@theme')) return;
-        inTheme = true;
-      }
-      inside[i] = true;
-      for (const ch of line) {
-        if (ch === '{') depth++;
-        else if (ch === '}') depth--;
-      }
-      if (depth <= 0) inTheme = false;
-    });
-    return inside;
   }
 
   const NOTATIONS: Record<string, RegExp> = {
@@ -148,9 +131,12 @@ describe('no hardcoded colour outside the @theme token block', () => {
     it(`declares no ${notation} colour value outside @theme`, () => {
       const offenders = sourceFiles()
         .flatMap((file) => {
-          const lines = readFileSync(file, 'utf8').split('\n');
+          const content = readFileSync(file, 'utf8');
+          const lines = content.split('\n');
           const exempt =
-            file === 'src/app/globals.css' ? themeBlockLines(lines) : lines.map(() => false);
+            file === 'src/app/globals.css'
+              ? themeBlockLines(content)
+              : lines.map(() => false);
           return lines
             .map((text, index) => ({ file, line: index + 1, text, exempt: exempt[index] }))
             .filter(({ text, exempt }) => !exempt && pattern.test(text));
