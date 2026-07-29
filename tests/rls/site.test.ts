@@ -191,6 +191,19 @@ describe('site content and settings', () => {
     expect(error?.code).toBe('23514');
   });
 
+  it('rejects a headline_stats insert with a blank attested_by', async () => {
+    const svc = serviceClient();
+    const stamp = Date.now();
+    const { error } = await svc.from('headline_stats').insert({
+      value: '1',
+      label: `Blank-attested_by headline stat ${stamp}`,
+      source: `Test dataset ${stamp}`,
+      attested_by: '   ',
+      attested_on: '2026-01-01',
+    } as never);
+    expect(error?.code).toBe('23514');
+  });
+
   it('rejects a compute_metrics insert with no provenance at all', async () => {
     const svc = serviceClient();
     const stamp = Date.now();
@@ -209,6 +222,19 @@ describe('site content and settings', () => {
       label: `Blank-source compute metric ${stamp}`,
       source: '   ',
       attested_by: 'Test Attester',
+      attested_on: '2026-01-01',
+    } as never);
+    expect(error?.code).toBe('23514');
+  });
+
+  it('rejects a compute_metrics insert with a blank attested_by', async () => {
+    const svc = serviceClient();
+    const stamp = Date.now();
+    const { error } = await svc.from('compute_metrics').insert({
+      value: '1',
+      label: `Blank-attested_by compute metric ${stamp}`,
+      source: `Test dataset ${stamp}`,
+      attested_by: '   ',
       attested_on: '2026-01-01',
     } as never);
     expect(error?.code).toBe('23514');
