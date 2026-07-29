@@ -51,6 +51,17 @@ describe('community tables', () => {
     const svc = serviceClient();
     const stamp = Date.now();
 
+    // resources.partner became a real FK to partners(name) in Task 12L
+    // (0014_partner_logos.sql, restoring partner logos and official
+    // links on the client's confirmation). This suite predates that
+    // migration and referenced an arbitrary, never-inserted partner
+    // name; the partner row now has to exist first or this insert fails
+    // with a foreign key violation (23503).
+    const { error: partnerErr } = await svc
+      .from('partners')
+      .insert({ name: `Community suite partner ${stamp}` });
+    if (partnerErr) throw partnerErr;
+
     const { data: resource, error: resourceErr } = await svc
       .from('resources')
       .insert({
