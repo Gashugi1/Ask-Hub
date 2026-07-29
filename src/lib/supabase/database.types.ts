@@ -98,31 +98,40 @@ export type Database = {
       }
       compute_metrics: {
         Row: {
+          attested_by: string
+          attested_on: string
           created_at: string
           id: string
           label: string
           seed_key: string | null
           sort_order: number | null
+          source: string
           sub_note: string | null
           updated_at: string
           value: string
         }
         Insert: {
+          attested_by: string
+          attested_on: string
           created_at?: string
           id?: string
           label: string
           seed_key?: string | null
           sort_order?: number | null
+          source: string
           sub_note?: string | null
           updated_at?: string
           value: string
         }
         Update: {
+          attested_by?: string
+          attested_on?: string
           created_at?: string
           id?: string
           label?: string
           seed_key?: string | null
           sort_order?: number | null
+          source?: string
           sub_note?: string | null
           updated_at?: string
           value?: string
@@ -277,32 +286,41 @@ export type Database = {
       }
       headline_stats: {
         Row: {
+          attested_by: string
+          attested_on: string
           created_at: string
           id: string
           is_hero: boolean
           label: string
           seed_key: string | null
           sort_order: number | null
+          source: string
           updated_at: string
           value: string
         }
         Insert: {
+          attested_by: string
+          attested_on: string
           created_at?: string
           id?: string
           is_hero?: boolean
           label: string
           seed_key?: string | null
           sort_order?: number | null
+          source: string
           updated_at?: string
           value: string
         }
         Update: {
+          attested_by?: string
+          attested_on?: string
           created_at?: string
           id?: string
           is_hero?: boolean
           label?: string
           seed_key?: string | null
           sort_order?: number | null
+          source?: string
           updated_at?: string
           value?: string
         }
