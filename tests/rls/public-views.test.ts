@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { anonClient, serviceClient } from '../helpers/clients';
 
-// Ruling 1: seven views. compute_metrics_public is the one the brief's
-// contract omits from Produces/Interfaces; it is created and tested here
-// like the other six. partners_public is gone as of Task 12r: the
-// partners table it projected was dropped when partner identity was
-// denormalised onto resources.partner.
+// Eight views. compute_metrics_public is the one the brief's contract
+// omits from Produces/Interfaces; it is created and tested here like the
+// other seven. partners_public is back as of Task 12L: the client
+// confirmed they want partner logos after all, reversing the Task 12r
+// (H8) denormalisation that had dropped the partners table and this view
+// along with it.
 const PUBLIC_VIEWS = [
   'resources_public',
   'headline_stats_public',
@@ -14,33 +15,46 @@ const PUBLIC_VIEWS = [
   'programmes_public',
   'impact_stories_public',
   'need_counts_public',
+  'partners_public',
 ] as const;
 
-// Ruling 5: six of the seven are auto-updatable, which Postgres decides
-// per write, not merely by inspecting the view's shape once. If anon
+// Ruling 5, updated by Task 12L: resources_public is a join again (it
+// joins partners to project partner_logo_url/partner_website_url), so
+// Postgres refuses any write through it outright -- it belongs in the
+// NOT_AUTO_UPDATABLE_CODE group below now, alongside need_counts_public,
+// not in this one. partners_public is a single-table projection (like
+// headline_stats_public etc.) and is auto-updatable -- confirmed
+// directly against this database with pg_relation_is_updatable. If anon
 // somehow held (or was ever mistakenly granted) write privilege on one of
-// these, an insert/update would go through as the view owner, bypassing
-// the base table's RLS entirely. resources_public is a join no longer --
-// it is a filtered single-table projection today (partners is gone) --
-// and confirmed directly against this database (pg_relation_is_updatable)
-// to remain auto-updatable despite its is_closed/days_left computed
-// columns: Postgres only disqualifies a write that actually targets a
-// computed column, and neither INSERT nor UPDATE here does. Only
-// need_counts_public (a GROUP BY aggregate) is not auto-updatable -- but
-// every view is still asserted here so this test stays a real guard
-// rather than one that only exercises the safe case.
+// the views below, an insert/update would go through as the view owner,
+// bypassing the base table's RLS entirely. Every view in PUBLIC_VIEWS is
+// still asserted in the write-denial test below, whether or not it is in
+// this auto-updatable group, so that test stays a real guard rather than
+// one that only exercises the safe case.
 const WRITABLE_SHAPE_VIEWS = [
-  'resources_public',
   'headline_stats_public',
   'compute_metrics_public',
   'site_content_public',
   'programmes_public',
   'impact_stories_public',
+  'partners_public',
 ] as const;
 
 describe('public-safe views', () => {
   beforeAll(async () => {
     const svc = serviceClient();
+
+    // resources.partner is a real FK (Task 12L) against partners(name),
+    // so the fixed partner name every fixture below references must
+    // exist first. Upserted with ignoreDuplicates rather than a plain
+    // insert: this suite has run against a database that already holds
+    // this row from a previous run within the same reset, and the point
+    // of this row is only that it exists, not any particular values on
+    // it, so a conflict here is not a fixture failure.
+    const { error: partnerError } = await svc
+      .from('partners')
+      .upsert({ name: 'Public View Partner' }, { onConflict: 'name', ignoreDuplicates: true });
+    if (partnerError) throw partnerError;
 
     const { error: resourcesError } = await svc.from('resources').insert([
       {
@@ -201,6 +215,42 @@ describe('public-safe views', () => {
     expect(data!.exclusivity).toBe('exclusive');
   });
 
+  // Task 12L restores partner_logo_url/partner_website_url to
+  // resources_public via a LEFT join against partners. Same rationale as
+  // the exclusivity case above: a catalog guard can prove the column is
+  // absent when it shouldn't be, but only reading the value back through
+  // the anon client proves the join actually resolves and the real value
+  // reaches the public surface, not merely that the column name exists.
+  it('exposes partner logo and website through the restored join anonymously', async () => {
+    const svc = serviceClient();
+    const stamp = Date.now();
+    const partnerName = `Public View Partner With Logo ${stamp}`;
+    const { error: partnerError } = await svc.from('partners').insert({
+      name: partnerName,
+      logo_url: 'https://example.org/logo.png',
+      website_url: 'https://example.org',
+    });
+    expect(partnerError).toBeNull();
+
+    const name = `Has partner logo ${stamp}`;
+    const { error } = await svc.from('resources').insert({
+      name, partner: partnerName, partner_tier: 'strategic',
+      resource_type: 'Credits', need_primary: 'compute',
+      description: 'has partner logo', external_url: 'https://example.org/i',
+      status: 'live',
+    });
+    expect(error).toBeNull();
+
+    const { data, error: readError } = await anonClient()
+      .from('resources_public')
+      .select('partner_logo_url, partner_website_url')
+      .eq('name', name)
+      .single();
+    expect(readError).toBeNull();
+    expect(data!.partner_logo_url).toBe('https://example.org/logo.png');
+    expect(data!.partner_website_url).toBe('https://example.org');
+  });
+
   // Ruling 6: the brief's hand-written "leaves the base tables unreachable
   // anonymously" case is deleted here. It lists six of sixteen base tables
   // and asserts toHaveLength(0), which is satisfied by a permission error,
@@ -227,42 +277,46 @@ describe('public-safe views', () => {
     programmes_public: { title: `Injected ${Date.now()}` },
     impact_stories_public: { organisation: `Injected ${Date.now()}` },
     need_counts_public: { need_primary: 'compute', live_count: 999 },
+    partners_public: { name: `Injected Partner ${Date.now()}` },
   };
 
   const UPDATE_PAYLOAD: Record<(typeof WRITABLE_SHAPE_VIEWS)[number], Record<string, unknown>> = {
-    resources_public: { name: `Overwritten ${Date.now()}` },
     headline_stats_public: { label: `Overwritten ${Date.now()}` },
     compute_metrics_public: { label: `Overwritten ${Date.now()}` },
     site_content_public: { value: `Overwritten ${Date.now()}` },
     programmes_public: { title: `Overwritten ${Date.now()}` },
     impact_stories_public: { organisation: `Overwritten ${Date.now()}` },
+    partners_public: { sort_order: 999 },
   };
 
-  // site_content_public has no `id` column (its key is key+locale), so the
+  // site_content_public has no `id` column (its key is key+locale), and
+  // partners_public has no `id` column either (its key is `name`), so the
   // update's WHERE filter must name a column the view actually has -- and
   // the filter value must be type-valid for that column (a non-uuid
   // string against a uuid column errors at parse time, before Postgres
   // ever reaches the permission check this test wants to exercise).
   const UPDATE_FILTER: Record<(typeof WRITABLE_SHAPE_VIEWS)[number], [string, string]> = {
-    resources_public: ['id', '00000000-0000-0000-0000-000000000000'],
     headline_stats_public: ['id', '00000000-0000-0000-0000-000000000000'],
     compute_metrics_public: ['id', '00000000-0000-0000-0000-000000000000'],
     site_content_public: ['key', 'no-such-key'],
     programmes_public: ['id', '00000000-0000-0000-0000-000000000000'],
     impact_stories_public: ['id', '00000000-0000-0000-0000-000000000000'],
+    partners_public: ['name', 'no-such-partner'],
   };
 
-  // Requirement 8 (Task 11b): assert the SQLSTATE, not merely that some
-  // error occurred. `not.toBeNull()` alone is the same shape that would
-  // let a PGRST204 schema-cache rejection (wrong column name in the
-  // payload) masquerade as a real permission denial -- confirmed directly
-  // against this database: the six single-table views (including
-  // resources_public, post-Task 12r) are auto-updatable, so their write is
-  // stopped by an actual GRANT check (42501, "permission denied for view
-  // <name>"); need_counts_public (a GROUP BY aggregate) is the only one
-  // that is not automatically updatable at all, so Postgres rejects the
-  // write before any privilege is even checked (55000, "cannot insert into
-  // view").
+  // Requirement 8 (Task 11b), updated by Task 12L: assert the SQLSTATE,
+  // not merely that some error occurred. `not.toBeNull()` alone is the
+  // same shape that would let a PGRST204 schema-cache rejection (wrong
+  // column name in the payload) masquerade as a real permission denial --
+  // confirmed directly against this database: the single-table views
+  // (headline_stats_public, compute_metrics_public, site_content_public,
+  // programmes_public, impact_stories_public and, as of Task 12L,
+  // partners_public) are auto-updatable, so their write is stopped by an
+  // actual GRANT check (42501, "permission denied for view <name>");
+  // need_counts_public (a GROUP BY aggregate) and, as of Task 12L,
+  // resources_public (a join against partners again) are not
+  // automatically updatable at all, so Postgres rejects the write before
+  // any privilege is even checked (55000, "cannot insert into view").
   const AUTO_UPDATABLE_CODE = '42501';
   const NOT_AUTO_UPDATABLE_CODE = '55000';
 
@@ -297,14 +351,14 @@ describe('public-safe views', () => {
   // Requirement 8: today only resources_public and need_counts_public are
   // actually read anonymously by the rest of this file. Without this test,
   // dropping a view from the anon SELECT grant (supabase/migrations/
-  // 0009_public_views.sql, as rebuilt by 0013_reconcile_partners.sql)
-  // would leave every other test in this file green while the public page
-  // backed by that view now 403s. Asserting `error` is null only, not a
-  // row count: five of the six base tables underlying these seven views
-  // are empty in a fresh reset (only resources gets fixture rows in this
-  // file), so a row-count assertion would be asserting fixture data, not
-  // the grant.
-  it('can be read anonymously on all seven public views', async () => {
+  // 0009_public_views.sql, as rebuilt by 0013_reconcile_partners.sql and
+  // 0014_partner_logos.sql) would leave every other test in this file
+  // green while the public page backed by that view now 403s. Asserting
+  // `error` is null only, not a row count: most of the base tables
+  // underlying these eight views are empty in a fresh reset (only
+  // resources gets fixture rows in this file), so a row-count assertion
+  // would be asserting fixture data, not the grant.
+  it('can be read anonymously on all eight public views', async () => {
     const anon = anonClient();
     for (const view of PUBLIC_VIEWS) {
       const { error } = await anon.from(view).select().limit(1);

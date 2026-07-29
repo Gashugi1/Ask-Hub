@@ -15,21 +15,28 @@ export interface Exception {
   why: string;
 }
 
-// The seven public-safe views created by supabase/migrations/0009_public_views.sql
-// and rebuilt (resources_public) or removed (partners_public) by
-// supabase/migrations/0013_reconcile_partners.sql. This is the entire
+// The eight public-safe views created by supabase/migrations/0009_public_views.sql,
+// rebuilt (resources_public) or removed (partners_public) by
+// supabase/migrations/0013_reconcile_partners.sql, and restored
+// (partners_public) with resources_public rebuilt again by
+// supabase/migrations/0014_partner_logos.sql. This is the entire
 // anonymous read surface (CLAUDE.md: "Anonymous reads go through
 // public-safe views that exclude views, clicks, CTR, submitter emails and
 // internal notes").
 //
-// partners_public is gone: the human ruling behind Task 12r denormalised
-// partner identity into a plain `resources.partner` string and dropped
-// the partners table entirely, so there is no longer a separate partners
-// entity for this view to project.
+// partners_public is back: Task 12L reversed one consequence of the H8
+// ruling behind Task 12r, on the client's confirmation that they want
+// partner logos after all -- the prototype having no partner URLs was
+// never evidence the client didn't want them, just evidence the
+// prototype didn't have them.
 export const ANON_SELECTABLE: Record<string, Exception> = {
   resources_public: {
     approvedIn: 'SP1-T11',
     why: 'The public resource directory itself, filtered to status = live and excluding views/clicks/ctr and the internal status column.',
+  },
+  partners_public: {
+    approvedIn: 'SP1-T12l',
+    why: 'Public-safe projection of partner name, logo and official site link for the resource directory, restored after the client confirmed they want partner logos.',
   },
   headline_stats_public: {
     approvedIn: 'SP1-T11',
@@ -71,5 +78,5 @@ export const ANON_SELECTABLE: Record<string, Exception> = {
 // that shortcut, so there is no slot to fill.
 export const ANON_EXECUTABLE: Record<string, Exception> = {};
 
-export const EXPECTED_ANON_SELECTABLE = 7;
+export const EXPECTED_ANON_SELECTABLE = 8;
 export const EXPECTED_ANON_EXECUTABLE = 0;

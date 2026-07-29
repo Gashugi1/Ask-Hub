@@ -4,6 +4,20 @@ import { anonClient, roleClient, serviceClient, ensureTestUsers } from '../helpe
 describe('resources', () => {
   beforeAll(async () => {
     await ensureTestUsers();
+
+    // resources.partner is a real FK (Task 12L) against partners(name),
+    // so every fixture below that references 'Test Partner' needs that
+    // row to exist first. Upserted with ignoreDuplicates rather than a
+    // plain insert: this suite may run more than once against a database
+    // that already holds this row from an earlier run within the same
+    // reset, and the point of this row is only that it exists, not any
+    // particular values on it, so a conflict here is not a fixture
+    // failure.
+    const svc = serviceClient();
+    const { error: partnerError } = await svc
+      .from('partners')
+      .upsert({ name: 'Test Partner' }, { onConflict: 'name', ignoreDuplicates: true });
+    if (partnerError) throw partnerError;
   });
 
   it('rejects a non-https external_url', async () => {
@@ -59,11 +73,68 @@ describe('resources', () => {
     expect(error?.code).toBe('23514');
   });
 
-  // Note: partner logos no longer exist anywhere in the schema -- the
-  // partners table (and its partners_logo_not_svg constraint) is gone per
-  // Task 12r's denormalisation ruling (H8). There is nothing left to guard
-  // on that side; the two SVG regression cases above still cover
-  // resources.banner_image_url, whose constraint is untouched.
+  // Task 12L restores the partners table and its own logo_url column,
+  // reversing Task 12r's H8 ruling on the client's confirmation that they
+  // want partner logos after all. Rule 10.10 ("each logo must link to its
+  // own official site") is back in force, enforced structurally by
+  // partners_logo_requires_site rather than left as a review item, and
+  // partners.logo_url gets the same corrected SVG pattern as
+  // resources.banner_image_url above -- verified with the same probe
+  // shape, mirrored here for the new column.
+
+  it('rejects a partner logo with no website', async () => {
+    const svc = serviceClient();
+    const { error } = await svc.from('partners').insert({
+      name: `Logo no site ${Date.now()}`,
+      logo_url: 'https://example.org/logo.png',
+    });
+    expect(error?.code).toBe('23514');
+  });
+
+  it('rejects an SVG partner logo url', async () => {
+    const svc = serviceClient();
+    const { error } = await svc.from('partners').insert({
+      name: `Svg logo ${Date.now()}`,
+      logo_url: 'https://example.org/logo.svg',
+      website_url: 'https://example.org',
+    });
+    expect(error?.code).toBe('23514');
+  });
+
+  it('rejects an uppercase SVG partner logo url', async () => {
+    const svc = serviceClient();
+    const { error } = await svc.from('partners').insert({
+      name: `Uppercase svg logo ${Date.now()}`,
+      logo_url: 'https://example.org/logo.SVG',
+      website_url: 'https://example.org',
+    });
+    expect(error?.code).toBe('23514');
+  });
+
+  it('rejects a partner logo url with the SVG extension mid-path', async () => {
+    // Same regression case as resources.banner_image_url above: some
+    // CDN/image-transform URLs put the real extension mid-path rather
+    // than at the end (e.g. .../logo.svg/w_300).
+    const svc = serviceClient();
+    const { error } = await svc.from('partners').insert({
+      name: `Svg mid-path logo ${Date.now()}`,
+      logo_url: 'https://example.org/logo.svg/banner.png',
+      website_url: 'https://example.org',
+    });
+    expect(error?.code).toBe('23514');
+  });
+
+  it('rejects an svgz partner logo url', async () => {
+    // .svgz is gzip-compressed SVG and carries the same active-content
+    // risk as .svg; the constraint must catch it too.
+    const svc = serviceClient();
+    const { error } = await svc.from('partners').insert({
+      name: `Svgz logo ${Date.now()}`,
+      logo_url: 'https://example.org/logo.svgz',
+      website_url: 'https://example.org',
+    });
+    expect(error?.code).toBe('23514');
+  });
 
   it('is not readable anonymously on the base table', async () => {
     // Insert a real row via service_role first so an unguarded anon read
