@@ -98,8 +98,10 @@ describe('route structure', () => {
 });
 
 describe('placeholder pages', () => {
+  // The public home stopped being a placeholder in SP2a Task 4, which puts
+  // the directory on it; Task 6 adds the bands above. The two admin
+  // placeholders stay until SP3.
   const PLACEHOLDERS = [
-    'src/app/(public)/page.tsx',
     'src/app/(admin)/admin/page.tsx',
     'src/app/(admin)/admin/login/page.tsx',
   ];
