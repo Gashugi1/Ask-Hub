@@ -78,6 +78,32 @@ export function isAllowedLiteral(raw: string): boolean {
   return false;
 }
 
+/**
+ * `parseDiagnostics` is populated on every SourceFile the parser produces but
+ * is not in TypeScript's public .d.ts. Declaring it optional rather than
+ * asserting it means a rename in a future TypeScript release makes this read
+ * `undefined` -- which the check below treats as "cannot tell", not as "no
+ * errors". An `as unknown as` cast would instead keep compiling and silently
+ * stop detecting parse failures, leaving the copy guard vacuously green on
+ * any file it cannot parse. `ts.SourceFile` is assignable to this type with
+ * no cast, because every member this adds is optional.
+ */
+type MaybeParsed = ts.SourceFile & { parseDiagnostics?: readonly ts.Diagnostic[] };
+
+/**
+ * The message of the first parse error on `file`, if this TypeScript version
+ * exposes `parseDiagnostics` and the file has one. `undefined` covers both
+ * "parsed cleanly" and "cannot tell" -- deliberately not distinguished,
+ * because either way there is nothing to throw on, and conflating them the
+ * other direction (treating "cannot tell" as an error) would fail every file
+ * on a TypeScript version that renamed the property.
+ */
+function parseErrorOf(file: MaybeParsed): string | undefined {
+  const first = file.parseDiagnostics?.[0];
+  if (!first) return undefined;
+  return ts.flattenDiagnosticMessageText(first.messageText, ' ');
+}
+
 export function findUserFacingLiterals(file: string, code: string): Literal[] {
   const source = ts.createSourceFile(
     file,
@@ -90,17 +116,10 @@ export function findUserFacingLiterals(file: string, code: string): Literal[] {
   // createSourceFile recovers silently from a syntax error, which would
   // otherwise make this guard's result quietly meaningless for a file that
   // doesn't parse: it would just contribute zero literals and stay green.
-  // parseDiagnostics is not in the public .d.ts but is populated on every
-  // SourceFile at runtime; surface it as a loud failure instead.
-  const parseDiagnostics = (source as unknown as { parseDiagnostics?: ts.Diagnostic[] })
-    .parseDiagnostics;
-  // Indexing is narrowed rather than destructured: noUncheckedIndexedAccess
-  // types element 0 as possibly undefined even after a length check, so
-  // `const [first] = …` does not compile.
-  const first = parseDiagnostics?.[0];
-  if (first) {
-    const message = ts.flattenDiagnosticMessageText(first.messageText, '\n');
-    throw new Error(`${file} failed to parse, guard result is meaningless: ${message}`);
+  // Surface it as a loud failure instead.
+  const parseError = parseErrorOf(source);
+  if (parseError) {
+    throw new Error(`${file} failed to parse, guard result is meaningless: ${parseError}`);
   }
 
   const lines = code.split('\n');
