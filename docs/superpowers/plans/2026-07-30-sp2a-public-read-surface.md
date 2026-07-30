@@ -546,11 +546,17 @@ export const RESOURCE_VIEW_COLUMNS: Record<keyof PublicResource, keyof ResourceR
   daysLeft: 'days_left',
 };
 
-/** Narrow a column the base table declares NOT NULL, or say which one broke. */
-function required<T>(value: T | null | undefined, column: string): T {
+/**
+ * Narrow a column the base table declares NOT NULL, or say which one broke.
+ *
+ * Takes the relation name because every mapper in this file calls it: without
+ * it, a null `partners_public.name` reports as `resources_public.name` and
+ * sends whoever is debugging to the wrong view.
+ */
+function required<T>(value: T | null | undefined, relation: string, column: string): T {
   if (value === null || value === undefined) {
     throw new Error(
-      `resources_public.${column} was null; the base column is NOT NULL, so the view or the migration has changed`,
+      `${relation}.${column} was null; the base column is NOT NULL, so the view or the migration has changed`,
     );
   }
   return value;
@@ -558,14 +564,14 @@ function required<T>(value: T | null | undefined, column: string): T {
 
 export function toPublicResource(row: ResourceRow): PublicResource {
   return {
-    id: required(row.id, 'id'),
-    name: required(row.name, 'name'),
-    partnerName: required(row.partner_name, 'partner_name'),
+    id: required(row.id, 'resources_public', 'id'),
+    name: required(row.name, 'resources_public', 'name'),
+    partnerName: required(row.partner_name, 'resources_public', 'partner_name'),
     partnerLogoUrl: row.partner_logo_url,
     partnerWebsiteUrl: row.partner_website_url,
-    partnerTier: required(row.partner_tier, 'partner_tier'),
+    partnerTier: required(row.partner_tier, 'resources_public', 'partner_tier'),
     resourceType: row.resource_type,
-    needPrimary: required(row.need_primary, 'need_primary'),
+    needPrimary: required(row.need_primary, 'resources_public', 'need_primary'),
     needSecondary: row.need_secondary,
     subCategory: row.sub_category,
     description: row.description,
@@ -575,13 +581,23 @@ export function toPublicResource(row: ResourceRow): PublicResource {
     countriesEligible: row.countries_eligible ?? [],
     sectorsEligible: row.sectors_eligible ?? [],
     stagesEligible: row.stages_eligible ?? [],
-    geoScope: required(row.geo_scope, 'geo_scope'),
+    geoScope: required(row.geo_scope, 'resources_public', 'geo_scope'),
     deadline: row.deadline,
-    isFeatured: row.is_featured ?? false,
+    // NOT NULL in the base table, and is_closed is computed in the view, so
+    // none of these three can arrive null. They go through required() rather
+    // than coalescing for the same reason id and name do -- and isClosed
+    // especially: coalescing it to false would render a resource whose
+    // deadline has passed as open, inviting an application to a programme
+    // that has ended. A null here means the view changed underneath us, and
+    // saying so beats picking an answer. Ruled by the human on 2026-07-30
+    // after the Task 1 review flagged the original `?? false`.
+    isFeatured: required(row.is_featured, 'resources_public', 'is_featured'),
     exclusivity: row.exclusivity,
+    // sort_order is NULLABLE in every base table that has one (verified
+    // against information_schema), so it coalesces rather than throwing.
     sortOrder: row.sort_order ?? 0,
     addedDate: row.added_date,
-    isClosed: row.is_closed ?? false,
+    isClosed: required(row.is_closed, 'resources_public', 'is_closed'),
     daysLeft: row.days_left,
   };
 }
@@ -595,7 +611,7 @@ export interface PublicPartner {
 
 export function toPublicPartner(row: PartnerRow): PublicPartner {
   return {
-    name: required(row.name, 'name'),
+    name: required(row.name, 'partners_public', 'name'),
     logoUrl: row.logo_url,
     websiteUrl: row.website_url,
     sortOrder: row.sort_order ?? 0,
@@ -612,10 +628,10 @@ export interface PublicStat {
 
 export function toPublicStat(row: StatRow): PublicStat {
   return {
-    id: required(row.id, 'id'),
-    value: required(row.value, 'value'),
-    label: required(row.label, 'label'),
-    isHero: row.is_hero ?? false,
+    id: required(row.id, 'headline_stats_public', 'id'),
+    value: required(row.value, 'headline_stats_public', 'value'),
+    label: required(row.label, 'headline_stats_public', 'label'),
+    isHero: required(row.is_hero, 'headline_stats_public', 'is_hero'),
     sortOrder: row.sort_order ?? 0,
   };
 }
@@ -630,8 +646,8 @@ export interface PublicStory {
 
 export function toPublicStory(row: StoryRow): PublicStory {
   return {
-    id: required(row.id, 'id'),
-    organisation: required(row.organisation, 'organisation'),
+    id: required(row.id, 'impact_stories_public', 'id'),
+    organisation: required(row.organisation, 'impact_stories_public', 'organisation'),
     country: row.country,
     description: row.description,
     sortOrder: row.sort_order ?? 0,
@@ -645,8 +661,12 @@ export interface NeedCount {
 
 export function toNeedCount(row: NeedCountRow): NeedCount {
   return {
-    need: required(row.need_primary, 'need_primary'),
-    liveCount: row.live_count ?? 0,
+    need: required(row.need_primary, 'need_counts_public', 'need_primary'),
+    // count(*)::integer in a grouped view is never null in SQL, but
+    // live_count is not a base column, so information_schema cannot vouch
+    // for it the way it can for the others. required() is still the right
+    // call: a null here would mean the aggregate stopped being an aggregate.
+    liveCount: required(row.live_count, 'need_counts_public', 'live_count'),
   };
 }
 ```
