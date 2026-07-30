@@ -39,6 +39,18 @@ Every task's requirements implicitly include this section. Values copied verbati
 - **Reject SVG uploads and SVG image URLs.** (`resources_banner_not_svg` enforces it in the database; the form must not offer a path that fails there.)
 - **No hardcoded colours or type values.** Use the `@theme` tokens in `src/app/globals.css`; `tests/structure/app-structure.test.ts` fails on any hex/oklch/rgb/hsl literal elsewhere under `src/`.
 - **Public pages revalidate on write** (`revalidateTag` with `CACHE_TAGS` from `src/lib/public/cache.ts`) — SP3 imports those tags and never edits SP2a's readers.
+- **`revalidateTag` takes TWO arguments in the installed Next 16.2.12**:
+  `revalidateTag(tag: string, profile: string | CacheLifeConfig)` (verified in
+  `node_modules/next/dist/server/web/spec-extension/revalidate.d.ts`). A one-argument
+  call does not typecheck. Task 4 passed `{ expire: 0 }` rather than the documented
+  `'max'` profile, because PRD 13.4 requires an editor's save to appear on the public
+  site immediately while `'max'` implies stale-while-revalidate. Use the same call
+  shape in every task, and if a review overturns the choice, change it everywhere at
+  once rather than per screen.
+- **Enum values are derived from `src/lib/supabase/database.types.ts`, never retyped.**
+  This plan's own snippets inherited a stale four-value `partner_tier` from an older
+  design doc; the real enum has five values. Any hand-copied enum list in this plan is
+  suspect — check it against the generated types before using it.
 - **Deadline past means the resource displays as Closed and is flagged in admin. Its `status` does not change.**
 - **Feature flags `feature_innovator_profiles` and `feature_public_impact_page` are both off at launch.** Build the flag, not the feature.
 - **`audit_log` is append-only for all roles**, and must never be given `force row level security` — the audit trigger's insert depends on the table owner not being subject to its own policies.
@@ -1955,7 +1967,7 @@ buttons, and the status cell renders as text instead of a dropdown."
   ```ts
   // src/lib/schemas/resource.ts
   export const resourceInput: z.ZodType<ResourceInput>;
-  export type ResourceInput = { name: string; partner: string; partnerTier: 'strategic'|'network'|'institutional'|'other';
+  export type ResourceInput = { name: string; partner: string; partnerTier: 'strategic'|'government'|'development_partner'|'academic'|'network';
     resourceType: string; needPrimary: NeedKey; needSecondary: NeedKey | null; subCategory: string | null;
     description: string; actionLabel: string; externalUrl: string; bannerImageUrl: string | null;
     countriesEligible: string[]; sectorsEligible: string[]; stagesEligible: string[];
@@ -2084,7 +2096,11 @@ const notSvg = (value: string) => !/\.svgz?($|\?|#|\/)/i.test(value);
 export const resourceInput = z.object({
   name: z.string().trim().min(1).max(200),
   partner: z.string().trim().min(1).max(200),
-  partnerTier: z.enum(['strategic', 'network', 'institutional', 'other']),
+  // Five values, sourced from the generated types rather than retyped:
+  // migration 0013 replaced the original four-value enum, and the design
+  // doc this plan inherited its list from was never updated. Derive it, do
+  // not hand-copy it -- Task 4 hit exactly this and added a regression test.
+  partnerTier: z.enum(Constants.public.Enums.partner_tier),
   resourceType: z.string().trim().min(1).max(100),
   needPrimary: z.enum(NEED_KEYS),
   needSecondary: z.enum(NEED_KEYS).nullable(),
@@ -2257,7 +2273,7 @@ export async function createResource(input: unknown): Promise<{ id: string }> {
     .select('id')
     .single();
   if (error) throw new Error(`createResource failed: ${error.message}`);
-  revalidateTag(CACHE_TAGS.resources);
+  revalidateTag(CACHE_TAGS.resources, { expire: 0 });
   return { id: data!.id };
 }
 
@@ -2268,7 +2284,7 @@ export async function updateResource(rawId: unknown, input: unknown): Promise<vo
   const supabase = await createAdminReadClient();
   const { error } = await supabase.from('resources').update(toRow(parsed)).eq('id', targetId);
   if (error) throw new Error(`updateResource failed: ${error.message}`);
-  revalidateTag(CACHE_TAGS.resources);
+  revalidateTag(CACHE_TAGS.resources, { expire: 0 });
 }
 
 export async function setResourceStatus(rawId: unknown, rawStatus: unknown): Promise<void> {
@@ -2278,7 +2294,7 @@ export async function setResourceStatus(rawId: unknown, rawStatus: unknown): Pro
   const supabase = await createAdminReadClient();
   const { error } = await supabase.from('resources').update({ status: next }).eq('id', targetId);
   if (error) throw new Error(`setResourceStatus failed: ${error.message}`);
-  revalidateTag(CACHE_TAGS.resources);
+  revalidateTag(CACHE_TAGS.resources, { expire: 0 });
 }
 
 export async function setResourceFeatured(rawId: unknown, rawFeatured: unknown): Promise<void> {
@@ -2288,7 +2304,7 @@ export async function setResourceFeatured(rawId: unknown, rawFeatured: unknown):
   const supabase = await createAdminReadClient();
   const { error } = await supabase.from('resources').update({ is_featured: isFeatured }).eq('id', targetId);
   if (error) throw new Error(`setResourceFeatured failed: ${error.message}`);
-  revalidateTag(CACHE_TAGS.resources);
+  revalidateTag(CACHE_TAGS.resources, { expire: 0 });
 }
 
 export async function deleteResource(rawId: unknown): Promise<void> {
@@ -2297,7 +2313,7 @@ export async function deleteResource(rawId: unknown): Promise<void> {
   const supabase = await createAdminReadClient();
   const { error } = await supabase.from('resources').delete().eq('id', targetId);
   if (error) throw new Error(`deleteResource failed: ${error.message}`);
-  revalidateTag(CACHE_TAGS.resources);
+  revalidateTag(CACHE_TAGS.resources, { expire: 0 });
 }
 ```
 
@@ -2623,7 +2639,7 @@ export async function saveSetting(input: unknown): Promise<void> {
   if (error) throw new Error(`saveSetting failed: ${error.message}`);
   // settings_public projects the two feature flags to anon, so a flag change
   // must reach the public site without a rebuild.
-  revalidateTag(CACHE_TAGS.settings);
+  revalidateTag(CACHE_TAGS.settings, { expire: 0 });
 }
 ```
 
