@@ -1,0 +1,257 @@
+import { describe, it, expect } from 'vitest';
+import {
+  parseFilters,
+  toSearchParams,
+  filterResources,
+  sortResources,
+  EMPTY_CRITERIA,
+  DEFAULT_SORT,
+  type FilterCriteria,
+} from '@/lib/public/filters';
+import type { PublicResource } from '@/lib/public/types';
+
+function resource(overrides: Partial<PublicResource> = {}): PublicResource {
+  return {
+    id: 'r1',
+    name: 'Cloud credits programme',
+    partnerName: 'Amazon Web Services',
+    partnerLogoUrl: null,
+    partnerWebsiteUrl: null,
+    partnerTier: 'strategic',
+    resourceType: 'Credits',
+    needPrimary: 'compute',
+    needSecondary: null,
+    subCategory: 'Cloud credits',
+    description: 'Credits for early-stage teams.',
+    actionLabel: null,
+    externalUrl: 'https://example.org',
+    bannerImageUrl: null,
+    countriesEligible: ['Kenya', 'Ghana'],
+    sectorsEligible: ['Health'],
+    stagesEligible: ['Building'],
+    geoScope: 'specific',
+    deadline: null,
+    isFeatured: false,
+    exclusivity: null,
+    sortOrder: 0,
+    addedDate: '2026-01-01',
+    isClosed: false,
+    daysLeft: null,
+    ...overrides,
+  };
+}
+
+const criteria = (over: Partial<FilterCriteria> = {}): FilterCriteria => ({
+  ...EMPTY_CRITERIA,
+  ...over,
+});
+
+describe('parseFilters', () => {
+  it('returns the empty criteria for an empty query string', () => {
+    expect(parseFilters(new URLSearchParams(''))).toEqual(EMPTY_CRITERIA);
+  });
+
+  it('reads every facet', () => {
+    const parsed = parseFilters(
+      new URLSearchParams(
+        'need=funding&sector=Health&country=Kenya&stage=Building&q=grants&sort=recent',
+      ),
+    );
+    expect(parsed).toEqual({
+      need: 'funding',
+      sector: 'Health',
+      country: 'Kenya',
+      stage: 'Building',
+      query: 'grants',
+      sort: 'recent',
+    });
+  });
+
+  it('falls back to the default for an unknown value rather than filtering to nothing', () => {
+    // A stale or hand-edited link must not produce an empty directory with no
+    // explanation. An unrecognised facet is dropped, not honoured.
+    const parsed = parseFilters(
+      new URLSearchParams('need=teleportation&sector=Mining&country=Atlantis&stage=Wizard&sort=price'),
+    );
+    expect(parsed).toEqual(EMPTY_CRITERIA);
+    expect(parsed.sort).toBe(DEFAULT_SORT);
+  });
+
+  it('trims the free-text query', () => {
+    expect(parseFilters(new URLSearchParams('q=%20%20grants%20%20')).query).toBe('grants');
+  });
+});
+
+describe('toSearchParams', () => {
+  it('serialises nothing for the empty criteria', () => {
+    expect(toSearchParams(EMPTY_CRITERIA).toString()).toBe('');
+  });
+
+  it('omits the default sort but keeps a non-default one', () => {
+    expect(toSearchParams(criteria({ sort: DEFAULT_SORT })).toString()).toBe('');
+    expect(toSearchParams(criteria({ sort: 'recent' })).toString()).toBe('sort=recent');
+  });
+
+  it('round-trips every facet', () => {
+    const original = criteria({
+      need: 'training',
+      sector: 'Education & Training',
+      country: 'Democratic Republic of the Congo',
+      stage: 'Scaling',
+      query: 'curriculum',
+      sort: 'recent',
+    });
+    expect(parseFilters(toSearchParams(original))).toEqual(original);
+  });
+
+  it('preserves unrelated parameters already in the URL', () => {
+    // A campaign tag or an anchor-carrying param must survive a filter click.
+    const base = new URLSearchParams('utm_source=newsletter');
+    const out = toSearchParams(criteria({ need: 'funding' }), base);
+    expect(out.get('utm_source')).toBe('newsletter');
+    expect(out.get('need')).toBe('funding');
+  });
+
+  it('removes a facet that has been cleared rather than serialising it empty', () => {
+    const base = new URLSearchParams('need=funding&sector=Health');
+    const out = toSearchParams(criteria({ need: 'funding' }), base);
+    expect(out.has('sector')).toBe(false);
+  });
+});
+
+describe('filterResources', () => {
+  const rows = [
+    resource({ id: 'a', needPrimary: 'compute', name: 'Cloud credits programme' }),
+    resource({
+      id: 'b',
+      needPrimary: 'funding',
+      needSecondary: 'compute',
+      name: 'Seed grant',
+      partnerName: 'Google',
+      description: 'Equity-free grant.',
+      subCategory: 'Grant',
+      sectorsEligible: [],
+      countriesEligible: [],
+      stagesEligible: [],
+      geoScope: 'global',
+    }),
+    resource({
+      id: 'c',
+      needPrimary: 'training',
+      name: 'Curriculum',
+      partnerName: 'Deep Learning Indaba',
+      // Overridden so this row's default subCategory ('Cloud credits',
+      // inherited from the resource() factory) does not accidentally match
+      // the 'cloud' query the search test below asserts is exclusive to 'a'.
+      subCategory: 'Course design',
+      sectorsEligible: ['Education & Training'],
+      countriesEligible: ['Senegal'],
+      stagesEligible: ['New to AI'],
+    }),
+  ];
+
+  it('returns everything for the empty criteria', () => {
+    expect(filterResources(rows, EMPTY_CRITERIA)).toHaveLength(3);
+  });
+
+  it('matches a need on either the primary or the secondary', () => {
+    // need_secondary exists so a resource can serve two needs; ignoring it
+    // would hide the compute half of every funding-and-compute resource.
+    expect(filterResources(rows, criteria({ need: 'compute' })).map((r) => r.id)).toEqual([
+      'a',
+      'b',
+    ]);
+  });
+
+  it('treats an empty sectors_eligible array as all sectors', () => {
+    // The seed maps the prototype's 'All' sentinel to []; an empty array must
+    // therefore match every sector rather than none.
+    expect(filterResources(rows, criteria({ sector: 'Health' })).map((r) => r.id)).toEqual([
+      'a',
+      'b',
+    ]);
+  });
+
+  it('treats an empty stages_eligible array as all stages', () => {
+    expect(filterResources(rows, criteria({ stage: 'Scaling' })).map((r) => r.id)).toEqual(['b']);
+  });
+
+  it('matches any country when geo_scope is global, all_africa or partner_countries', () => {
+    // PRD 4.x and content rule 10.6: there is no "Global programmes" option
+    // in the country filter. A globally-scoped resource matches every
+    // country selection instead.
+    expect(filterResources(rows, criteria({ country: 'Zambia' })).map((r) => r.id)).toEqual(['b']);
+    expect(filterResources(rows, criteria({ country: 'Kenya' })).map((r) => r.id)).toEqual([
+      'a',
+      'b',
+    ]);
+  });
+
+  it('searches name, partner, description and sub-category', () => {
+    expect(filterResources(rows, criteria({ query: 'cloud' })).map((r) => r.id)).toEqual(['a']);
+    expect(filterResources(rows, criteria({ query: 'indaba' })).map((r) => r.id)).toEqual(['c']);
+    expect(filterResources(rows, criteria({ query: 'equity-free' })).map((r) => r.id)).toEqual([
+      'b',
+    ]);
+    expect(filterResources(rows, criteria({ query: 'grant' })).map((r) => r.id)).toEqual(['b']);
+  });
+
+  it('searches case-insensitively', () => {
+    expect(filterResources(rows, criteria({ query: 'CLOUD' })).map((r) => r.id)).toEqual(['a']);
+  });
+
+  it('intersects facets rather than unioning them', () => {
+    expect(
+      filterResources(rows, criteria({ need: 'compute', country: 'Senegal' })),
+    ).toHaveLength(1);
+  });
+
+  it('returns an empty array when nothing matches', () => {
+    expect(filterResources(rows, criteria({ query: 'no such thing' }))).toEqual([]);
+  });
+
+  it('keeps closed resources in the results', () => {
+    // PRD 4.2: a past deadline changes the display, never the listing.
+    const closed = [resource({ id: 'z', isClosed: true, deadline: '2020-01-01', daysLeft: -1 })];
+    expect(filterResources(closed, EMPTY_CRITERIA)).toHaveLength(1);
+  });
+});
+
+describe('sortResources', () => {
+  const rows = [
+    resource({ id: 'a', isFeatured: false, sortOrder: 2, addedDate: '2026-03-01' }),
+    resource({ id: 'b', isFeatured: true, sortOrder: 5, addedDate: '2026-01-01' }),
+    resource({ id: 'c', isFeatured: false, sortOrder: 1, addedDate: '2026-05-01' }),
+  ];
+
+  it('puts featured first, then sort_order', () => {
+    expect(sortResources(rows, 'featured').map((r) => r.id)).toEqual(['b', 'c', 'a']);
+  });
+
+  it('orders by added date descending for recent', () => {
+    expect(sortResources(rows, 'recent').map((r) => r.id)).toEqual(['c', 'a', 'b']);
+  });
+
+  it('breaks ties on id so the order is stable across renders', () => {
+    // Without a tie-breaker, two rows with the same sort_order can swap
+    // between a server render and a client re-render, which React reports as
+    // a hydration mismatch and a visitor sees as a flicker.
+    const tied = [
+      resource({ id: 'y', sortOrder: 1, addedDate: '2026-01-01' }),
+      resource({ id: 'x', sortOrder: 1, addedDate: '2026-01-01' }),
+    ];
+    expect(sortResources(tied, 'featured').map((r) => r.id)).toEqual(['x', 'y']);
+    expect(sortResources(tied, 'recent').map((r) => r.id)).toEqual(['x', 'y']);
+  });
+
+  it('does not mutate its input', () => {
+    const input = [...rows];
+    sortResources(input, 'recent');
+    expect(input.map((r) => r.id)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('sorts a resource with no added date last under recent', () => {
+    const withNull = [resource({ id: 'n', addedDate: null }), resource({ id: 'd', addedDate: '2026-01-01' })];
+    expect(sortResources(withNull, 'recent').map((r) => r.id)).toEqual(['d', 'n']);
+  });
+});
