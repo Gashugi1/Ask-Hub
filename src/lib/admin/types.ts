@@ -1,4 +1,5 @@
 import type { Database } from '@/lib/supabase/database.types';
+import type { AuditAction } from './audit-view';
 
 export type ResourceStatus = 'live' | 'pipeline' | 'reference';
 
@@ -49,4 +50,19 @@ export function toAdminResource(row: ResourceRow): AdminResource {
     isFeatured: row.is_featured,
     sortOrder: row.sort_order,
   };
+}
+
+/**
+ * One row of PRD 6.9's audit table. `diff`, `ip_hash` and `user_agent` are
+ * `@sensitive` and this screen never shows them, so they have no field here
+ * at all — `readAuditPage` never selects them, and this type gives nowhere
+ * for one to arrive by accident.
+ */
+export interface AuditEntry {
+  id: string;
+  occurredAt: string;
+  actorName: string;
+  action: AuditAction;
+  entityLabel: string;
+  changeSummary: string;
 }

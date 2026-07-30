@@ -1,7 +1,8 @@
 import 'server-only';
 import { createAdminReadClient } from './client';
 import { deadlineInfo } from '@/lib/deadline';
-import { toAdminResource, type AdminResource } from './types';
+import { toAdminResource, type AdminResource, type AuditEntry } from './types';
+import { AUDIT_PAGE_SIZE, type AuditFilters } from './audit-view';
 
 export interface ResourceCounts {
   live: number;
@@ -51,4 +52,58 @@ export async function readAdminResources(): Promise<AdminResource[]> {
     .order('name', { ascending: true });
   if (error) throw new Error(`admin read failed (resources): ${error.message}`);
   return (data ?? []).map(toAdminResource);
+}
+
+/**
+ * PRD 6.9's audit table, one page at a time. `diff`, `ip_hash` and
+ * `user_agent` are `@sensitive` and this screen never displays them, so the
+ * select list below is exactly the five columns the table shows plus `id` —
+ * never `select('*')`, which would carry the sensitive columns to the render
+ * layer even though nothing ever reads them back off the object.
+ *
+ * `{ count: 'exact' }` asks PostgREST for the true total matching the
+ * filters (not just the page), which is what the header's entry count and
+ * the pager both need — an estimated count would be a fabricated figure
+ * (CLAUDE.md).
+ */
+export async function readAuditPage(
+  filters: AuditFilters,
+): Promise<{ rows: AuditEntry[]; total: number }> {
+  const supabase = await createAdminReadClient();
+  let query = supabase
+    .from('audit_log')
+    .select('id, occurred_at, actor_name, action, entity_label, change_summary', {
+      count: 'exact',
+    })
+    .order('occurred_at', { ascending: false });
+
+  if (filters.actor !== 'all') {
+    query = query.ilike('actor_name', `%${filters.actor}%`);
+  }
+  if (filters.action !== 'all') {
+    query = query.eq('action', filters.action);
+  }
+  if (filters.from) {
+    query = query.gte('occurred_at', `${filters.from}T00:00:00.000Z`);
+  }
+  if (filters.to) {
+    query = query.lte('occurred_at', `${filters.to}T23:59:59.999Z`);
+  }
+
+  const start = (filters.page - 1) * AUDIT_PAGE_SIZE;
+  const end = start + AUDIT_PAGE_SIZE - 1;
+  const { data, error, count } = await query.range(start, end);
+  if (error) throw new Error(`admin read failed (audit_log): ${error.message}`);
+
+  return {
+    rows: (data ?? []).map((row) => ({
+      id: row.id,
+      occurredAt: row.occurred_at,
+      actorName: row.actor_name,
+      action: row.action,
+      entityLabel: row.entity_label,
+      changeSummary: row.change_summary,
+    })),
+    total: count ?? 0,
+  };
 }
