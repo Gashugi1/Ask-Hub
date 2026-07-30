@@ -1,8 +1,21 @@
+import { Suspense } from 'react';
+import ResourceDirectory from '@/components/public/ResourceDirectory';
+import { listPublicResources } from '@/lib/public/readers';
+
 /**
- * Placeholder for `/`. The storefront home — welcome band, headline reach
- * strip, search, browse by need, featured carousel, partner logo row,
- * recently added rail and the full directory — is PRD 5.1 and belongs to SP2.
+ * The storefront home. Task 6 adds the six bands that sit above the
+ * directory; this is the directory itself, which PRD 5.1 item 8 puts on the
+ * home page rather than on a route of its own.
  */
-export default function PublicHomePage() {
-  return <div data-route="/" />;
+export default async function PublicHomePage() {
+  const resources = await listPublicResources();
+  return (
+    // ResourceDirectory calls useSearchParams(), which opts its subtree into
+    // client-side rendering during prerender. The boundary is here, around
+    // the smallest subtree that needs it, so the bands Task 6 adds above
+    // still prerender as static HTML.
+    <Suspense fallback={null}>
+      <ResourceDirectory resources={resources} />
+    </Suspense>
+  );
 }
