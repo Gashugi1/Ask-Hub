@@ -3,6 +3,7 @@ import { createAdminReadClient } from './client';
 import { deadlineInfo } from '@/lib/deadline';
 import { toAdminResource, type AdminResource, type AuditEntry } from './types';
 import { AUDIT_PAGE_SIZE, type AuditFilters } from './audit-view';
+import { rowToResourceInput, type ResourceInput } from '@/lib/schemas/resource';
 
 export interface ResourceCounts {
   live: number;
@@ -52,6 +53,21 @@ export async function readAdminResources(): Promise<AdminResource[]> {
     .order('name', { ascending: true });
   if (error) throw new Error(`admin read failed (resources): ${error.message}`);
   return (data ?? []).map(toAdminResource);
+}
+
+/**
+ * One full resource row, for the edit form. Unlike `readAdminResources`,
+ * this is not narrowed through `toAdminResource` — the edit form needs every
+ * editable column (`description`, `action_label`, `external_url`,
+ * `banner_image_url`, `exclusivity`), which `AdminResource` deliberately
+ * omits because the table view never shows them. `null` means no row with
+ * that id, which the route turns into `notFound()` rather than an error.
+ */
+export async function readResourceForEdit(id: string): Promise<ResourceInput | null> {
+  const supabase = await createAdminReadClient();
+  const { data, error } = await supabase.from('resources').select('*').eq('id', id).maybeSingle();
+  if (error) throw new Error(`admin read failed (resources): ${error.message}`);
+  return data ? rowToResourceInput(data) : null;
 }
 
 /**

@@ -11,8 +11,8 @@ export interface ResourceQuery {
   need: string | 'all';
 }
 
-const TABS: readonly ResourceTab[] = ['all', 'expiring', 'closed'];
-const STATUSES: readonly ResourceStatus[] = ['live', 'pipeline', 'reference'];
+export const TABS: readonly ResourceTab[] = ['all', 'expiring', 'closed'];
+export const STATUSES: readonly ResourceStatus[] = ['live', 'pipeline', 'reference'];
 
 /**
  * The URL is the single source of filter state, as on the public directory.

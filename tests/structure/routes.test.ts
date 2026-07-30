@@ -81,6 +81,14 @@ describe('route structure', () => {
     expect(routes()['/(admin)/admin/resources/page']).toBe('/admin/resources');
   });
 
+  it('serves the new-resource form at /admin/resources/new', () => {
+    expect(routes()['/(admin)/admin/resources/new/page']).toBe('/admin/resources/new');
+  });
+
+  it('serves the edit-resource form at /admin/resources/[id]', () => {
+    expect(routes()['/(admin)/admin/resources/[id]/page']).toBe('/admin/resources/[id]');
+  });
+
   it('serves the admin audit log at /admin/audit', () => {
     expect(routes()['/(admin)/admin/audit/page']).toBe('/admin/audit');
   });

@@ -5,16 +5,14 @@ import { readAdminResources } from '@/lib/admin/readers';
 import {
   parseResourceQuery,
   filterAdminResources,
+  TABS,
+  STATUSES,
   type ResourceQuery,
   type ResourceTab,
 } from '@/lib/admin/resource-view';
-import type { ResourceStatus } from '@/lib/admin/types';
 import { NEED_KEYS } from '@/lib/reference';
 import ResourceTable from '@/components/admin/ResourceTable';
 import { t } from '@/lib/i18n';
-
-const TABS: readonly ResourceTab[] = ['all', 'expiring', 'closed'];
-const STATUSES: readonly ResourceStatus[] = ['live', 'pipeline', 'reference'];
 
 /** A tab link keeps the current search, status and need — switching tabs narrows the deadline view, not the filters. */
 function tabHref(query: ResourceQuery, tab: ResourceTab): string {
@@ -40,11 +38,24 @@ export default async function AdminResourcesPage({
   );
   const query = parseResourceQuery(params);
   const rows = filterAdminResources(await readAdminResources(), query);
+  const userCanWrite = canWrite(user.role);
 
   return (
     <main data-route="/admin/resources" className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold text-navy">{t('admin.resources.heading')}</h1>
-      <p className="text-sm text-muted">{t('admin.resources.publicNote')}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold text-navy">{t('admin.resources.heading')}</h1>
+          <p className="text-sm text-muted">{t('admin.resources.publicNote')}</p>
+        </div>
+        {userCanWrite ? (
+          <Link
+            href="/admin/resources/new"
+            className="rounded bg-primary px-3 py-1.5 text-sm text-surface"
+          >
+            {t('admin.resources.addNew')}
+          </Link>
+        ) : null}
+      </div>
 
       <nav className="flex gap-4 border-b border-hairline" aria-label={t('admin.resources.heading')}>
         {TABS.map((tab) => (
@@ -112,7 +123,7 @@ export default async function AdminResourcesPage({
         </button>
       </form>
 
-      <ResourceTable rows={rows} canWrite={canWrite(user.role)} />
+      <ResourceTable rows={rows} canWrite={userCanWrite} />
     </main>
   );
 }
