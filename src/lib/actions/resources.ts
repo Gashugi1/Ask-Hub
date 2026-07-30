@@ -6,6 +6,7 @@ import { requireRole } from '@/lib/auth';
 import { createAdminReadClient } from '@/lib/admin/client';
 import { resourceInput } from '@/lib/schemas/resource';
 import { CACHE_TAGS } from '@/lib/public/cache';
+import { assertRowAffected } from './resource-mutation-guards';
 
 const id = z.string().uuid();
 const status = z.enum(['live', 'pipeline', 'reference']);
@@ -85,8 +86,13 @@ export async function updateResource(rawId: unknown, input: unknown): Promise<vo
   const targetId = id.parse(rawId);
   const parsed = resourceInput.parse(input);
   const supabase = await createAdminReadClient();
-  const { error } = await supabase.from('resources').update(toRow(parsed)).eq('id', targetId);
+  const { data, error } = await supabase
+    .from('resources')
+    .update(toRow(parsed))
+    .eq('id', targetId)
+    .select('id');
   if (error) throw new Error(`updateResource failed: ${error.message}`);
+  assertRowAffected('updateResource', data);
   revalidateResources();
 }
 
@@ -95,8 +101,13 @@ export async function setResourceStatus(rawId: unknown, rawStatus: unknown): Pro
   const targetId = id.parse(rawId);
   const next = status.parse(rawStatus);
   const supabase = await createAdminReadClient();
-  const { error } = await supabase.from('resources').update({ status: next }).eq('id', targetId);
+  const { data, error } = await supabase
+    .from('resources')
+    .update({ status: next })
+    .eq('id', targetId)
+    .select('id');
   if (error) throw new Error(`setResourceStatus failed: ${error.message}`);
+  assertRowAffected('setResourceStatus', data);
   revalidateResources();
 }
 
@@ -105,8 +116,13 @@ export async function setResourceFeatured(rawId: unknown, rawFeatured: unknown):
   const targetId = id.parse(rawId);
   const isFeatured = z.boolean().parse(rawFeatured);
   const supabase = await createAdminReadClient();
-  const { error } = await supabase.from('resources').update({ is_featured: isFeatured }).eq('id', targetId);
+  const { data, error } = await supabase
+    .from('resources')
+    .update({ is_featured: isFeatured })
+    .eq('id', targetId)
+    .select('id');
   if (error) throw new Error(`setResourceFeatured failed: ${error.message}`);
+  assertRowAffected('setResourceFeatured', data);
   revalidateResources();
 }
 
@@ -114,7 +130,8 @@ export async function deleteResource(rawId: unknown): Promise<void> {
   await requireRole(['admin', 'editor']);
   const targetId = id.parse(rawId);
   const supabase = await createAdminReadClient();
-  const { error } = await supabase.from('resources').delete().eq('id', targetId);
+  const { data, error } = await supabase.from('resources').delete().eq('id', targetId).select('id');
   if (error) throw new Error(`deleteResource failed: ${error.message}`);
+  assertRowAffected('deleteResource', data);
   revalidateResources();
 }
