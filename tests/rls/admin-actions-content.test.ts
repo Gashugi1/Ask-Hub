@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { ensureTestUsers, roleClient, serviceClient } from '../helpers/clients';
 
 /**
@@ -15,10 +15,29 @@ import { ensureTestUsers, roleClient, serviceClient } from '../helpers/clients';
  * (src/lib/actions/content.ts), while RLS — the layer that holds even if
  * that gate were ever removed — is verified here, against the real
  * database.
+ *
+ * House rule from tests/rls/site.test.ts: a suite may add its own fixture
+ * rows, but must delete them in `afterAll`, unconditionally, not at the end
+ * of a test body — a failing assertion above a cleanup call would otherwise
+ * skip it. `headline_stats` and `compute_metrics` are anon-readable through
+ * `headline_stats_public`/`compute_metrics_public`, and `0015_stat_provenance.sql`
+ * is written on the premise that both tables start empty, so a leaked
+ * fixture here is not merely untidy — it is exactly the fabricated-looking
+ * attested figure CLAUDE.md's first hard rule exists to keep off this
+ * surface. Every fixture-creating helper below records the id it just
+ * created before returning, so cleanup does not depend on the test body
+ * reaching its own end.
  */
 describe('site content writes at the database boundary', () => {
+  const createdIds: string[] = [];
+
   beforeAll(async () => {
     await ensureTestUsers();
+  });
+
+  afterAll(async () => {
+    if (createdIds.length === 0) return;
+    await serviceClient().from('site_content').delete().in('id', createdIds);
   });
 
   async function siteContentFixture(key: string): Promise<string> {
@@ -29,6 +48,7 @@ describe('site content writes at the database boundary', () => {
       .select('id')
       .single();
     if (error) throw error;
+    createdIds.push(data!.id);
     return data!.id as string;
   }
 
@@ -65,8 +85,15 @@ describe('site content writes at the database boundary', () => {
 });
 
 describe('headline_stats writes at the database boundary', () => {
+  const createdIds: string[] = [];
+
   beforeAll(async () => {
     await ensureTestUsers();
+  });
+
+  afterAll(async () => {
+    if (createdIds.length === 0) return;
+    await serviceClient().from('headline_stats').delete().in('id', createdIds);
   });
 
   async function statFixture(label: string): Promise<string> {
@@ -83,6 +110,7 @@ describe('headline_stats writes at the database boundary', () => {
       .select('id')
       .single();
     if (error) throw error;
+    createdIds.push(data!.id);
     return data!.id as string;
   }
 
@@ -122,8 +150,15 @@ describe('headline_stats writes at the database boundary', () => {
 });
 
 describe('compute_metrics writes at the database boundary', () => {
+  const createdIds: string[] = [];
+
   beforeAll(async () => {
     await ensureTestUsers();
+  });
+
+  afterAll(async () => {
+    if (createdIds.length === 0) return;
+    await serviceClient().from('compute_metrics').delete().in('id', createdIds);
   });
 
   async function computeMetricFixture(label: string): Promise<string> {
@@ -140,6 +175,7 @@ describe('compute_metrics writes at the database boundary', () => {
       .select('id')
       .single();
     if (error) throw error;
+    createdIds.push(data!.id);
     return data!.id as string;
   }
 
@@ -182,8 +218,15 @@ describe('compute_metrics writes at the database boundary', () => {
 });
 
 describe('programmes writes at the database boundary', () => {
+  const createdIds: string[] = [];
+
   beforeAll(async () => {
     await ensureTestUsers();
+  });
+
+  afterAll(async () => {
+    if (createdIds.length === 0) return;
+    await serviceClient().from('programmes').delete().in('id', createdIds);
   });
 
   async function programmeFixture(title: string): Promise<string> {
@@ -194,6 +237,7 @@ describe('programmes writes at the database boundary', () => {
       .select('id')
       .single();
     if (error) throw error;
+    createdIds.push(data!.id);
     return data!.id as string;
   }
 
@@ -232,8 +276,15 @@ describe('programmes writes at the database boundary', () => {
 });
 
 describe('impact_stories writes at the database boundary', () => {
+  const createdIds: string[] = [];
+
   beforeAll(async () => {
     await ensureTestUsers();
+  });
+
+  afterAll(async () => {
+    if (createdIds.length === 0) return;
+    await serviceClient().from('impact_stories').delete().in('id', createdIds);
   });
 
   async function impactStoryFixture(organisation: string): Promise<string> {
@@ -248,6 +299,7 @@ describe('impact_stories writes at the database boundary', () => {
       .select('id')
       .single();
     if (error) throw error;
+    createdIds.push(data!.id);
     return data!.id as string;
   }
 

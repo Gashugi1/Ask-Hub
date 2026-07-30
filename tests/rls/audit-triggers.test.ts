@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { ensureTestUsers, roleClient, serviceClient } from '../helpers/clients';
 
@@ -11,8 +11,14 @@ import { ensureTestUsers, roleClient, serviceClient } from '../helpers/clients';
  * below -- no successful write when the audit insert fails.
  *
  * See docs/superpowers/specs/2026-07-30-sp3-admin-portal-design.md section 4.
+ *
+ * House rule from tests/rls/site.test.ts: a suite may add fixture rows, but
+ * must delete them in `afterAll`, unconditionally -- not at the end of a test
+ * body, where a failing assertion above it would skip the cleanup. Every
+ * fixture-creating helper below is threaded an `ids` array to push into, and
+ * each describe block deletes everything it collected once its tests finish.
  */
-async function newResource(svc: SupabaseClient, name: string) {
+async function newResource(svc: SupabaseClient, name: string, ids: string[]) {
   const { data: partner, error: partnerError } = await svc
     .from('partners')
     .select('name')
@@ -34,6 +40,9 @@ async function newResource(svc: SupabaseClient, name: string) {
     .select('id, name, status')
     .single();
   if (error) throw error;
+  // Recorded before the caller can run any assertion that might throw, so
+  // cleanup is robust to a failing test mid-suite.
+  ids.push(data!.id);
   return data!;
 }
 
@@ -48,13 +57,30 @@ async function auditRowsFor(entityId: string) {
 }
 
 describe('audit_row_change', () => {
+  const createdResourceIds: string[] = [];
+  const createdSubscriberIds: string[] = [];
+  const createdSiteContentIds: string[] = [];
+
   beforeAll(async () => {
     await ensureTestUsers();
   });
 
+  afterAll(async () => {
+    const svc = serviceClient();
+    if (createdResourceIds.length > 0) {
+      await svc.from('resources').delete().in('id', createdResourceIds);
+    }
+    if (createdSubscriberIds.length > 0) {
+      await svc.from('subscribers').delete().in('id', createdSubscriberIds);
+    }
+    if (createdSiteContentIds.length > 0) {
+      await svc.from('site_content').delete().in('id', createdSiteContentIds);
+    }
+  });
+
   it('writes exactly one row for an admin edit, attributed to that admin', async () => {
     const svc = serviceClient();
-    const row = await newResource(svc, `audit-edit-${Date.now()}`);
+    const row = await newResource(svc, `audit-edit-${Date.now()}`, createdResourceIds);
     const admin = await roleClient('admin');
 
     const { error } = await admin
@@ -86,7 +112,7 @@ describe('audit_row_change', () => {
 
   it('records a status change to live as published, not edited', async () => {
     const svc = serviceClient();
-    const row = await newResource(svc, `audit-publish-${Date.now()}`);
+    const row = await newResource(svc, `audit-publish-${Date.now()}`, createdResourceIds);
     const admin = await roleClient('admin');
 
     await admin.from('resources').update({ status: 'live' }).eq('id', row.id);
@@ -100,7 +126,7 @@ describe('audit_row_change', () => {
 
   it('writes no row when only updated_at would change', async () => {
     const svc = serviceClient();
-    const row = await newResource(svc, `audit-noop-${Date.now()}`);
+    const row = await newResource(svc, `audit-noop-${Date.now()}`, createdResourceIds);
     const admin = await roleClient('admin');
 
     // Same value it already holds. set_updated_at still fires, so a naive
@@ -113,7 +139,7 @@ describe('audit_row_change', () => {
 
   it('records a delete, and the row survives the entity it describes', async () => {
     const svc = serviceClient();
-    const row = await newResource(svc, `audit-delete-${Date.now()}`);
+    const row = await newResource(svc, `audit-delete-${Date.now()}`, createdResourceIds);
     const admin = await roleClient('admin');
 
     const { error } = await admin.from('resources').delete().eq('id', row.id);
@@ -127,7 +153,7 @@ describe('audit_row_change', () => {
 
   it('attributes a service_role write to the system sentinel, not to a person', async () => {
     const svc = serviceClient();
-    const row = await newResource(svc, `audit-system-${Date.now()}`);
+    const row = await newResource(svc, `audit-system-${Date.now()}`, createdResourceIds);
     const rows = await auditRowsFor(row.id);
     expect(rows).toHaveLength(1);
     expect(rows[0]!.action).toBe('created');
@@ -136,17 +162,32 @@ describe('audit_row_change', () => {
   });
 
   it('prefixes every non-resource entity label per the 4.15 convention', async () => {
-    const admin = await roleClient('admin');
+    // A throwaway key this test owns, not one of the five real rows
+    // (`welcome_title`, not PRD 4.12's `welcome_band_heading` — the seed
+    // invented its own key names, scripts/seed-data.ts says so in its own
+    // header, and the PRD's were never implemented). An earlier version of
+    // this test updated the real `welcome_title` row directly to prove the
+    // key existed; that left the row's live copy permanently overwritten
+    // with a timestamped test string with no restore, which is exactly the
+    // "residue reaching the public surface" class of bug this file's other
+    // fixtures were just fixed for. Inserting a disposable key here proves
+    // the same thing (an UPDATE against an existing key produces a
+    // `Site content: <key>`-labelled row) without ever touching real content.
+    const svc = serviceClient();
+    const key = `audit-content-${Date.now()}`;
+    const { data: contentRow, error: insertError } = await svc
+      .from('site_content')
+      .insert({ key, value: 'Fixture original value.', locale: 'en' })
+      .select('id')
+      .single();
+    if (insertError) throw insertError;
+    createdSiteContentIds.push(contentRow!.id);
 
-    // `welcome_title`, not PRD 4.12's `welcome_band_heading`: the seed invented
-    // its own key names (scripts/seed-data.ts says so in its own header) and the
-    // PRD's were never implemented. Asserting against the database's actual
-    // keys rather than the PRD's prose is the whole point of a boundary test --
-    // and an update matching zero rows is how this discrepancy surfaced.
+    const admin = await roleClient('admin');
     const { error, count } = await admin
       .from('site_content')
-      .update({ value: `Welcome to AskHub ${Date.now()}` }, { count: 'exact' })
-      .eq('key', 'welcome_title')
+      .update({ value: `Fixture updated value ${Date.now()}` }, { count: 'exact' })
+      .eq('key', key)
       .eq('locale', 'en');
     expect(error).toBeNull();
     expect(count, 'the fixture key must exist, or this test passes vacuously').toBe(1);
@@ -155,9 +196,10 @@ describe('audit_row_change', () => {
       .from('audit_log')
       .select('entity_type, entity_label')
       .eq('entity_type', 'site_content')
+      .eq('entity_id', contentRow!.id)
       .order('occurred_at', { ascending: false })
       .limit(1);
-    expect(data![0]!.entity_label).toBe('Site content: welcome_title');
+    expect(data![0]!.entity_label).toBe(`Site content: ${key}`);
   });
 
   it('redacts a subscriber email from both the label and the diff', async () => {
@@ -176,6 +218,7 @@ describe('audit_row_change', () => {
       .select('id')
       .single();
     if (insertError) throw insertError;
+    createdSubscriberIds.push(sub!.id);
 
     const admin = await roleClient('admin');
     const { error } = await admin.from('subscribers').update({ country: 'Kenya' }).eq('id', sub!.id);
@@ -213,7 +256,7 @@ describe('audit_row_change', () => {
 
   it('does not let a viewer produce an audit row, because it cannot write at all', async () => {
     const svc = serviceClient();
-    const row = await newResource(svc, `audit-viewer-${Date.now()}`);
+    const row = await newResource(svc, `audit-viewer-${Date.now()}`, createdResourceIds);
     const viewer = await roleClient('viewer');
 
     const { error } = await viewer
@@ -235,13 +278,20 @@ describe('audit_row_change', () => {
 });
 
 describe('a failed audit insert aborts the mutation', () => {
+  const createdResourceIds: string[] = [];
+
   beforeAll(async () => {
     await ensureTestUsers();
   });
 
+  afterAll(async () => {
+    if (createdResourceIds.length === 0) return;
+    await serviceClient().from('resources').delete().in('id', createdResourceIds);
+  });
+
   it('leaves the row unchanged rather than committing an unaudited write', async () => {
     const svc = serviceClient();
-    const row = await newResource(svc, `audit-atomic-${Date.now()}`);
+    const row = await newResource(svc, `audit-atomic-${Date.now()}`, createdResourceIds);
     const admin = await roleClient('admin');
 
     // Local-only helper (supabase/seed.sql): adds `check (false) not valid` to

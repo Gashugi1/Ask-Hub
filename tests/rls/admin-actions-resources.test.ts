@@ -1,9 +1,25 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { ensureTestUsers, roleClient, serviceClient } from '../helpers/clients';
 
+/**
+ * House rule from tests/rls/site.test.ts: a suite may add its own fixture
+ * rows, but must clean them up in `afterAll` rather than trust the test body
+ * to reach its own cleanup step. `resources` has no throwaway key the way
+ * `settings`/`site_content` do, so this suite tracks every id it creates and
+ * deletes them unconditionally, regardless of which assertions passed or
+ * failed — a mid-run failure must not leave a fixture behind for
+ * `resources_public` to serve to an anonymous visitor.
+ */
 describe('resource writes at the database boundary', () => {
+  const createdIds: string[] = [];
+
   beforeAll(async () => {
     await ensureTestUsers();
+  });
+
+  afterAll(async () => {
+    if (createdIds.length === 0) return;
+    await serviceClient().from('resources').delete().in('id', createdIds);
   });
 
   async function fixture(name: string) {
@@ -23,6 +39,9 @@ describe('resource writes at the database boundary', () => {
       .select('id')
       .single();
     if (error) throw error;
+    // Recorded immediately, before the caller runs any assertion that might
+    // throw — this is what makes cleanup robust to a failing test mid-run.
+    createdIds.push(data!.id as string);
     return data!.id as string;
   }
 
@@ -48,16 +67,25 @@ describe('resource writes at the database boundary', () => {
 
     await viewer.from('resources').update({ status: 'live' }).eq('id', id);
     await viewer.from('resources').delete().eq('id', id);
-    const insert = await viewer.from('resources').insert({
-      name: `viewer-insert-${Date.now()}`,
-      partner: 'CINECA Leonardo',
-      partner_tier: 'strategic',
-      resource_type: 'Credits',
-      need_primary: 'compute',
-      description: 'Should never exist.',
-      external_url: 'https://example.org/apply',
-    });
+    const insert = await viewer
+      .from('resources')
+      .insert({
+        name: `viewer-insert-${Date.now()}`,
+        partner: 'CINECA Leonardo',
+        partner_tier: 'strategic',
+        resource_type: 'Credits',
+        need_primary: 'compute',
+        description: 'Should never exist.',
+        external_url: 'https://example.org/apply',
+      })
+      // .select('id') so that if RLS ever regressed and let this insert
+      // through, the row would still be caught by afterAll's cleanup instead
+      // of becoming an untracked, unattributed resource visible to anon.
+      .select('id');
     expect(insert.error).not.toBeNull();
+    if (insert.data && insert.data.length > 0) {
+      createdIds.push(...insert.data.map((row) => row.id as string));
+    }
 
     const { data } = await svc.from('resources').select('status').eq('id', id).single();
     expect(data, 'a viewer deleted a resource').not.toBeNull();

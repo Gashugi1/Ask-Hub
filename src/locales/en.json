@@ -238,5 +238,9 @@
   "admin.content.programme.description": "Description",
   "admin.content.impactStory.organisation": "Organisation",
   "admin.content.impactStory.country": "Country",
-  "admin.content.impactStory.description": "Description"
+  "admin.content.impactStory.description": "Description",
+  "admin.content.deleteConfirmHeading": "Delete this entry?",
+  "admin.content.deleteConfirmBody": "This cannot be undone. The entry will be permanently removed from the public site.",
+  "admin.content.deleteCancel": "Cancel",
+  "admin.content.deleteConfirmAction": "Yes, delete"
 }

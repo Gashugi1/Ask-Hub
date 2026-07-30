@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { t } from '@/lib/i18n';
+import ConfirmDeleteButton from './ConfirmDeleteButton';
 
 /**
  * The editable shape shared by `headline_stats` and `compute_metrics` — both
@@ -173,14 +174,7 @@ function EditableRow({
         >
           {t('admin.content.save')}
         </button>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={handleDelete}
-          className="block rounded border border-danger px-2 py-1 text-xs text-danger"
-        >
-          {t('admin.content.delete')}
-        </button>
+        <ConfirmDeleteButton onConfirm={handleDelete} disabled={pending} label={t('admin.content.delete')} />
         {error ? <span className="block text-xs text-danger">{error}</span> : null}
       </td>
     </tr>
