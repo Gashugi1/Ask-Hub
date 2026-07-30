@@ -58,6 +58,17 @@ before SP4, so there is no reach to lose. Capture goes live with the first real 
 There is no `/directory` route. Browse-by-need chips scroll to the directory band and set the
 query string.
 
+The seven bands, in PRD §5.1's order, then the directory as item 8 on the same page:
+
+1. Welcome and orientation — heading, body, CTA, from `site_content`
+2. Headline reach strip — the first four hero stats from `headline_stats_public`
+3. Search
+4. Browse by need — five need types with live counts from `need_counts_public`
+5. Featured opportunities carousel — `is_featured` rows
+6. Partner logo row — each logo links to the partner's own site (rule 10.10)
+7. Recently added rail — by `added_date`
+8. The full directory
+
 ### Reads use the anon client, never the admin client
 
 `service_role` has **no SELECT** on the eight `*_public` views — the grant is
@@ -87,6 +98,17 @@ transaction — the tags must exist now even though nothing invalidates them unt
 | `need_counts_public` | `resources` | no |
 | `partners_public` | `partners` | no |
 | `site_content_public` | `site-content` | no |
+| `headline_stats_public` | `headline-stats` | no |
+| `impact_stories_public` | `impact-stories` | no |
+
+Two of the eight views have **no public reader in SP2a**, and that is deliberate rather than an
+omission. `programmes_public` carries internal programme records (PRD §4.8) and
+`compute_metrics_public` feeds the admin Reach and Engagement screen (PRD §10) — neither
+renders on a public page. The views exist and stay in the anonymous security tests; no reader
+is written for them.
+
+`impact_stories_public` has a reader but no reachable caller while
+`feature_public_impact_page` is off. It is built so the page works the day the flag flips.
 
 **`resources_public` needs time-based revalidation because time passes without a database
 edit.** `is_closed` and `days_left` are computed with `CURRENT_DATE`, so a page cached at 23:50
@@ -154,7 +176,8 @@ filtering moves server-side. Not a problem now; recorded so the decision is deli
 
 ## The shared component layer
 
-Task 2 of the plan. Five pieces, all pure functions over data, testable without rendering:
+Task 2 of the breakdown below. Five pieces, all pure functions over data, testable without
+rendering:
 
 - **`deadlineLabel(input)`** — formats supplied SQL state, as above
 - **`ResourceCard`** — consumes a `resources_public` row; badges, partner, need, eligibility,
@@ -223,10 +246,30 @@ it in the modal before sending. Four channels: copy link, LinkedIn, email, Whats
 Built with the detail page, per D6.
 
 - Generated **server-side**, using **only fields from `resources_public`**
-- The schema type the PRD already requires
 - **Optional properties are omitted when data is absent, never invented**
 - No private or analytics field can enter it — structurally true, since the view carries none
 - A focused semantic test asserts the expected public fields and the exclusions
+
+**Type: `schema.org/Offer`.** PRD §12.2 requires `schema.org` structured data on resource
+detail pages but names no type, so SP2a picks one and fixes it here rather than leaving it to
+the implementer. `Offer` is chosen because it is the only type whose standard properties cover
+every field the detail page already carries, across all five need types — funding, compute,
+training, accelerator and partners — without stretching. The mapping:
+
+| `Offer` property | Source column | Omitted when |
+|---|---|---|
+| `name` | `name` | never — `NOT NULL` |
+| `description` | `description` | absent |
+| `url` | `external_url` | absent |
+| `offeredBy` (`Organization` with `name`, optional `url`) | `partner_name`, `partner_website_url` | `url` omitted when the partner has none |
+| `image` | `banner_image_url` | absent |
+| `availabilityEnds` | `deadline` | no deadline |
+| `eligibleRegion` | `countries_eligible` | empty array |
+| `availability` | `is_closed` → `Discontinued`, else `InStock` | never |
+
+Nothing outside that table enters the object. Because the source is `resources_public`, which
+projects no `views`, `clicks`, `ctr`, submitter email or internal note, the exclusion is
+structural — the test asserts it rather than establishing it.
 
 The sitemap stays SP6. The site is `noindex` while gated, so this is inert until launch, but it
 will be correct when the flag flips.
@@ -240,11 +283,12 @@ Test the security boundary and the logic, not the presentation.
 | Anonymous read scope | Query all 8 `*_public` views **as `anon`**; assert exact columns and row visibility |
 | Public export field exclusion | Export column set is a subset of `resources_public`'s **and** contains no `views`/`clicks`/`ctr`/submitter email/internal note |
 | SQL deadline boundary | `deadline = current_date` → `is_closed = false`; `current_date - 1` → `true` |
-| `deadlineLabel` | Injected `{deadline, is_closed, days_left}`: null, closed, 0, 1, n |
+| `deadlineLabel` | Injected `{deadline, isClosed, daysLeft}`: null, closed, 0, 1, n |
 | `filterResources` | Each facet, combinations, free-text across all four fields, no-match |
 | `parseFilters` / `toSearchParams` | Round-trip stability, unknown → default, empties dropped, unrelated preserved |
 | `sortResources` | Both modes, tie-breaker determinism |
 | Publish / unpublish reachability | Publish post-deploy, invalidate, hit `/resources/[id]`; unpublish → `notFound()` |
+| Partial attested stats | 0 rows → the band is absent; N rows → exactly those N render and nothing stands in for the missing ones |
 | JSON-LD | Expected public fields present, private/analytics fields absent, optionals omitted when data absent |
 | No hardcoded copy | The AST guard above |
 
@@ -275,9 +319,16 @@ and the gated Vercel deploy (Definition-of-Done item 15).
 | — | Empty-state handling for every one of the above |
 | — | The **public half** of the portal-editing mechanism: tagged cached readers that respond to invalidation. The admin UI that triggers it is SP3. |
 
-**The SP2a / SP3 seam, stated precisely.** SP2a builds public-side capability only: schema fields, public views, typed readers, cache tags, rendering for logos and partially attested statistics, legal-page shells, and the ability for those readers to reflect invalidation. SP3 owns the admin-side mutation capability: editing screens, validation, save actions, permissions, and the calls that invalidate or update the relevant tags after a successful write.
+**The SP2a / SP3 seam, stated precisely.** SP2a builds public-side capability only: the schema
+fields and public views (already delivered by SP1 — SP2a consumes them and adds none), typed
+readers, cache tags, rendering for logos and partially attested statistics, legal-page shells,
+and the ability for those readers to reflect invalidation. SP3 owns the admin-side mutation
+capability: editing screens, validation, save actions, permissions, and the calls that
+invalidate or update the relevant tags after a successful write.
 
-SP2a **may** export reusable tag names and helper contracts for SP3 to call — a single `CACHE_TAGS` constant and the reader signatures are the interface. SP2a must **not** contain an editing UI, an admin write workflow, or any `revalidateTag` call site of its own.
+SP2a **may** export reusable tag names and helper contracts for SP3 to call — a single
+`CACHE_TAGS` constant and the reader signatures are the interface. SP2a must **not** contain an
+editing UI, an admin write workflow, or any `revalidateTag` call site of its own.
 
 ### Not in SP2a
 
@@ -289,6 +340,28 @@ SP2a **may** export reusable tag names and helper contracts for SP3 to call — 
 
 `/impact` returns `notFound()` while `feature_public_impact_page` is off, and carries **no
 navigation link, no internal link, no sitemap entry and no generated metadata** while it is off.
+
+## Task breakdown
+
+Seven tasks. The order is a dependency order: each builds on verified pieces from the last, and
+the riskiest logic lands in task 2 where it is reviewed on its own.
+
+1. **Layout and the cached data layer** — public layout shell, header and footer (no login link
+   or admin reference, per PRD §5.8), `noindex` while gated, `src/lib/public-data.ts` with the
+   no-cookie anon client, the six readers, and the `CACHE_TAGS` constant with `RESOURCE_TTL`
+2. **Shared components and tested logic** — `deadlineLabel`, `ResourceCard`, `filterResources`,
+   `parseFilters` / `toSearchParams`, `sortResources`
+3. **The directory** — filters, search, sort, count, export, URL state, the two distinct empty
+   states
+4. **Resource detail** — banner through apply button, share pop-up, JSON-LD, `notFound()` for a
+   row absent from `resources_public`
+5. **Home bands** — the seven bands in PRD §5.1 order, each hiding when it has no rows
+6. **Static pages and the Impact gate** — About, Privacy, Terms, and `/impact` built and
+   404-gated with no link to it
+7. **Gated Vercel deploy** — DoD item 15, reachable, `noindex`, DNS records documented
+
+The AST copy guard is written in task 1, so every later task is held to it as it is written
+rather than retrofitted at the end.
 
 ## Verification
 
