@@ -16,9 +16,9 @@ versions of an answer, and this file never carries a design.
 
 | | |
 |---|---|
-| Phase | **Task 1 of 9 complete** (the audit spine). Tasks 2–9 not started |
-| Blocked on | Nothing. SP3 does not wait for SP2b |
-| Next action | Execute plan Task 2: sign in, the admin shell, and the Dashboard |
+| Phase | **4 of 9 tasks complete** (1, 2, 3, 8). Tasks 4–7 and 9 blocked |
+| Blocked on | **The local database.** Docker Desktop is wedged in a half-up state and its own tooling cannot restart it — `docker ps`/`info`/`status` hang, `docker desktop restart` fails to stop its own processes, and the harness denies killing them. A human must restart Docker Desktop. Not an SP2b dependency; SP3 still does not wait for SP2b |
+| Next action | Restart Docker Desktop, then `npx supabase start && npm run db:reset && npm run seed`, then a full-suite run (Tasks 2, 3 and 8 were verified against pure tests only) before executing Task 4 |
 | Implementation branch | `sp3/audit-spine`, cut from `sp3-admin-design` |
 
 ### Task progress
@@ -26,14 +26,14 @@ versions of an answer, and this file never carries a design.
 | Task | State | Notes |
 |---|---|---|
 | 1. Audit spine | **Done** — `9fae580` | Migration `0017_audit_triggers.sql`, G15, 10 new trigger tests, atomicity proof. 327 tests / typecheck / lint / build green after a from-scratch `db:reset` |
-| 2. Sign in, shell, Dashboard | Not started | |
-| 3. Resources table | Not started | |
-| 4. Resource mutations | Not started | |
-| 5. Site Content | Not started | Read Q8 first — the key names are not the PRD's |
-| 6. Settings | Not started | |
-| 7. Users | Not started | The only service-role caller |
-| 8. Audit Log screen | Not started | |
-| 9. Launch sweep | Not started | |
+| 2. Sign in, shell, Dashboard | **Done** — `dafb6ce`, fixed in `f49388b` | Review found two Important issues, both fixed: `next build` had silently become dependent on Supabase env vars at build time (fixed with `force-dynamic` on the admin layout plus prose in README and `.env.example`), and `session.ts` had no test pinning the one-message-for-every-failure rule that stops account enumeration |
+| 3. Resources table | **Done** — `d159007` | Approved with no Critical or Important findings. Reviewer mutation-tested the 14-day boundary and the case-insensitive search to confirm those tests can fail |
+| 4. Resource mutations | **Blocked** — needs the database | Verified by `tests/rls/admin-actions-resources.test.ts`; that suite is the verification |
+| 5. Site Content | **Blocked** — needs the database | Read Q8 first — the key names are not the PRD's. Ruling recorded: seed `privacy_copy`/`terms_copy` in a migration; the screen only updates |
+| 6. Settings | **Blocked** — needs the database | |
+| 7. Users | **Blocked** — needs the database | The only service-role caller |
+| 8. Audit Log screen | **Done** — `e5545d1`, fixed in `8634170` | Built early, out of plan order, because it was the only remaining task not gated on the database. One Important fixed: the filter panel shipped as a client component using `router.push` and is now a `GET` form matching the Resources pattern, with zero client JavaScript |
+| 9. Launch sweep | **Blocked** — must follow Task 7 | Its service-role containment test pins the caller list to `src/lib/actions/users.ts`, which Task 7 creates; written earlier it would fail on zero callers |
 
 ## Decisions
 
