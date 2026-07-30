@@ -215,9 +215,10 @@ export interface NeedCount {
 
 export function toNeedCount(row: NeedCountRow): NeedCount {
   return {
-    need: required(row.need_primary, 'need_counts_public', 'need_primary'),
-    // live_count is `count(*)::integer` from a `group by need_primary` view
-    // (0009_public_views.sql): not a base column, so information_schema
+    need: required(row.need, 'need_counts_public', 'need'),
+    // live_count is `count(*)::integer` from a view that groups by need
+    // across both need_primary and need_secondary
+    // (0017_need_counts_secondary.sql): not a base column, so information_schema
     // cannot vouch for it, but COUNT(*) is SQL-guaranteed to never return
     // null, and a GROUP BY row only exists when at least one matching
     // resource does. The same reasoning as is_closed above applies: a null

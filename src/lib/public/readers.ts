@@ -66,9 +66,9 @@ export const listNeedCounts = unstable_cache(
     return (data ?? []).map(toNeedCount);
   },
   ['public:need-counts'],
-  // Resource-derived but not deadline-derived: the view groups by
-  // need_primary where status = 'live' and contains no current_date, so it
-  // needs the resources tag and no TTL.
+  // Resource-derived but not deadline-derived: the view groups by need across
+  // need_primary and need_secondary where status = 'live' and contains no
+  // current_date, so it needs the resources tag and no TTL.
   { tags: [CACHE_TAGS.resources] },
 );
 

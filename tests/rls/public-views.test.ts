@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { anonClient, serviceClient } from '../helpers/clients';
+import { fixtureStamp } from '../helpers/fixtures';
 
 // Nine views. compute_metrics_public is the one the brief's contract
 // omits from Produces/Interfaces; it is created and tested here like the
@@ -281,7 +282,7 @@ describe('public-safe views', () => {
     site_content_public: { key: `injected-${Date.now()}`, value: 'x', locale: 'en' },
     programmes_public: { title: `Injected ${Date.now()}` },
     impact_stories_public: { organisation: `Injected ${Date.now()}` },
-    need_counts_public: { need_primary: 'compute', live_count: 999 },
+    need_counts_public: { need: 'compute', live_count: 999 },
     partners_public: { name: `Injected Partner ${Date.now()}` },
     settings_public: { key: 'probe', value: true },
   };
@@ -383,7 +384,7 @@ describe('public-safe views', () => {
     const { data: before } = await anonClient()
       .from('need_counts_public')
       .select('live_count')
-      .eq('need_primary', 'compute')
+      .eq('need', 'compute')
       .single();
     const beforeCount = (before?.live_count as number | undefined) ?? 0;
 
@@ -397,10 +398,78 @@ describe('public-safe views', () => {
 
     const { data: after, error: readError } = await anonClient()
       .from('need_counts_public')
-      .select('need_primary, live_count')
-      .eq('need_primary', 'compute')
+      .select('need, live_count')
+      .eq('need', 'compute')
       .single();
     expect(readError).toBeNull();
     expect(after!.live_count as number).toBeGreaterThan(beforeCount);
+  });
+
+  it('counts a resource under its secondary need as well as its primary one', async () => {
+    // The home page chips link into the directory, and the directory filter
+    // matches need_primary OR need_secondary. While the view grouped by
+    // need_primary alone the two disagreed on real content -- the funding
+    // chip did not render at all, yet /?need=funding returned a resource.
+    // A count that does not follow the filter it links to is a broken link
+    // with a number on it.
+    const stamp = fixtureStamp();
+    const svc = serviceClient();
+    const anon = anonClient();
+
+    const read = async (need: string): Promise<number> => {
+      const { data } = await anon
+        .from('need_counts_public')
+        .select('live_count')
+        .eq('need', need)
+        .maybeSingle();
+      // No row at all is a real answer here: a need nothing serves is absent
+      // from a GROUP BY, which is exactly the funding case that started this.
+      return (data?.live_count as number | undefined) ?? 0;
+    };
+
+    const trainingBefore = await read('training');
+    const fundingBefore = await read('funding');
+
+    const { error } = await svc.from('resources').insert({
+      name: `Dual need resource ${stamp}`,
+      partner: 'Public View Partner', partner_tier: 'strategic',
+      resource_type: 'Credits', need_primary: 'training', need_secondary: 'funding',
+      description: 'counted under both needs', external_url: 'https://example.org/dual',
+      status: 'live',
+    });
+    expect(error).toBeNull();
+
+    expect(await read('training')).toBe(trainingBefore + 1);
+    expect(await read('funding')).toBe(fundingBefore + 1);
+  });
+
+  it('counts a resource once when its secondary need repeats its primary', async () => {
+    // The view UNIONs the two columns rather than UNION ALL. Without that,
+    // a row naming the same need twice would count twice and the chip would
+    // overstate the directory in the other direction.
+    const stamp = fixtureStamp();
+    const svc = serviceClient();
+    const anon = anonClient();
+
+    const read = async (): Promise<number> => {
+      const { data } = await anon
+        .from('need_counts_public')
+        .select('live_count')
+        .eq('need', 'accelerator')
+        .maybeSingle();
+      return (data?.live_count as number | undefined) ?? 0;
+    };
+
+    const before = await read();
+    const { error } = await svc.from('resources').insert({
+      name: `Repeated need resource ${stamp}`,
+      partner: 'Public View Partner', partner_tier: 'strategic',
+      resource_type: 'Credits', need_primary: 'accelerator', need_secondary: 'accelerator',
+      description: 'same need twice', external_url: 'https://example.org/repeat',
+      status: 'live',
+    });
+    expect(error).toBeNull();
+
+    expect(await read()).toBe(before + 1);
   });
 });
