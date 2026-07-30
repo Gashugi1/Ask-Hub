@@ -41,6 +41,11 @@ describe('/about stats section', () => {
     const element = await AboutPage();
     render(element);
 
+    // getByText throws if the page rendered nothing at all, so this proves
+    // the page genuinely mounted before the negative assertions below can be
+    // trusted to mean "correctly omitted", not "rendered nothing".
+    expect(screen.getByText('About the AI Hub for Sustainable Development')).toBeTruthy();
+
     expect(screen.queryByText('By the numbers')).toBeNull();
     expect(document.querySelector('dl')).toBeNull();
   });
