@@ -102,16 +102,41 @@ describe('route structure', () => {
     expect(routes()['/(public)/impact/page']).toBe('/impact');
   });
 
+  it('serves resource detail from the (public) group at /resources/[id]', () => {
+    expect(routes()['/(public)/resources/[id]/page']).toBe('/resources/[id]');
+  });
+
+  it('keeps resource detail resolvable for rows published after the build', () => {
+    // generateStaticParams pre-renders the resources that were live at build
+    // time, but a resource published from the admin portal afterwards must
+    // still resolve without a rebuild. That depends on dynamicParams staying
+    // at its default of true, which shows up as the segment appearing in
+    // prerender-manifest.json's dynamicRoutes. Setting dynamicParams = false
+    // would leave the pre-rendered ids working and 404 every later one — a
+    // failure that is invisible until the client publishes something.
+    const manifest = JSON.parse(
+      readFileSync('.next/prerender-manifest.json', 'utf8'),
+    ) as { dynamicRoutes?: Record<string, unknown> };
+    expect(Object.keys(manifest.dynamicRoutes ?? {})).toContain('/resources/[id]');
+  });
+
   it('builds only the public pages SP2a owns', () => {
-    // PRD 5's full public surface. /resources/[id] arrives with SP2a Task 5.
-    // Anything else appearing here means scope has crept — the alerts and
-    // suggest-a-resource modals are SP2b, and there is deliberately no
-    // /directory route because PRD 5.1 item 8 puts the directory on the home
-    // page, where the query string is the shareable filter state.
+    // PRD 5's full public surface. Anything else appearing here means scope
+    // has crept — the alerts and suggest-a-resource modals are SP2b, and there
+    // is deliberately no /directory route because PRD 5.1 item 8 puts the
+    // directory on the home page, where the query string is the shareable
+    // filter state.
     const publicUrls = Object.entries(routes())
       .filter(([source]) => source.startsWith('/(public)/'))
       .map(([, url]) => url);
-    expect(publicUrls.sort()).toEqual(['/', '/about', '/impact', '/privacy', '/terms']);
+    expect(publicUrls.sort()).toEqual([
+      '/',
+      '/about',
+      '/impact',
+      '/privacy',
+      '/resources/[id]',
+      '/terms',
+    ]);
   });
 });
 
