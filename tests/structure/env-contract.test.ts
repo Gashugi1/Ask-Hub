@@ -9,6 +9,7 @@ describe('.env.example', () => {
     for (const name of [
       'NEXT_PUBLIC_SUPABASE_URL',
       'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+      'NEXT_PUBLIC_SITE_URL',
       'SUPABASE_SERVICE_ROLE_KEY',
       'SUPABASE_URL',
       'SUPABASE_ANON_KEY',
