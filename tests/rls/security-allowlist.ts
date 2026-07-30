@@ -19,10 +19,11 @@ export interface Exception {
 // rebuilt (resources_public) or removed (partners_public) by
 // supabase/migrations/0013_reconcile_partners.sql, and restored
 // (partners_public) with resources_public rebuilt again by
-// supabase/migrations/0014_partner_logos.sql. This is the entire
-// anonymous read surface (CLAUDE.md: "Anonymous reads go through
-// public-safe views that exclude views, clicks, CTR, submitter emails and
-// internal notes").
+// supabase/migrations/0014_partner_logos.sql, plus settings_public as a
+// ninth added by supabase/migrations/0016_settings_public.sql (SP2a Task 1).
+// This is the entire anonymous read surface (CLAUDE.md: "Anonymous reads go
+// through public-safe views that exclude views, clicks, CTR, submitter
+// emails and internal notes").
 //
 // partners_public is back: Task 12L reversed one consequence of the H8
 // ruling behind Task 12r, on the client's confirmation that they want

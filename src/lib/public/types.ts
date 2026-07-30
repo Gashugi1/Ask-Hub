@@ -56,9 +56,11 @@ export interface PublicResource {
  * Typed `Record<keyof PublicResource, keyof ResourceRow>` so the compiler
  * proves two things the export feature depends on: the mapping is exhaustive,
  * and every value names a column that actually exists on the public view.
- * `EXPORT_COLUMNS` is then `readonly (keyof PublicResource)[]`, which makes
- * "the export is a subset of the public view" a type-level fact rather than
- * something a reviewer has to check by eye (PRD 5.2, CLAUDE.md).
+ * A later task (Task 4) is expected to derive an `EXPORT_COLUMNS` list of
+ * type `readonly (keyof PublicResource)[]` from this map, so "the export is
+ * a subset of the public view" becomes a type-level fact rather than
+ * something a reviewer has to check by eye (PRD 5.2, CLAUDE.md) -- that list
+ * does not exist yet; this map is only the foundation it will read from.
  */
 export const RESOURCE_VIEW_COLUMNS: Record<keyof PublicResource, keyof ResourceRow> = {
   id: 'id',
@@ -88,11 +90,16 @@ export const RESOURCE_VIEW_COLUMNS: Record<keyof PublicResource, keyof ResourceR
   daysLeft: 'days_left',
 };
 
-/** Narrow a column the base table declares NOT NULL, or say which one broke. */
-function required<T>(value: T | null | undefined, column: string): T {
+/**
+ * Narrow a value guaranteed non-null -- either a column the base table
+ * declares NOT NULL, or a view expression that is structurally incapable of
+ * evaluating to null (see the `is_closed`/`live_count` call sites below) --
+ * or say which relation and column broke.
+ */
+function required<T>(value: T | null | undefined, relation: string, column: string): T {
   if (value === null || value === undefined) {
     throw new Error(
-      `resources_public.${column} was null; the base column is NOT NULL, so the view or the migration has changed`,
+      `${relation}.${column} was null; this value is guaranteed non-null, so the view, the migration or the underlying SQL expression has changed`,
     );
   }
   return value;
@@ -100,14 +107,14 @@ function required<T>(value: T | null | undefined, column: string): T {
 
 export function toPublicResource(row: ResourceRow): PublicResource {
   return {
-    id: required(row.id, 'id'),
-    name: required(row.name, 'name'),
-    partnerName: required(row.partner_name, 'partner_name'),
+    id: required(row.id, 'resources_public', 'id'),
+    name: required(row.name, 'resources_public', 'name'),
+    partnerName: required(row.partner_name, 'resources_public', 'partner_name'),
     partnerLogoUrl: row.partner_logo_url,
     partnerWebsiteUrl: row.partner_website_url,
-    partnerTier: required(row.partner_tier, 'partner_tier'),
+    partnerTier: required(row.partner_tier, 'resources_public', 'partner_tier'),
     resourceType: row.resource_type,
-    needPrimary: required(row.need_primary, 'need_primary'),
+    needPrimary: required(row.need_primary, 'resources_public', 'need_primary'),
     needSecondary: row.need_secondary,
     subCategory: row.sub_category,
     description: row.description,
@@ -117,13 +124,28 @@ export function toPublicResource(row: ResourceRow): PublicResource {
     countriesEligible: row.countries_eligible ?? [],
     sectorsEligible: row.sectors_eligible ?? [],
     stagesEligible: row.stages_eligible ?? [],
-    geoScope: required(row.geo_scope, 'geo_scope'),
+    geoScope: required(row.geo_scope, 'resources_public', 'geo_scope'),
     deadline: row.deadline,
-    isFeatured: row.is_featured ?? false,
+    // resources.is_featured is NOT NULL DEFAULT false.
+    isFeatured: required(row.is_featured, 'resources_public', 'is_featured'),
     exclusivity: row.exclusivity,
+    // resources.sort_order is a genuinely nullable integer column (no NOT
+    // NULL, no default) -- an admin-curated resource can have no explicit
+    // position yet, so 0 is a real default, not a mask over a broken
+    // guarantee. Confirmed against information_schema.columns.
     sortOrder: row.sort_order ?? 0,
     addedDate: row.added_date,
-    isClosed: row.is_closed ?? false,
+    // is_closed is not a base column: it is 0014_partner_logos.sql's
+    // `(deadline is not null and deadline < current_date)` expression, which
+    // can only ever evaluate to true or false for a row that exists -- never
+    // null. Defaulting a null here to false would render an actually-closed
+    // resource as open and inviting applications, which is exactly the
+    // failure CLAUDE.md's deadline rule exists to prevent, so this throws
+    // rather than coalesces.
+    isClosed: required(row.is_closed, 'resources_public', 'is_closed'),
+    // days_left is `deadline - current_date`: genuinely null whenever a
+    // resource has no deadline (PRD 4.2's "Rolling" case), so it keeps its
+    // nullable type with no coalesce and no throw.
     daysLeft: row.days_left,
   };
 }
@@ -137,9 +159,12 @@ export interface PublicPartner {
 
 export function toPublicPartner(row: PartnerRow): PublicPartner {
   return {
-    name: required(row.name, 'name'),
+    name: required(row.name, 'partners_public', 'name'),
     logoUrl: row.logo_url,
     websiteUrl: row.website_url,
+    // partners.sort_order is nullable (no NOT NULL, no default), same shape
+    // as resources.sort_order above. Confirmed against
+    // information_schema.columns.
     sortOrder: row.sort_order ?? 0,
   };
 }
@@ -154,10 +179,12 @@ export interface PublicStat {
 
 export function toPublicStat(row: StatRow): PublicStat {
   return {
-    id: required(row.id, 'id'),
-    value: required(row.value, 'value'),
-    label: required(row.label, 'label'),
-    isHero: row.is_hero ?? false,
+    id: required(row.id, 'headline_stats_public', 'id'),
+    value: required(row.value, 'headline_stats_public', 'value'),
+    label: required(row.label, 'headline_stats_public', 'label'),
+    // headline_stats.is_hero is NOT NULL DEFAULT false.
+    isHero: required(row.is_hero, 'headline_stats_public', 'is_hero'),
+    // headline_stats.sort_order is nullable, same shape as the others above.
     sortOrder: row.sort_order ?? 0,
   };
 }
@@ -172,10 +199,11 @@ export interface PublicStory {
 
 export function toPublicStory(row: StoryRow): PublicStory {
   return {
-    id: required(row.id, 'id'),
-    organisation: required(row.organisation, 'organisation'),
+    id: required(row.id, 'impact_stories_public', 'id'),
+    organisation: required(row.organisation, 'impact_stories_public', 'organisation'),
     country: row.country,
     description: row.description,
+    // impact_stories.sort_order is nullable, same shape as the others above.
     sortOrder: row.sort_order ?? 0,
   };
 }
@@ -187,7 +215,14 @@ export interface NeedCount {
 
 export function toNeedCount(row: NeedCountRow): NeedCount {
   return {
-    need: required(row.need_primary, 'need_primary'),
-    liveCount: row.live_count ?? 0,
+    need: required(row.need_primary, 'need_counts_public', 'need_primary'),
+    // live_count is `count(*)::integer` from a `group by need_primary` view
+    // (0009_public_views.sql): not a base column, so information_schema
+    // cannot vouch for it, but COUNT(*) is SQL-guaranteed to never return
+    // null, and a GROUP BY row only exists when at least one matching
+    // resource does. The same reasoning as is_closed above applies: a null
+    // here means the aggregate stopped being an aggregate, so throw rather
+    // than silently reporting zero live resources for a need that has some.
+    liveCount: required(row.live_count, 'need_counts_public', 'live_count'),
   };
 }

@@ -305,7 +305,7 @@ describe('Tier 1 — no exception path', () => {
         rule:
           `${CLAUDE_MD}: "Anonymous reads go through public-safe views" — implicit in that is that those views are read-only. No view in public may accept a write from anon or authenticated.`,
         why:
-          'This view is security_invoker = false and (for the six single-table ones) auto-updatable; a write through it executes as the view owner and bypasses the base table\'s RLS entirely. Anonymous writes belong in a server action holding the service_role client behind Zod validation and a rate limit — never a grant on a view or a base table, including for the public submission form, digest signup and contact form.',
+          'This view is security_invoker = false and (for the seven single-table ones) auto-updatable; a write through it executes as the view owner and bypasses the base table\'s RLS entirely. Anonymous writes belong in a server action holding the service_role client behind Zod validation and a rate limit — never a grant on a view or a base table, including for the public submission form, digest signup and contact form.',
         remediation:
           'revoke all on public.<view> from anon, authenticated; then grant select on public.<view> to anon, authenticated; — the exact shape now in supabase/migrations/0009_public_views.sql\'s revoke/grant pair.',
         exception: NO_ALLOWLIST,

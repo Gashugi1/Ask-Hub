@@ -22,19 +22,20 @@ describe('settings_public', () => {
     ]);
   });
 
-  it('projects no other settings key to anon', async () => {
-    const { data } = await anonClient().from('settings_public').select('key');
-    for (const forbidden of ['ga4_measurement_id', 'ga4_property_id', 'contact_email']) {
-      expect(
-        (data ?? []).map((r) => r.key),
-        `${forbidden} must not reach the public projection`,
-      ).not.toContain(forbidden);
-    }
-  });
+  // A separate 'projects no other settings key to anon' case (checking
+  // ga4_measurement_id, ga4_property_id, contact_email individually) was
+  // removed here: it read `data ?? []` without checking `error` first, so it
+  // would pass vacuously against an empty array on any query failure, and
+  // even fixed, it cannot fail for a reason the test above doesn't already
+  // cover. The preceding test's `toEqual` on the sorted key list is an exact
+  // match against precisely `feature_innovator_profiles` and
+  // `feature_public_impact_page` -- any of those three settings keys leaking
+  // through would already fail it, since a third element (or a substitution)
+  // breaks exact-array equality. A second test asserting the same fact with
+  // weaker (`not.toContain`) assertions is not a second guarantee.
 
   it('still denies anon the settings base table', async () => {
     const { error } = await anonClient().from('settings').select('key');
     expect(error).not.toBeNull();
   });
-
 });

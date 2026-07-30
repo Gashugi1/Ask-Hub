@@ -92,6 +92,29 @@ describe('toPublicResource', () => {
     expect(() => toPublicResource(row({ name: null }))).toThrow(/name/);
     expect(() => toPublicResource(row({ id: null }))).toThrow(/id/);
     expect(() => toPublicResource(row({ partner_name: null }))).toThrow(/partner_name/);
+    // resources.is_featured is NOT NULL DEFAULT false (confirmed against
+    // information_schema.columns). A null here must not silently read as
+    // "not featured".
+    expect(() => toPublicResource(row({ is_featured: null }))).toThrow(/is_featured/);
+    // is_closed is not a base column at all -- it's the view's
+    // `(deadline is not null and deadline < current_date)` expression, which
+    // is SQL-guaranteed to evaluate to true or false and never to null. A
+    // null value here would mean the view's expression changed underneath
+    // this code, and defaulting it to false would render an actually-closed
+    // resource as open and inviting applications -- the one failure mode
+    // CLAUDE.md's deadline rule exists to prevent. Throw, do not coalesce.
+    expect(() => toPublicResource(row({ is_closed: null }))).toThrow(/is_closed/);
+  });
+
+  it('defaults sort_order instead of throwing, because the base column is genuinely nullable', () => {
+    // Unlike is_featured/is_closed above, resources.sort_order is declared
+    // `integer` with no NOT NULL (confirmed against information_schema.columns,
+    // same shape as partners.sort_order, headline_stats.sort_order and
+    // impact_stories.sort_order) -- an admin-curated resource can genuinely
+    // have no explicit position yet. A coalesce here is a real default, not
+    // a mask over a broken guarantee.
+    const mapped = toPublicResource(row({ sort_order: null }));
+    expect(mapped.sortOrder).toBe(0);
   });
 });
 
@@ -107,8 +130,14 @@ describe('RESOURCE_VIEW_COLUMNS', () => {
 
   it('maps to no analytics or internal column', () => {
     // CLAUDE.md: anonymous reads exclude views, clicks, CTR, submitter
-    // emails and internal notes. resources_public projects none of them, so
-    // this cannot fail today -- it fails the day someone widens the view.
+    // emails and internal notes. This only guards RESOURCE_VIEW_COLUMNS, a
+    // hand-written constant in this file -- it fails if someone hand-adds a
+    // forbidden column name to that mapping, not if resources_public itself
+    // is widened in SQL to expose one of these names under a column this
+    // mapping never references. The general, schema-driven version of this
+    // guarantee -- that catches any *_public view exposing a forbidden
+    // column regardless of what this file maps -- lives in
+    // tests/rls/schema-guards.test.ts's G7.
     const columns = Object.values(RESOURCE_VIEW_COLUMNS).join(' ');
     for (const forbidden of ['views', 'clicks', 'ctr', 'internal_note', 'submitter', 'status']) {
       expect(columns, `${forbidden} reached the public domain type`).not.toContain(forbidden);

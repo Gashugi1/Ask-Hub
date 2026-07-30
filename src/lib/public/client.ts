@@ -15,8 +15,12 @@ import type { Database } from '@/lib/supabase/database.types';
  * Deliberately NOT the `service_role` client either, and that is not a style
  * preference: `service_role` holds no SELECT on any `*_public` view (the
  * grant is `to anon, authenticated`), so reaching for it here returns 42501.
- * Never "fix" a failing public read by swapping this client for the admin one
- * -- the failure is the signal, and the views are the public contract.
+ * Verifiable directly against this database --
+ * `select has_table_privilege('service_role', 'public.resources_public', 'SELECT')`
+ * returns false, same for every other `*_public` view -- so this does not
+ * need re-litigating from inference about default privileges. Never "fix" a
+ * failing public read by swapping this client for the admin one -- the
+ * failure is the signal, and the views are the public contract.
  */
 export function createPublicSupabase() {
   // Named, not valued. Never interpolate a key into a thrown message.

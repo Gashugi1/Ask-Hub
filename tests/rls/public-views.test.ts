@@ -3,7 +3,7 @@ import { anonClient, serviceClient } from '../helpers/clients';
 
 // Nine views. compute_metrics_public is the one the brief's contract
 // omits from Produces/Interfaces; it is created and tested here like the
-// other seven. partners_public is back as of Task 12L: the client
+// other eight. partners_public is back as of Task 12L: the client
 // confirmed they want partner logos after all, reversing the Task 12r
 // (H8) denormalisation that had dropped the partners table and this view
 // along with it. settings_public is the ninth, added by SP2a Task 1: an
