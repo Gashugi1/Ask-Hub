@@ -153,6 +153,8 @@ export async function createComputeMetric(input: unknown): Promise<{ id: string 
     .select('id')
     .single();
   if (error) throw new Error(`createComputeMetric failed: ${error.message}`);
+  // no-revalidate: no public reader queries compute_metrics, so CACHE_TAGS has
+  // no entry for it and there is no cached surface this could make stale.
   return { id: data!.id };
 }
 
@@ -168,6 +170,8 @@ export async function saveComputeMetric(rawId: unknown, input: unknown): Promise
     .select('id');
   if (error) throw new Error(`saveComputeMetric failed: ${error.message}`);
   assertRowAffected('saveComputeMetric', data);
+  // no-revalidate: no public reader queries compute_metrics, so CACHE_TAGS has
+  // no entry for it and there is no cached surface this could make stale.
 }
 
 export async function deleteComputeMetric(rawId: unknown): Promise<void> {
@@ -181,6 +185,8 @@ export async function deleteComputeMetric(rawId: unknown): Promise<void> {
     .select('id');
   if (error) throw new Error(`deleteComputeMetric failed: ${error.message}`);
   assertRowAffected('deleteComputeMetric', data);
+  // no-revalidate: no public reader queries compute_metrics, so CACHE_TAGS has
+  // no entry for it and there is no cached surface this could make stale.
 }
 
 // ---------------------------------------------------------------------------
@@ -206,6 +212,8 @@ export async function createProgramme(input: unknown): Promise<{ id: string }> {
     .select('id')
     .single();
   if (error) throw new Error(`createProgramme failed: ${error.message}`);
+  // no-revalidate: no public reader queries programmes, so CACHE_TAGS has no
+  // entry for it and there is no cached surface this could make stale.
   return { id: data!.id };
 }
 
@@ -221,6 +229,8 @@ export async function saveProgramme(rawId: unknown, input: unknown): Promise<voi
     .select('id');
   if (error) throw new Error(`saveProgramme failed: ${error.message}`);
   assertRowAffected('saveProgramme', data);
+  // no-revalidate: no public reader queries programmes, so CACHE_TAGS has no
+  // entry for it and there is no cached surface this could make stale.
 }
 
 export async function deleteProgramme(rawId: unknown): Promise<void> {
@@ -230,6 +240,8 @@ export async function deleteProgramme(rawId: unknown): Promise<void> {
   const { data, error } = await supabase.from('programmes').delete().eq('id', targetId).select('id');
   if (error) throw new Error(`deleteProgramme failed: ${error.message}`);
   assertRowAffected('deleteProgramme', data);
+  // no-revalidate: no public reader queries programmes, so CACHE_TAGS has no
+  // entry for it and there is no cached surface this could make stale.
 }
 
 // ---------------------------------------------------------------------------
