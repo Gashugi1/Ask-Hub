@@ -5,6 +5,7 @@ import { t } from '@/lib/i18n';
 import NeedBadge from '@/components/public/NeedBadge';
 import ShareModal from '@/components/public/ShareModal';
 import { deadlineLabel } from '@/lib/public/deadline-label';
+import { geoEligibilityLabel } from '@/lib/public/geo';
 import { resourceJsonLd, serialiseJsonLd } from '@/lib/public/jsonld';
 import { getPublicResource, listPublicResources } from '@/lib/public/readers';
 
@@ -119,14 +120,9 @@ export default async function ResourceDetailPage({
       <section className="mt-8">
         <h2 className="text-lg font-semibold text-navy">{t('detail.eligibility')}</h2>
         <dl className="mt-2 grid gap-2 text-sm text-muted">
-          <Row
-            term={t('detail.countries')}
-            value={
-              resource.geoScope === 'specific' && resource.countriesEligible.length > 0
-                ? resource.countriesEligible.join(', ')
-                : t('card.allCountries')
-            }
-          />
+          {/* Wording lives in lib/public/geo.ts, not here: an unscoped row must
+              read as "not specified", never as open to everyone. */}
+          <Row term={t('detail.countries')} value={geoEligibilityLabel(resource)} />
           <Row
             term={t('detail.sectors')}
             value={

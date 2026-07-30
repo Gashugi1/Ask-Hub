@@ -15,7 +15,7 @@ import type { PublicResource } from './types';
  *   url               <- external_url, falling back to the canonical page
  *   image             <- banner_image_url
  *   availabilityEnds  <- deadline
- *   eligibleRegion    <- countries_eligible
+ *   eligibleRegion    <- countries_eligible, only when geo_scope is 'specific'
  *   availability      <- is_closed
  *   offeredBy         <- partner_name, partner_website_url
  *
@@ -51,7 +51,14 @@ export function resourceJsonLd(
     url: resource.externalUrl ?? canonicalUrl,
     ...(resource.bannerImageUrl ? { image: resource.bannerImageUrl } : {}),
     ...(resource.deadline ? { availabilityEnds: resource.deadline } : {}),
-    ...(resource.countriesEligible.length > 0
+    // Gated on geo_scope as well as the list. Nothing in the schema ties the
+    // two columns together, so a row with geo_scope 'global' and a leftover
+    // country list is representable -- and emitting the list would then tell a
+    // crawler "Kenya" while the page tells a human "open worldwide", from the
+    // same URL. The visible page treats a country list as authoritative only
+    // for 'specific' (see lib/public/geo.ts); this matches it exactly rather
+    // than approximating it.
+    ...(resource.geoScope === 'specific' && resource.countriesEligible.length > 0
       ? { eligibleRegion: resource.countriesEligible }
       : {}),
     availability: resource.isClosed
