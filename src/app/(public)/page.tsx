@@ -4,5 +4,5 @@
  * recently added rail and the full directory — is PRD 5.1 and belongs to SP2.
  */
 export default function PublicHomePage() {
-  return <main data-route="/" />;
+  return <div data-route="/" />;
 }
