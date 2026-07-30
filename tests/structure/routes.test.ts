@@ -87,13 +87,31 @@ describe('route structure', () => {
     }
   });
 
-  it('builds no public page beyond the placeholder home', () => {
-    // PRD 5 lists directory, resource detail, about, contact, privacy,
-    // terms and impact. All are SP2. If one appears here, scope has crept.
+  it('serves about, privacy and terms from the (public) group', () => {
+    expect(routes()['/(public)/about/page']).toBe('/about');
+    expect(routes()['/(public)/privacy/page']).toBe('/privacy');
+    expect(routes()['/(public)/terms/page']).toBe('/terms');
+  });
+
+  it('builds /impact even though it returns 404 at runtime', () => {
+    // PRD 5.7: the page is built and gated behind feature_public_impact_page,
+    // which is off at launch. The gate lives in the page (it calls notFound()
+    // when the flag is false), not in the route table — so its presence here
+    // is correct, and its absence would mean the page had been deleted rather
+    // than gated. tests/components/impact-gate.test.ts covers the 404 itself.
+    expect(routes()['/(public)/impact/page']).toBe('/impact');
+  });
+
+  it('builds only the public pages SP2a owns', () => {
+    // PRD 5's full public surface. /resources/[id] arrives with SP2a Task 5.
+    // Anything else appearing here means scope has crept — the alerts and
+    // suggest-a-resource modals are SP2b, and there is deliberately no
+    // /directory route because PRD 5.1 item 8 puts the directory on the home
+    // page, where the query string is the shareable filter state.
     const publicUrls = Object.entries(routes())
       .filter(([source]) => source.startsWith('/(public)/'))
       .map(([, url]) => url);
-    expect(publicUrls.sort()).toEqual(['/']);
+    expect(publicUrls.sort()).toEqual(['/', '/about', '/impact', '/privacy', '/terms']);
   });
 });
 

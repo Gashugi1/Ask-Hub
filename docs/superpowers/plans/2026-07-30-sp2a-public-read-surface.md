@@ -1664,6 +1664,12 @@ describe('filterResources', () => {
       needPrimary: 'training',
       name: 'Curriculum',
       partnerName: 'Deep Learning Indaba',
+      // Overridden, not inherited: the shared default is 'Cloud credits', which
+      // would make this row match the `query: 'cloud'` assertion below and turn
+      // that test's expected ['a'] into ['a', 'c']. Found by the Task 3
+      // implementer, which correctly fixed the fixture rather than the
+      // implementation -- the search behaviour was right, the fixture was not.
+      subCategory: 'Curriculum',
       sectorsEligible: ['Education & Training'],
       countriesEligible: ['Senegal'],
       stagesEligible: ['New to AI'],
