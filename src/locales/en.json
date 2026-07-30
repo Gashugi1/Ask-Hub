@@ -134,5 +134,22 @@
   "admin.dashboard.reportingUnavailableHeading": "Reach and engagement reporting is not available yet",
   "admin.dashboard.reportingUnavailableBody": "Visit and click reporting starts once event capture is live and a GA4 Measurement ID is set. Until then this screen shows only figures that can be counted from the directory itself.",
   "admin.empty.noRows": "Nothing here yet.",
-  "admin.error.generic": "Something went wrong. Try again, or sign out and back in."
+  "admin.error.generic": "Something went wrong. Try again, or sign out and back in.",
+  "admin.resources.heading": "Resources",
+  "admin.resources.publicNote": "Resources with status Live appear on the public directory.",
+  "admin.resources.tab.all": "All",
+  "admin.resources.tab.expiring": "Expiring soon",
+  "admin.resources.tab.closed": "Closed",
+  "admin.resources.search": "Search by name or partner",
+  "admin.resources.filterStatus": "Status",
+  "admin.resources.filterNeed": "Need",
+  "admin.resources.filterAll": "All",
+  "admin.resources.col.resource": "Resource",
+  "admin.resources.col.need": "Need",
+  "admin.resources.col.eligibility": "Eligibility",
+  "admin.resources.col.deadline": "Deadline",
+  "admin.resources.col.status": "Status",
+  "admin.resources.col.actions": "Actions",
+  "admin.resources.empty": "No resources match these filters.",
+  "admin.resources.applyFilters": "Apply filters"
 }

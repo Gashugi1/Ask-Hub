@@ -1,6 +1,7 @@
 import 'server-only';
 import { createAdminReadClient } from './client';
 import { deadlineInfo } from '@/lib/deadline';
+import { toAdminResource, type AdminResource } from './types';
 
 export interface ResourceCounts {
   live: number;
@@ -33,4 +34,21 @@ export async function readResourceCounts(): Promise<ResourceCounts> {
     // Use it; do not re-implement the 14-day rule here.
     expiringSoon: rows.filter((r) => deadlineInfo(r.deadline).state === 'expiring').length,
   };
+}
+
+/**
+ * Every column this screen shows, from the base table — not the *_public
+ * view, which drops `status` and the other columns this screen exists to
+ * surface. Sorted by `sort_order` first (nulls last) so a curator's manual
+ * ordering is visible here too, then by name for a stable tie-break.
+ */
+export async function readAdminResources(): Promise<AdminResource[]> {
+  const supabase = await createAdminReadClient();
+  const { data, error } = await supabase
+    .from('resources')
+    .select('*')
+    .order('sort_order', { ascending: true, nullsFirst: false })
+    .order('name', { ascending: true });
+  if (error) throw new Error(`admin read failed (resources): ${error.message}`);
+  return (data ?? []).map(toAdminResource);
 }

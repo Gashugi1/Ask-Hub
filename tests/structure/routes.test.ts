@@ -77,6 +77,10 @@ describe('route structure', () => {
     expect(routes()['/(admin)/admin/login/page']).toBe('/admin/login');
   });
 
+  it('serves the admin resources table at /admin/resources', () => {
+    expect(routes()['/(admin)/admin/resources/page']).toBe('/admin/resources');
+  });
+
   it('exposes the health route handler at /api/health', () => {
     expect(routes()['/api/health/route']).toBe('/api/health');
   });
