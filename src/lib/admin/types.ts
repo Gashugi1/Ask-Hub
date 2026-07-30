@@ -1,5 +1,6 @@
 import type { Database } from '@/lib/supabase/database.types';
 import type { AuditAction } from './audit-view';
+import type { ContentKey } from '@/lib/schemas/content';
 
 export type ResourceStatus = 'live' | 'pipeline' | 'reference';
 
@@ -65,4 +66,107 @@ export interface AuditEntry {
   action: AuditAction;
   entityLabel: string;
   changeSummary: string;
+}
+
+/**
+ * `public.site_content` narrowed to the five keys this screen edits, keyed
+ * by `ContentKey` rather than left as an array of rows. A missing key reads
+ * as `''` here (the same "not set" spelling `site_content.value`'s own
+ * `not null default ''` already uses) rather than throwing — five rows are
+ * expected, but a screen render must not crash if a sixth caller ever
+ * deletes one out from under it.
+ */
+export type SiteContentMap = Record<ContentKey, string>;
+
+/** One `headline_stats` row (PRD 6.7 panel 5), provenance included. */
+export interface Stat {
+  id: string;
+  value: string;
+  label: string;
+  isHero: boolean;
+  sortOrder: number | null;
+  source: string;
+  attestedBy: string;
+  attestedOn: string;
+}
+
+/** One `compute_metrics` row (PRD 6.7 panel 6), provenance included. */
+export interface ComputeMetric {
+  id: string;
+  value: string;
+  label: string;
+  subNote: string | null;
+  sortOrder: number | null;
+  source: string;
+  attestedBy: string;
+  attestedOn: string;
+}
+
+/** One `programmes` row (PRD 6.7 panel 7). No provenance: not a reported figure. */
+export interface Programme {
+  id: string;
+  title: string;
+  timeframe: string;
+  description: string;
+  sortOrder: number | null;
+}
+
+/** One `impact_stories` row (PRD 6.7 panel 8). */
+export interface ImpactStory {
+  id: string;
+  organisation: string;
+  country: string;
+  description: string;
+  sortOrder: number | null;
+}
+
+type HeadlineStatsRow = Database['public']['Tables']['headline_stats']['Row'];
+type ComputeMetricsRow = Database['public']['Tables']['compute_metrics']['Row'];
+type ProgrammesRow = Database['public']['Tables']['programmes']['Row'];
+type ImpactStoriesRow = Database['public']['Tables']['impact_stories']['Row'];
+
+export function toStat(row: HeadlineStatsRow): Stat {
+  return {
+    id: row.id,
+    value: row.value,
+    label: row.label,
+    isHero: row.is_hero,
+    sortOrder: row.sort_order,
+    source: row.source,
+    attestedBy: row.attested_by,
+    attestedOn: row.attested_on,
+  };
+}
+
+export function toComputeMetric(row: ComputeMetricsRow): ComputeMetric {
+  return {
+    id: row.id,
+    value: row.value,
+    label: row.label,
+    subNote: row.sub_note,
+    sortOrder: row.sort_order,
+    source: row.source,
+    attestedBy: row.attested_by,
+    attestedOn: row.attested_on,
+  };
+}
+
+export function toProgramme(row: ProgrammesRow): Programme {
+  return {
+    id: row.id,
+    title: row.title,
+    timeframe: row.timeframe,
+    description: row.description,
+    sortOrder: row.sort_order,
+  };
+}
+
+export function toImpactStory(row: ImpactStoriesRow): ImpactStory {
+  return {
+    id: row.id,
+    organisation: row.organisation,
+    country: row.country,
+    description: row.description,
+    sortOrder: row.sort_order,
+  };
 }

@@ -85,6 +85,10 @@ describe('route structure', () => {
     expect(routes()['/(admin)/admin/resources/new/page']).toBe('/admin/resources/new');
   });
 
+  it('serves the site content screen at /admin/content', () => {
+    expect(routes()['/(admin)/admin/content/page']).toBe('/admin/content');
+  });
+
   it('serves the edit-resource form at /admin/resources/[id]', () => {
     expect(routes()['/(admin)/admin/resources/[id]/page']).toBe('/admin/resources/[id]');
   });

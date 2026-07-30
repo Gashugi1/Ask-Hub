@@ -1,9 +1,23 @@
 import 'server-only';
 import { createAdminReadClient } from './client';
 import { deadlineInfo } from '@/lib/deadline';
-import { toAdminResource, type AdminResource, type AuditEntry } from './types';
+import {
+  toAdminResource,
+  toStat,
+  toComputeMetric,
+  toProgramme,
+  toImpactStory,
+  type AdminResource,
+  type AuditEntry,
+  type SiteContentMap,
+  type Stat,
+  type ComputeMetric,
+  type Programme,
+  type ImpactStory,
+} from './types';
 import { AUDIT_PAGE_SIZE, type AuditFilters } from './audit-view';
 import { rowToResourceInput, type ResourceInput } from '@/lib/schemas/resource';
+import { CONTENT_KEYS, type ContentKey } from '@/lib/schemas/content';
 
 export interface ResourceCounts {
   live: number;
@@ -122,4 +136,80 @@ export async function readAuditPage(
     })),
     total: count ?? 0,
   };
+}
+
+/**
+ * The five `site_content` rows this screen edits, `locale = 'en'` only —
+ * the other three locales have no rows yet (PRD 12.4 ships them as stubs).
+ * Missing keys default to `''`, the same "not set" spelling the column's own
+ * `not null default ''` already uses, rather than throwing: a screen render
+ * must not crash if a row is momentarily absent.
+ *
+ * Uncached, like every reader in this file: an editor who has just saved
+ * must see their own write on their very next page load.
+ */
+export async function readSiteContent(): Promise<SiteContentMap> {
+  const supabase = await createAdminReadClient();
+  const { data, error } = await supabase
+    .from('site_content')
+    .select('key, value')
+    .eq('locale', 'en')
+    .in('key', CONTENT_KEYS);
+  if (error) throw new Error(`admin read failed (site_content): ${error.message}`);
+
+  const map = Object.fromEntries(CONTENT_KEYS.map((key) => [key, ''])) as SiteContentMap;
+  for (const row of data ?? []) {
+    if ((CONTENT_KEYS as readonly string[]).includes(row.key)) {
+      map[row.key as ContentKey] = row.value;
+    }
+  }
+  return map;
+}
+
+/** PRD 6.7 panel 5: headline reach numbers, sorted so a curator's manual ordering is visible here too. */
+export async function readStats(): Promise<Stat[]> {
+  const supabase = await createAdminReadClient();
+  const { data, error } = await supabase
+    .from('headline_stats')
+    .select('*')
+    .order('sort_order', { ascending: true, nullsFirst: false })
+    .order('label', { ascending: true });
+  if (error) throw new Error(`admin read failed (headline_stats): ${error.message}`);
+  return (data ?? []).map(toStat);
+}
+
+/** PRD 6.7 panel 6: the compute snapshot. */
+export async function readComputeMetrics(): Promise<ComputeMetric[]> {
+  const supabase = await createAdminReadClient();
+  const { data, error } = await supabase
+    .from('compute_metrics')
+    .select('*')
+    .order('sort_order', { ascending: true, nullsFirst: false })
+    .order('label', { ascending: true });
+  if (error) throw new Error(`admin read failed (compute_metrics): ${error.message}`);
+  return (data ?? []).map(toComputeMetric);
+}
+
+/** PRD 6.7 panel 7. */
+export async function readProgrammes(): Promise<Programme[]> {
+  const supabase = await createAdminReadClient();
+  const { data, error } = await supabase
+    .from('programmes')
+    .select('*')
+    .order('sort_order', { ascending: true, nullsFirst: false })
+    .order('title', { ascending: true });
+  if (error) throw new Error(`admin read failed (programmes): ${error.message}`);
+  return (data ?? []).map(toProgramme);
+}
+
+/** PRD 6.7 panel 8. */
+export async function readImpactStories(): Promise<ImpactStory[]> {
+  const supabase = await createAdminReadClient();
+  const { data, error } = await supabase
+    .from('impact_stories')
+    .select('*')
+    .order('sort_order', { ascending: true, nullsFirst: false })
+    .order('organisation', { ascending: true });
+  if (error) throw new Error(`admin read failed (impact_stories): ${error.message}`);
+  return (data ?? []).map(toImpactStory);
 }
