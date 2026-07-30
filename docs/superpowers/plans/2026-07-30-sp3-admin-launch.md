@@ -2346,7 +2346,9 @@ constraint catches, and enum values that must match the database's."
 - Produces:
   ```ts
   // src/lib/schemas/content.ts
-  export const CONTENT_KEYS: readonly ['welcome_band_heading','welcome_band_body','welcome_band_cta_label','about_intro','about_alignment','privacy_copy','terms_copy'];
+  // The five keys the table actually holds -- NOT PRD 4.12's names, which were
+  // never implemented (see the note in Step 3 and spec 3.1).
+  export const CONTENT_KEYS: readonly ['welcome_title','welcome_body','welcome_cta','identity_lead','identity_align'];
   export const contentEntry: z.ZodType<{ key: (typeof CONTENT_KEYS)[number]; value: string }>;
   export const statInput: z.ZodType<{ value: string; label: string; isHero: boolean; sortOrder: number | null; source: string; attestedBy: string; attestedOn: string }>;
   export const computeMetricInput: z.ZodType<{ value: string; label: string; subNote: string | null; sortOrder: number | null; source: string; attestedBy: string; attestedOn: string }>;
@@ -2369,7 +2371,7 @@ import { describe, it, expect } from 'vitest';
 import { contentEntry, statInput, CONTENT_KEYS } from '@/lib/schemas/content';
 
 describe('contentEntry', () => {
-  it('accepts every key PRD 4.12 names', () => {
+  it('accepts every key the table actually holds', () => {
     for (const key of CONTENT_KEYS) {
       expect(contentEntry.safeParse({ key, value: 'Copy.' }).success, key).toBe(true);
     }
@@ -2380,13 +2382,24 @@ describe('contentEntry', () => {
     // insert a new site_content row that no public reader ever reads, and the
     // edit would appear to have silently done nothing.
     expect(contentEntry.safeParse({ key: 'ga4_measurement_id', value: 'G-XXXX' }).success).toBe(false);
-    expect(contentEntry.safeParse({ key: 'welcome_band_headng', value: 'typo' }).success).toBe(false);
+    expect(contentEntry.safeParse({ key: 'welcome_titel', value: 'typo' }).success).toBe(false);
+  });
+
+  it("refuses PRD 4.12's key names, which the database does not have", () => {
+    // Not pedantry -- this is the failure this allow-list exists to prevent.
+    // scripts/seed-data.ts invented its own key names because the prototype had
+    // no key/locale structure, and SP2a's readers read those. An upsert on
+    // `about_intro` would silently create a sixth row nothing renders, and the
+    // editor would see their save succeed and change nothing on the site.
+    for (const phantom of ['welcome_band_heading', 'about_intro', 'privacy_copy', 'terms_copy']) {
+      expect(contentEntry.safeParse({ key: phantom, value: 'Copy.' }).success, phantom).toBe(false);
+    }
   });
 
   it('accepts an empty value only where the database does', () => {
     // site_content.value is `not null default ''`, so blank is legal; the
     // public band decides whether to render.
-    expect(contentEntry.safeParse({ key: 'about_intro', value: '' }).success).toBe(true);
+    expect(contentEntry.safeParse({ key: 'identity_lead', value: '' }).success).toBe(true);
   });
 });
 
@@ -2431,7 +2444,14 @@ Expected: FAIL with "Failed to resolve import @/lib/schemas/content".
 
 - [ ] **Step 3: Write the schemas**
 
-Create `src/lib/schemas/content.ts` with `CONTENT_KEYS` as the seven-key `as const` tuple from PRD §4.12, `contentEntry` keyed on `z.enum(CONTENT_KEYS)`, and the four row schemas. Provenance fields use `z.string().trim().min(1)` so a blank string cannot pass, and `attestedOn` uses the same `^\d{4}-\d{2}-\d{2}$` date pattern as the resource deadline.
+Create `src/lib/schemas/content.ts` with `CONTENT_KEYS` as the **five-key** `as const` tuple `['welcome_title','welcome_body','welcome_cta','identity_lead','identity_align']`, `contentEntry` keyed on `z.enum(CONTENT_KEYS)`, and the four row schemas. Provenance fields use `z.string().trim().min(1)` so a blank string cannot pass, and `attestedOn` uses the same `^\d{4}-\d{2}-\d{2}$` date pattern as the resource deadline.
+
+**Do not use PRD §4.12's key names.** They were never implemented: `scripts/seed-data.ts` states in its own header that its key names are the seed's invention, because the prototype rendered `settings.welcome.title` directly and had no key/locale structure to inherit. Verify the list against the database before writing the tuple — `select key from public.site_content order by key` — rather than against the PRD. Task 1 found this discrepancy the hard way, with an update that matched zero rows.
+
+Two consequences to carry into this task:
+
+- `privacy_copy` and `terms_copy` **do not exist**, and `docs/deployment.md`'s pre-launch checklist gates going public on legal-reviewed Privacy and Terms copy being in `site_content`. Resolve ledger question Q8 before building the panels: either this screen gains the ability to write those two keys (and `CONTENT_KEYS` becomes seven, with the two new ones created on first save), or a migration seeds them empty and the screen only ever updates. Do not quietly leave the checklist ungateable.
+- The public readers already map these five keys to bands. Renaming a key here would break SP2a's rendering, and renaming is not in SP3's remit (spec §5).
 
 - [ ] **Step 4: Run it to verify it passes**
 

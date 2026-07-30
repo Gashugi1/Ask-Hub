@@ -160,10 +160,27 @@ correction to one of its two descriptions of the same thing:
 **Site Content's six content areas**, all editor-writable, all reaching the
 public surface:
 
-1. Welcome band copy — `site_content` keys `welcome_band_heading`,
-   `welcome_band_body`, `welcome_band_cta_label`
-2. Identity / About copy — `site_content` keys `about_intro`,
-   `about_alignment` (`privacy_copy` and `terms_copy` live here too)
+1. Welcome band copy — `site_content` keys `welcome_title`, `welcome_body`,
+   `welcome_cta`
+2. Identity / About copy — `site_content` keys `identity_lead`,
+   `identity_align`
+
+**Those key names are the database's, not PRD §4.12's, and the difference is
+load-bearing.** PRD §4.12 names `welcome_band_heading`, `welcome_band_body`,
+`welcome_band_cta_label`, `about_intro`, `about_alignment`, `privacy_copy` and
+`terms_copy`. None of those exist: `scripts/seed-data.ts` says in its own
+header that its key names are "this seed's own invention" because the prototype
+had no key/locale structure to inherit, and the five keys it seeded are the
+five the table holds. SP2a's public readers read those five. Task 1 surfaced
+this the hard way — an `update ... where key = 'about_intro'` matched zero rows
+and the test that depended on it failed rather than passing vacuously.
+
+So Site Content is built against the five real keys, and **`privacy_copy` and
+`terms_copy` do not exist at all**. That is not cosmetic: `docs/deployment.md`'s
+pre-launch checklist gates going public on "legal-reviewed Privacy and Terms
+copy is in `site_content`", and the public `/privacy` and `/terms` routes have
+no key to read. Whether SP3's Site Content screen can create a new key, or
+whether a migration seeds the two, is open question Q8 in the ledger.
 3. Headline reach numbers — `headline_stats`, with `source`, `attested_by`,
    `attested_on` required by the schema
 4. Compute snapshot — `compute_metrics`, same provenance columns

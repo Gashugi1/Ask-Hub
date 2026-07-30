@@ -16,9 +16,24 @@ versions of an answer, and this file never carries a design.
 
 | | |
 |---|---|
-| Phase | Design settled, plan written, **no source code written** |
+| Phase | **Task 1 of 9 complete** (the audit spine). Tasks 2–9 not started |
 | Blocked on | Nothing. SP3 does not wait for SP2b |
-| Next action | Execute plan Task 1, the audit spine, on an implementation branch |
+| Next action | Execute plan Task 2: sign in, the admin shell, and the Dashboard |
+| Implementation branch | `sp3/audit-spine`, cut from `sp3-admin-design` |
+
+### Task progress
+
+| Task | State | Notes |
+|---|---|---|
+| 1. Audit spine | **Done** — `9fae580` | Migration `0017_audit_triggers.sql`, G15, 10 new trigger tests, atomicity proof. 327 tests / typecheck / lint / build green after a from-scratch `db:reset` |
+| 2. Sign in, shell, Dashboard | Not started | |
+| 3. Resources table | Not started | |
+| 4. Resource mutations | Not started | |
+| 5. Site Content | Not started | Read Q8 first — the key names are not the PRD's |
+| 6. Settings | Not started | |
+| 7. Users | Not started | The only service-role caller |
+| 8. Audit Log screen | Not started | |
+| 9. Launch sweep | Not started | |
 
 ## Decisions
 
@@ -55,6 +70,7 @@ Product or client decisions, not architecture. None blocks execution.
 | Q5 | Per-operator forensics (`ip_hash`, `user_agent`) for admin operations | Out of scope; if the programme's security review wants it, that is the RPC hatch plus a hash computed in Node, as a scoped follow-up | Security review |
 | Q6 | Wording for the `system` actor sentinel in the Audit Log | Locale key, copy decision | K&S |
 | Q7 | Should "never fewer than two admins" be a hard database invariant? The action-level guard only stops an admin demoting or deactivating themselves, which is the common accident, not the general case | A database check or trigger, as a scoped follow-up after launch. Counting admins in the action would be a race | Product |
+| Q8 | **`privacy_copy` and `terms_copy` do not exist in `site_content`.** Found during Task 1: the table holds five keys of the seed's own invention (`welcome_title`, `welcome_body`, `welcome_cta`, `identity_lead`, `identity_align`), not PRD §4.12's seven names, and the two legal-copy keys are among the missing. `docs/deployment.md`'s pre-launch checklist gates going public on legal-reviewed Privacy and Terms copy being in `site_content`, and `/privacy` and `/terms` have no key to read | Add the two keys in Task 5 — a migration seeding them empty, so the screen only ever updates and the public readers have a row to find. Creating keys from the UI would make the allow-list writable, which is what stops a typo becoming a silent no-op | Product + Task 5 |
 
 ## Follow-ups deliberately left out of launch
 
@@ -66,6 +82,24 @@ Product or client decisions, not architecture. None blocks execution.
 | `force row level security` on any table | Must **never** be added to `audit_log`: the trigger's insert depends on the table owner not being subject to its own policies | Never |
 
 ## Verification
+
+### Task 1, performed 2026-07-30
+
+- [x] `npm run db:reset` applies `0017_audit_triggers.sql` to a clean database,
+      then `npm run seed` restores placeholder content
+- [x] 327 tests pass (31 files), including 10 new trigger tests and G15
+- [x] `npm run typecheck`, `npm run lint` and `npm run build` clean
+- [x] **The atomicity claim is tested, not asserted**: with the audit insert
+      deliberately broken, an ordinary admin edit fails and the row is
+      unchanged; the same edit succeeds once auditing works again
+- [x] **G15 can fail**: dropping `programmes_audit` makes it name that table;
+      restoring the trigger makes it green again
+- [x] A `service_role` write records `actor_name = 'system'` with a null actor,
+      rather than borrowing a person's name
+- [x] A subscriber's address and both tokens are absent from `audit_log` in
+      every form — diff redacted, label masked to `a***@domain`
+
+### Launch sweep
 
 Filled in when the plan's Task 9 runs. Empty means not done, not passed.
 
@@ -89,3 +123,4 @@ Filled in when the plan's Task 9 runs. Empty means not done, not passed.
 |---|---|
 | 2026-07-30 | Design spec written on `sp3-admin-design`, grounded in the schema at `f44c7d4`, leaving three decisions open (scope, SP2b dependency, audit consistency) |
 | 2026-07-30 | All three closed by the human: D1–D5 (scope), D4 (no SP2b dependency), D8–D9 (atomic audit, service-role narrowed). Spec revised, implementation plan written, `docs/deployment.md` service-role note corrected, `src/lib/actions/README.md` audit contract corrected, this ledger created |
+| 2026-07-30 | Task 1 built and committed (`9fae580`) on `sp3/audit-spine`. D8 holds as designed — the SECURITY DEFINER trigger does insert into a table with no insert policy, and a failed audit insert does abort the mutation. Two design refinements made while building, both recorded in the migration: the label argument takes candidate columns rather than one (`profiles.full_name` defaults to `''`), and summaries use sentence case rather than `initcap`, which would have produced "Resource Type" and "In Discussion" against PRD §4.15's own examples. Q8 opened: `site_content` does not hold PRD §4.12's key names, and `privacy_copy`/`terms_copy` do not exist at all |
