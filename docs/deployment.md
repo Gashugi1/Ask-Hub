@@ -87,23 +87,58 @@ truth and carries names with no values (enforced by
 `tests/structure/env-contract.test.ts`, which fails the build if a value is
 committed or if a required name goes missing):
 
-| Name | Public or secret | Purpose |
-| --- | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Public | Supabase project URL. `NEXT_PUBLIC_`-prefixed variables are inlined into the client bundle by Next.js at build time — public by definition, per PRD 13.5. |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public | Supabase anonymous key. Also inlined into the client bundle; it only ever grants what RLS policies allow the `anon` role. |
-| `SUPABASE_SERVICE_ROLE_KEY` | **Secret** | Bypasses Row Level Security entirely. Server-only. Set on Vercel for SP3's server actions and for any server-side reader that needs it. **Must never be given a `NEXT_PUBLIC_` prefix** — `tests/structure/env-contract.test.ts` asserts `.env.example` contains no such name, and that assertion is what makes this invariant structural rather than a matter of discipline. |
+| Name | Public, secret, or test-only | Set on Vercel for this deployment? | Purpose |
+| --- | --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Public | **Yes** — Preview and Production | Supabase project URL. `NEXT_PUBLIC_`-prefixed variables are inlined into the client bundle by Next.js at build time — public by definition, per PRD 13.5. |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public | **Yes** — Preview and Production | Supabase anonymous key. Also inlined into the client bundle; it only ever grants what RLS policies allow the `anon` role. |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Secret** | **No — not for this deployment.** Add it when SP2b/SP3 lands; see below for why. | Bypasses Row Level Security entirely. Server-only. **Must never be given a `NEXT_PUBLIC_` prefix** — `tests/structure/env-contract.test.ts` asserts `.env.example` contains no such name, and that assertion is what makes this invariant structural rather than a matter of discipline. |
+| `SUPABASE_URL` | Test-only | **No, never.** | Read directly by test helpers and `tests/smoke.test.ts` from `.env.test`, against the local Supabase CLI stack. Not a deployment variable under any circumstance. |
+| `SUPABASE_ANON_KEY` | Test-only | **No, never.** | Same as above — a local-stack test credential, not something a Vercel project ever needs. |
 
-Set the two `NEXT_PUBLIC_` variables and `SUPABASE_SERVICE_ROLE_KEY` on
-Vercel for both the Preview and Production environments (see "Operator
-steps"). `.env.example`'s remaining two names, `SUPABASE_URL` and
-`SUPABASE_ANON_KEY`, are test-only — read directly by test helpers and
-`tests/smoke.test.ts` from `.env.test` against the local Supabase CLI stack —
-and have no place in a Vercel project.
+Set the two `NEXT_PUBLIC_` variables on Vercel for both the Preview and
+Production environments (see "Operator steps"). Do not set
+`SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL` or `SUPABASE_ANON_KEY` on this
+deployment — the disposition column above is the checklist; the reasoning
+for the service-role key follows because a credential that bypasses RLS
+entirely is worth explaining, not just flagging.
+
+**Why the service-role key is deliberately absent from this deployment.**
+`createAdminSupabase()` in `src/lib/supabase/admin.ts` is defined and, as of
+this build, called nowhere under `src/`. The only other reference to it in
+this repository is `src/app/api/README.md`, which records that the four
+public write endpoints will use it once they exist — and those endpoints are
+SP2b and SP4's work, not SP2a's. So for the deployment this runbook covers,
+there is no code path that reads this key at all: setting it anyway would
+mean a credential that bypasses Row Level Security entirely sits in a live
+deployment's environment for no corresponding benefit. `admin.ts`'s own
+docstring is direct about the risk such a key exists to avoid: a
+service-role client is "[n]ever for reading on a user's behalf — that is
+`createServerSupabase`, so RLS still applies. A service_role read is how a
+viewer ends up seeing something their policies deny." An earlier draft of
+this table justified setting the key here anyway with "for SP3's server
+actions and for any server-side reader that needs it" — that second clause
+was invented, evidenced nowhere, and directly contradicts the docstring just
+quoted plus this project's own invariant that anonymous reads go through
+public-safe views. It has been removed.
+
+**When the key becomes required, and why.** `public.audit_log` (migration
+`supabase/migrations/0007_logs.sql`) has exactly one RLS policy,
+`audit_log_select_authenticated`, and it is `SELECT`-only. There is no
+INSERT policy for any role, including admin — while `authenticated`
+separately holds INSERT, UPDATE and DELETE table grants that RLS renders
+unusable without a policy. The consequence: a server action running on the
+caller's own authenticated session cannot write its own audit row. Every
+mutating admin action will need the service-role client for that one
+insert, which is exactly the second bullet in `admin.ts`'s own docstring.
+That makes the key required the moment SP2b/SP3 lands, not before. **Add
+`SUPABASE_SERVICE_ROLE_KEY` to Vercel as part of that deployment**, and
+expect every admin write to fail on a missing-audit-insert error until it is
+added.
 
 `.env.example` may also carry `NEXT_PUBLIC_SITE_URL` by the time this
 deployment happens; check the file as it stands rather than trusting this
-list, and if it names something not covered above, set it too — it would be
-public by the same `NEXT_PUBLIC_` rule.
+list, and if it names something not covered above with a `NEXT_PUBLIC_`
+prefix, set it too — it would be public by the same rule.
 
 No value for any of these belongs in this document, in a commit, or in any
 other file `git` tracks. The service role key in particular is the one

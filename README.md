@@ -54,11 +54,12 @@ npm test
 
 ## Scope boundary and deploy posture
 
-This repository is an application **skeleton**. It deliberately contains no
-pages, no database schema and no admin screens: every `page.tsx` renders its
-own route path and nothing else, and each one is deleted by the sub-project
-that builds the real surface. The schema and RLS policies are SP1, the public
-site is SP2, the admin portal is SP3.
+This repository began as an application **skeleton**, with every `page.tsx`
+rendering its own route path and nothing else, each to be replaced in turn by
+the sub-project that builds the real surface. SP1's database schema and RLS
+policies have since landed, and SP2 is landing the public site page by page.
+The admin portal is SP3 and has not started; `/admin` and `/admin/login` are
+still placeholder routes.
 
 Design tokens are also deliberately absent — `src/app/globals.css` only imports
 Tailwind. A test asserts that no colour value in any notation appears anywhere
@@ -73,7 +74,9 @@ non-indexable in two places:
 - `src/app/layout.tsx` sets `robots: { index: false, follow: false }` in the
   root metadata, which renders the equivalent `<meta name="robots">`.
 
-SP1 Task 14 adds a third, `public/robots.txt` with `Disallow: /`.
+SP6 adds a third before launch, `public/robots.txt` with `Disallow: /` (see
+`docs/deployment.md`'s pre-launch checklist) — it does not exist in this
+repository yet.
 
 > **All three must be removed or replaced at go-live.** A public directory
 > that is still `noindex` is invisible to search, which for a discovery
