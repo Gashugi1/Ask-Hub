@@ -47,7 +47,7 @@ describe('/impact', () => {
 });
 
 describe('the Impact page is unreachable by link while gated', () => {
-  it('is linked from no component and no page', async () => {
+  it('is linked from no component, no page, and no route config', async () => {
     const { readdirSync, readFileSync, statSync } = await import('node:fs');
     const { join } = await import('node:path');
     const files: string[] = [];
@@ -55,14 +55,26 @@ describe('the Impact page is unreachable by link while gated', () => {
       for (const entry of readdirSync(dir)) {
         const full = join(dir, entry);
         if (statSync(full).isDirectory()) walk(full);
-        else if (/\.tsx$/.test(entry) && !full.includes(join('impact'))) files.push(full);
+        // .ts as well as .tsx: a sitemap.ts, or a route-constants/nav-config
+        // .ts file, is framework-conventional plain TypeScript with no JSX,
+        // so a .tsx-only scan cannot see it -- and PRD 5.7's "no sitemap
+        // entry" vector lives in exactly that kind of file. .d.ts is
+        // excluded: it is a type-only declaration file that cannot contain a
+        // route reference that resolves to anything.
+        else if (
+          /\.(ts|tsx)$/.test(entry) &&
+          !/\.d\.ts$/.test(entry) &&
+          !full.includes(join('impact'))
+        )
+          files.push(full);
       }
     })('src');
 
     const offenders = files.filter((file) => /["'`]\/impact\b/.test(readFileSync(file, 'utf8')));
     expect(
       offenders,
-      'PRD 5.7: no navigation links to /impact while feature_public_impact_page is off',
+      `PRD 5.7: no navigation links to /impact while feature_public_impact_page is off ` +
+        `(offending file(s): ${offenders.join(', ') || 'none'})`,
     ).toEqual([]);
   });
 });

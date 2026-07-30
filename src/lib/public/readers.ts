@@ -1,7 +1,7 @@
 import 'server-only';
 import { unstable_cache } from 'next/cache';
 import { createPublicSupabase } from './client';
-import { CACHE_TAGS, RESOURCE_TTL_SECONDS } from './cache';
+import { CACHE_TAGS, RESOURCE_TTL_SECONDS, SETTINGS_TTL_SECONDS } from './cache';
 import {
   toPublicResource,
   toPublicPartner,
@@ -142,7 +142,12 @@ const readFlags = unstable_cache(
     return out;
   },
   ['public:settings'],
-  { tags: [CACHE_TAGS.settings] },
+  // See SETTINGS_TTL_SECONDS for why this reader, unlike the others besides
+  // resources, needs a TTL rather than tag invalidation alone: a flag can
+  // flip with no revalidateTag call ever firing, and an untimed cache entry
+  // here bakes into the static generation of the route it gates -- making a
+  // flag that can never be turned on at runtime, however the value changes.
+  { tags: [CACHE_TAGS.settings], revalidate: SETTINGS_TTL_SECONDS },
 );
 
 /**

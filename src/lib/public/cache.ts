@@ -36,3 +36,26 @@ export type CacheTag = (typeof CACHE_TAGS)[keyof typeof CACHE_TAGS];
  * from cache the rest of the day.
  */
 export const RESOURCE_TTL_SECONDS = 900;
+
+/**
+ * How long a cached `settings_public` read (the feature flags) may live
+ * before it is recomputed regardless of whether anything was edited.
+ *
+ * This is the same class of problem as RESOURCE_TTL_SECONDS above, not a
+ * different one. A flag can change without any editor action inside this
+ * application -- someone flips it directly in SQL, or a later sub-project
+ * flips it server-side and its `revalidateTag` call has not landed yet -- so
+ * tag invalidation alone would leave a flipped flag permanently stale: the
+ * cached value from before the flip would never be recomputed, because
+ * nothing ever called `revalidateTag(CACHE_TAGS.settings)`. Worse, Next
+ * bakes an untagged, un-timed cache entry's lifetime into the enclosing
+ * route's static generation, so a flag reader with no TTL turns the page it
+ * gates into a page whose gate can never open at runtime, however the
+ * database value changes.
+ *
+ * At 300s that is a 5-minute worst-case staleness window between a flag flip
+ * and the gated page reflecting it -- short enough that "flip it and refresh
+ * in a few minutes" holds, and cheap enough to serve from cache the rest of
+ * the time.
+ */
+export const SETTINGS_TTL_SECONDS = 300;
