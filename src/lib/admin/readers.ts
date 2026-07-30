@@ -19,6 +19,7 @@ import { AUDIT_PAGE_SIZE, type AuditFilters } from './audit-view';
 import { rowToResourceInput, type ResourceInput } from '@/lib/schemas/resource';
 import { CONTENT_KEYS, type ContentKey } from '@/lib/schemas/content';
 import { SETTING_KEYS, type SettingKey } from '@/lib/schemas/settings';
+import type { Role } from '@/lib/auth';
 
 export interface ResourceCounts {
   live: number;
@@ -205,6 +206,61 @@ export async function readSettings(): Promise<Record<string, string | boolean>> 
     }
   }
   return map;
+}
+
+/**
+ * One row of the Users screen (PRD 4.1). `invited_by` and `user_id` have no
+ * field here and are never selected: the screen shows neither, and a
+ * `select('*')` would carry the auth-side identifier into the render layer
+ * for no reason — same discipline as `readAuditPage`'s explicit column list.
+ *
+ * `lastSignInAt` is `string | null` and is rendered exactly as stored.
+ * Nothing in SP3 writes that column yet, so it is null for every account
+ * today; the screen says so rather than inferring a status from it. An
+ * "active now" derived from a timestamp nobody maintains would be a
+ * fabricated figure on a leadership surface (CLAUDE.md).
+ */
+export interface AdminUser {
+  id: string;
+  email: string;
+  fullName: string;
+  displayLabel: string;
+  role: Role;
+  isActive: boolean;
+  lastSignInAt: string | null;
+}
+
+/**
+ * Every account, active and deactivated alike — a deactivated one has to stay
+ * visible or it could never be reactivated, and its absence would read as a
+ * deleted account, which this screen never does.
+ *
+ * Uncached like every reader in this file. Ordered by name then email so the
+ * list is stable across renders; `full_name` is `not null default ''`, so an
+ * account invited but not yet named sorts first rather than nowhere.
+ *
+ * Read on the caller's client, under `profiles_select_authenticated`. Never
+ * the service_role client: the whole point of the one exception in
+ * `src/lib/actions/users.ts` is that it stays one.
+ */
+export async function readUsers(): Promise<AdminUser[]> {
+  const supabase = await createAdminReadClient();
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, email, full_name, display_label, role, is_active, last_sign_in_at')
+    .order('full_name', { ascending: true })
+    .order('email', { ascending: true });
+  if (error) throw new Error(`admin read failed (profiles): ${error.message}`);
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    email: row.email,
+    fullName: row.full_name,
+    displayLabel: row.display_label,
+    role: row.role,
+    isActive: row.is_active,
+    lastSignInAt: row.last_sign_in_at,
+  }));
 }
 
 /** PRD 6.7 panel 5: headline reach numbers, sorted so a curator's manual ordering is visible here too. */

@@ -91,11 +91,12 @@ committed or if a required name goes missing):
 | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Public | Supabase project URL. `NEXT_PUBLIC_`-prefixed variables are inlined into the client bundle by Next.js at build time — public by definition, per PRD 13.5. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public | Supabase anonymous key. Also inlined into the client bundle; it only ever grants what RLS policies allow the `anon` role. |
-| `SUPABASE_SERVICE_ROLE_KEY` | **Secret** | Bypasses Row Level Security entirely. Server-only. **Not needed by this SP2a deployment at all** (nothing under `src/` calls `createAdminSupabase()` yet), and needed by exactly one code path once SP3 lands — see the note below. **Must never be given a `NEXT_PUBLIC_` prefix** — `tests/structure/env-contract.test.ts` asserts `.env.example` contains no such name, and that assertion is what makes this invariant structural rather than a matter of discipline. |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Secret** | Bypasses Row Level Security entirely. Server-only. **Not needed by a build scoped to the SP2a public read surface**, and needed by exactly one code path in any build that includes SP3's Users screen — `src/lib/actions/users.ts`, the sole caller of `createAdminSupabase()` under `src/`; see the note below. **Must never be given a `NEXT_PUBLIC_` prefix** — `tests/structure/env-contract.test.ts` asserts `.env.example` contains no such name, and that assertion is what makes this invariant structural rather than a matter of discipline. |
 
 Set the two `NEXT_PUBLIC_` variables on Vercel for both the Preview and
 Production environments (see "Operator steps"), and
-`SUPABASE_SERVICE_ROLE_KEY` when SP3's Users screen ships. `.env.example`'s
+`SUPABASE_SERVICE_ROLE_KEY` for any deployment whose build includes SP3's
+Users screen — it has shipped, so a build off this branch does. `.env.example`'s
 remaining two names, `SUPABASE_URL` and `SUPABASE_ANON_KEY`, are test-only —
 read directly by test helpers and `tests/smoke.test.ts` from `.env.test`
 against the local Supabase CLI stack — and have no place in a Vercel project.
@@ -117,7 +118,7 @@ What is left:
 
 | Caller | Needs it because | Where |
 |---|---|---|
-| The Users screen's invite action | Creating a Supabase Auth user is a GoTrue Admin API call, not a table write. No RLS policy can grant it, and there is no public sign-up route to do it instead (PRD §3, §14.3) | `src/lib/actions/users.ts` (SP3) |
+| The Users screen's invite action | Creating a Supabase Auth user is a GoTrue Admin API call, not a table write. No RLS policy can grant it, and there is no public sign-up route to do it instead (PRD §3, §14.3) | `src/lib/actions/users.ts` (SP3, shipped — `inviteUser` wraps only the `auth.admin.inviteUserByEmail` call in it) |
 | `scripts/provision-admins.ts` | Bootstraps the first admin accounts before any admin exists to invite them. Operator-run, never deployed | already in the repository |
 | `scripts/seed.ts` | Writes seed content across tables no single role may write | already in the repository |
 | `tests/helpers/clients.ts` | Creates and role-assigns the RLS fixture users, and reads what a given role must *not* see | already in the repository |

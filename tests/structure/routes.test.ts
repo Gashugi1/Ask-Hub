@@ -97,6 +97,10 @@ describe('route structure', () => {
     expect(routes()['/(admin)/admin/resources/[id]/page']).toBe('/admin/resources/[id]');
   });
 
+  it('serves the admin-only users screen at /admin/users', () => {
+    expect(routes()['/(admin)/admin/users/page']).toBe('/admin/users');
+  });
+
   it('serves the admin audit log at /admin/audit', () => {
     expect(routes()['/(admin)/admin/audit/page']).toBe('/admin/audit');
   });
