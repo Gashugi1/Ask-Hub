@@ -1,14 +1,28 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import { t } from '@/lib/i18n';
 import { COUNTRIES, SECTORS, STAGES, NEED_KEYS } from '@/lib/reference';
 import { DEFAULT_SORT, type FilterCriteria, type SortMode } from '@/lib/public/filters';
 
+/** Idle typing time before the search box commits `query` to the URL. */
+const SEARCH_DEBOUNCE_MS = 300;
+
 /**
- * Every control writes the whole criteria object back through `onChange`.
- * There is no local mirror of URL state and no effect copying one into the
- * other: the URL is the single source of truth, and a second copy is what
- * makes back-button behaviour and shared links disagree.
+ * Every control writes the whole criteria object back through `onChange`,
+ * except the search box: it holds the in-progress text in local state and
+ * commits it to the URL debounced. That is a deliberate, spec'd exception
+ * (an uncommitted keystroke is not filter state) and not a second copy of
+ * committed state -- everything else still round-trips through the URL with
+ * no local mirror and no syncing effect, because a second copy of *that* is
+ * what makes back-button behaviour and shared links disagree.
+ *
+ * The reason the exception exists: `criteria.query` is trimmed on read and
+ * on write (see filters.ts), so if the input's value came straight from
+ * `criteria.query` on every keystroke, a trailing space would be trimmed out
+ * of the DOM the instant a URL update committed -- deleting it before the
+ * next keystroke could arrive, and doing so nondeterministically depending on
+ * render timing. Multi-word search would be unusable.
  */
 export default function FilterControls({
   criteria,
@@ -19,6 +33,58 @@ export default function FilterControls({
   resultCount: number;
   onChange: (next: FilterCriteria) => void;
 }) {
+  const [queryText, setQueryText] = useState(criteria.query);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Read inside the debounce callback instead of closing over `criteria`
+  // directly, so a facet changed by a select while the search box is still
+  // debouncing is not clobbered by a stale snapshot of the other fields.
+  // Updated in an effect, not during render, per the rules of hooks -- a ref
+  // written mid-render is not something React (or this codebase's lint
+  // config) allows.
+  const criteriaRef = useRef(criteria);
+  useEffect(() => {
+    criteriaRef.current = criteria;
+  });
+
+  // Re-seed local text when the committed query changes from somewhere other
+  // than this input's own debounce -- a shared link, the back button, or
+  // Clear filters. This is "adjusting state when a prop changes" (React's own
+  // recipe for it): compare during render and call setState directly rather
+  // than in an effect, which only bails the render out and re-renders once,
+  // instead of committing the stale value to the screen first.
+  const [syncedQuery, setSyncedQuery] = useState(criteria.query);
+  if (criteria.query !== syncedQuery) {
+    setSyncedQuery(criteria.query);
+    setQueryText(criteria.query);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
+  function handleQueryChange(value: string) {
+    setQueryText(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      onChange({ ...criteriaRef.current, query: value });
+    }, SEARCH_DEBOUNCE_MS);
+  }
+
+  function clearAll() {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setQueryText('');
+    onChange({
+      need: null,
+      sector: null,
+      country: null,
+      stage: null,
+      query: '',
+      sort: DEFAULT_SORT,
+    });
+  }
+
   const isFiltered =
     criteria.need !== null ||
     criteria.sector !== null ||
@@ -34,9 +100,9 @@ export default function FilterControls({
         <input
           type="search"
           className="w-full rounded-lg border border-hairline px-4 py-3"
-          value={criteria.query}
+          value={queryText}
           placeholder={t('filter.search')}
-          onChange={(event) => onChange({ ...criteria, query: event.target.value })}
+          onChange={(event) => handleQueryChange(event.target.value)}
         />
       </label>
 
@@ -86,20 +152,7 @@ export default function FilterControls({
             : t('directory.count', { count: resultCount })}
         </span>
         {isFiltered ? (
-          <button
-            type="button"
-            className="text-primary underline"
-            onClick={() =>
-              onChange({
-                need: null,
-                sector: null,
-                country: null,
-                stage: null,
-                query: '',
-                sort: DEFAULT_SORT,
-              })
-            }
-          >
+          <button type="button" className="text-primary underline" onClick={clearAll}>
             {t('filter.clear')}
           </button>
         ) : null}

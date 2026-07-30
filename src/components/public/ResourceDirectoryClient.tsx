@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { t } from '@/lib/i18n';
-import ResourceCard from './ResourceCard';
+import ResourceGrid from './ResourceGrid';
 import FilterControls from './FilterControls';
 import ExportButton from './ExportButton';
 import {
@@ -16,9 +16,15 @@ import {
 import type { PublicResource } from '@/lib/public/types';
 
 /**
- * The directory. Filtering happens here, in the browser, over the full set of
- * live resources the server already sent: one cache entry to invalidate
- * instead of one per filter combination, and no round trip per click.
+ * The directory's interactive layer. This is the `Suspense` child in
+ * `page.tsx`: calling `useSearchParams()` opts this subtree, and only this
+ * subtree, into client-side rendering during static generation. It replaces
+ * `ResourceDirectoryStatic` (the `Suspense` fallback) once the browser
+ * hydrates, at which point `useSearchParams()` can read the real URL.
+ *
+ * Filtering happens here, in the browser, over the full set of live
+ * resources the server already sent: one cache entry to invalidate instead
+ * of one per filter combination, and no round trip per click.
  *
  * The URL is the single source of filter state. This component holds no
  * `useState` for it and runs no effect syncing state to the URL -- a second
@@ -27,12 +33,16 @@ import type { PublicResource } from '@/lib/public/types';
  * a filter click that jumps to the top of the page loses their position in a
  * long list.
  *
+ * A filtered URL loaded fresh briefly shows the unfiltered
+ * `ResourceDirectoryStatic` list before this component takes over -- that is
+ * the accepted cost of server-rendering the directory rather than a bug.
+ *
  * If the live dataset ever grows into the low thousands of substantial rows,
  * shipping every row for browser filtering stops being appropriate and this
  * moves server-side. That threshold is recorded so the decision stays
  * deliberate rather than defaulted.
  */
-export default function ResourceDirectory({
+export default function ResourceDirectoryClient({
   resources,
 }: {
   resources: PublicResource[];
@@ -41,9 +51,23 @@ export default function ResourceDirectory({
   const searchParams = useSearchParams();
   const criteria = parseFilters(searchParams);
 
+  // Depend on the individual primitive fields, not on `criteria` itself:
+  // `parseFilters` returns a fresh object on every render, so memoising on
+  // the object reference would recompute on every render anyway -- an inert
+  // memo that implies a guarantee it does not provide. `criteria` itself is
+  // deliberately left out of the dependency array for that reason.
   const visible = useMemo(
     () => sortResources(filterResources(resources, criteria), criteria.sort),
-    [resources, criteria],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      resources,
+      criteria.need,
+      criteria.sector,
+      criteria.country,
+      criteria.stage,
+      criteria.query,
+      criteria.sort,
+    ],
   );
 
   function apply(next: FilterCriteria) {
@@ -63,24 +87,7 @@ export default function ResourceDirectory({
         <FilterControls criteria={criteria} resultCount={visible.length} onChange={apply} />
       </div>
 
-      {/* Three empty cases, deliberately distinct. Telling someone to remove a
-          filter when they have not set one is worse than saying nothing. */}
-      {resources.length === 0 ? (
-        <p className="mt-10 text-muted">{t('directory.emptyAll')}</p>
-      ) : visible.length === 0 ? (
-        <div className="mt-10 flex flex-col items-start gap-3">
-          <p className="text-muted">{t('directory.emptyFiltered')}</p>
-          <p className="text-sm text-muted-light">{t('directory.emptyFilteredAction')}</p>
-        </div>
-      ) : (
-        <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {visible.map((resource) => (
-            <li key={resource.id} className="flex">
-              <ResourceCard resource={resource} />
-            </li>
-          ))}
-        </ul>
-      )}
+      <ResourceGrid resources={visible} allCount={resources.length} />
     </section>
   );
 }

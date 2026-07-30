@@ -73,7 +73,15 @@ export function toCsvText(
   return [head, ...body].join('\r\n');
 }
 
-/** Header row plus one row per resource, for the Excel writer. */
+/**
+ * Header row plus one row per resource, for the Excel writer.
+ *
+ * `write-excel-file` always emits a string cell as a literal string, never as
+ * a parsed formula -- so the leading apostrophe from `neutralise` is
+ * defence-in-depth against a format that would not have evaluated the
+ * formula anyway. It is also *visible* in the cell once opened, which is the
+ * trade-off: say so here, or a later reader "fixes" it as a stray character.
+ */
 export function toExportRows(rows: readonly PublicResource[]): string[][] {
   return [
     EXPORT_COLUMNS.map((c) => t(`column.${c}`)),
@@ -81,13 +89,28 @@ export function toExportRows(rows: readonly PublicResource[]): string[][] {
   ];
 }
 
+/**
+ * Mirrors `write-excel-file`'s own `downloadBlob` helper (see
+ * node_modules/write-excel-file/modules/export/downloadBlob.js): append the
+ * anchor to the document, click it, then revoke the object URL and remove
+ * the anchor on a delay. Both details matter -- a detached anchor is known
+ * to be ignored by `click()` in Firefox, and revoking the object URL in the
+ * same tick as `click()` can abort the transfer before the browser has read
+ * the blob. Neither of those throws, so skipping them makes the button fail
+ * silently instead of failing loudly.
+ */
 function save(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
+  anchor.style.display = 'none';
   anchor.href = url;
   anchor.download = filename;
+  document.body.appendChild(anchor);
   anchor.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+    document.body.removeChild(anchor);
+  }, 100);
 }
 
 function filename(extension: string): string {
@@ -101,8 +124,11 @@ export async function downloadCsv(rows: readonly PublicResource[]): Promise<void
   const headers = Object.fromEntries(EXPORT_COLUMNS.map((c) => [c, t(`column.${c}`)]));
   // The BOM is what makes Excel read the file as UTF-8 rather than as the
   // system code page, which is the difference between "Côte d'Ivoire" and
-  // mojibake for every reader on Windows.
-  const blob = new Blob(['﻿', toCsvText(rows, headers)], {
+  // mojibake for every reader on Windows. Written as an escape, not a literal
+  // U+FEFF character in the source: an invisible codepoint sitting in a file
+  // is one careless `sed` or editor re-save away from silently disappearing,
+  // and nothing here would fail to compile if it did.
+  const blob = new Blob(['\uFEFF', toCsvText(rows, headers)], {
     type: 'text/csv;charset=utf-8',
   });
   save(blob, filename('csv'));
