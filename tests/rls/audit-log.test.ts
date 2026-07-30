@@ -37,7 +37,11 @@ describe('audit_log is append-only', () => {
     }
   });
 
-  it('grants no insert policy even to admin — writes go through service_role', async () => {
+  // Title updated in SP3 Task 1: rows arrive through the audit trigger, in the
+  // mutation's own transaction, NOT through a service_role insert made by the
+  // server action. The invariant this asserts is unchanged and is what makes
+  // that design necessary -- no role, admin included, may write here by hand.
+  it('grants no insert policy even to admin — rows arrive via the audit trigger', async () => {
     const admin = await roleClient('admin');
     const { error } = await admin.from('audit_log').insert({
       actor_name: 'Admin direct', action: 'edited',
@@ -124,5 +128,37 @@ describe('audit_log is append-only', () => {
     expect(after!.actor).toBe(profile!.id);
     expect(after!.actor_name).toBe('Doomed User');
     expect(after!.entity_label).toBe('Survives deletion');
+  });
+
+  it('accepts the trigger-written insert while still refusing a direct one', async () => {
+    const admin = await roleClient('admin');
+
+    // Direct insert: still refused, exactly as before. SP3's trigger changed
+    // how rows arrive, not who may write them by hand.
+    const direct = await admin.from('audit_log').insert({
+      actor_name: 'hand-written',
+      action: 'edited',
+      entity_type: 'resource',
+      entity_label: 'hand-written',
+      change_summary: 'hand-written',
+    });
+    expect(direct.error?.code).toBe('42501');
+
+    // Trigger-written: succeeds, as the mutation's own side effect, even though
+    // the very same session cannot insert here directly. That asymmetry is the
+    // architecture -- the row is written by the database as the table owner,
+    // inside the transaction of the write it describes.
+    const svc = serviceClient();
+    const before = await svc.from('audit_log').select('id', { count: 'exact', head: true });
+    const { error, count } = await admin
+      .from('site_content')
+      .update({ value: `Welcome to AskHub ${Date.now()}` }, { count: 'exact' })
+      .eq('key', 'welcome_title')
+      .eq('locale', 'en');
+    expect(error).toBeNull();
+    expect(count, 'the fixture key must exist, or this test passes vacuously').toBe(1);
+
+    const after = await svc.from('audit_log').select('id', { count: 'exact', head: true });
+    expect((after.count ?? 0) - (before.count ?? 0)).toBe(1);
   });
 });

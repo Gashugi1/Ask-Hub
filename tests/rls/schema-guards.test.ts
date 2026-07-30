@@ -3,8 +3,10 @@ import { serviceClient } from '../helpers/clients';
 import {
   ANON_SELECTABLE,
   ANON_EXECUTABLE,
+  AUDIT_EXEMPT,
   EXPECTED_ANON_SELECTABLE,
   EXPECTED_ANON_EXECUTABLE,
+  EXPECTED_AUDIT_EXEMPT,
 } from './security-allowlist';
 
 // ---------------------------------------------------------------------
@@ -18,9 +20,10 @@ import {
 // information_schema, whose grant views return zero rows for anon/
 // authenticated as service_role even when a grant genuinely exists (the
 // task brief's F1), which would make a guard built on it vacuously green
-// forever -- plus the six seed.sql introspection helpers (relation_security,
+// forever -- plus the seed.sql introspection helpers (relation_security,
 // relation_privileges, policy_inventory, view_column_sources,
-// relation_columns, function_privileges), never a hand list of table
+// relation_columns, function_privileges, enum_labels, and trigger_inventory
+// as an eighth added by SP3 Task 1 for G15), never a hand list of table
 // names, so a new relation is caught the moment `npm test` next runs.
 //
 // Every assertion is `expect(offenders, message).toEqual([])`: the
@@ -54,6 +57,13 @@ interface PolicyRow {
   policyname: string;
   cmd: string;
   roles: string[];
+}
+
+interface TriggerRow {
+  table_name: string;
+  trigger_name: string;
+  function_name: string;
+  argument_count: number;
 }
 
 interface ViewColumnSourceRow {
@@ -132,6 +142,7 @@ let viewColumnSources: ViewColumnSourceRow[] = [];
 let relationColumns: RelationColumnRow[] = [];
 let functionPrivileges: FunctionPrivilegeRow[] = [];
 let enumNames: string[] = [];
+let triggerInventory: TriggerRow[] = [];
 
 // One shared snapshot for the whole file, fetched once. These are catalog
 // facts (pg_class, pg_policy, pg_proc, pg_depend, pg_attribute, the
@@ -157,7 +168,7 @@ let helperTruncated: Record<string, { returned: number; total: number }> = {};
 
 beforeAll(async () => {
   const svc = serviceClient();
-  const [rs, rp, pi, vcs, rc, fp, en] = await Promise.all([
+  const [rs, rp, pi, vcs, rc, fp, en, ti] = await Promise.all([
     svc.rpc('relation_security', {}, { count: 'exact' }),
     svc.rpc('relation_privileges', {}, { count: 'exact' }),
     svc.rpc('policy_inventory', {}, { count: 'exact' }),
@@ -165,6 +176,7 @@ beforeAll(async () => {
     svc.rpc('relation_columns', {}, { count: 'exact' }),
     svc.rpc('function_privileges', {}, { count: 'exact' }),
     svc.rpc('enum_labels', {}, { count: 'exact' }),
+    svc.rpc('trigger_inventory', {}, { count: 'exact' }),
   ]);
 
   const results: Record<
@@ -178,6 +190,7 @@ beforeAll(async () => {
     relation_columns: rc,
     function_privileges: fp,
     enum_labels: en,
+    trigger_inventory: ti,
   };
   helperErrors = {};
   helperTruncated = {};
@@ -199,10 +212,11 @@ beforeAll(async () => {
   relationColumns = (rc.data ?? []) as RelationColumnRow[];
   functionPrivileges = (fp.data ?? []) as FunctionPrivilegeRow[];
   enumNames = ((en.data ?? []) as EnumRow[]).map((e) => e.enum_name);
+  triggerInventory = (ti.data ?? []) as TriggerRow[];
 });
 
 describe('Guard 0 — the guards guard themselves', () => {
-  it('all six introspection helpers resolve, return non-empty results, and are not truncated by PostgREST max_rows', () => {
+  it('every introspection helper resolves, returns non-empty results, and is not truncated by PostgREST max_rows', () => {
     const snapshots: Record<string, unknown[]> = {
       relation_security: relationSecurity,
       relation_privileges: relationPrivileges,
@@ -211,6 +225,7 @@ describe('Guard 0 — the guards guard themselves', () => {
       relation_columns: relationColumns,
       function_privileges: functionPrivileges,
       enum_labels: enumNames,
+      trigger_inventory: triggerInventory,
     };
     const offenders = Object.entries(snapshots)
       .filter(([, rows]) => rows.length === 0)
@@ -230,11 +245,11 @@ describe('Guard 0 — the guards guard themselves', () => {
       guardMessage({
         offenders,
         rule:
-          'Every schema-wide guard below depends on these six seed.sql helpers actually being callable, non-empty, and returning every row that exists — not merely some of them.',
+          'Every schema-wide guard below depends on these seed.sql helpers actually being callable, non-empty, and returning every row that exists — not merely some of them.',
         why:
           'A suite whose helpers silently 404 (PGRST202, "function not found") reports every downstream guard green while asserting nothing — strictly worse than no suite, because it looks thorough. The same failure mode has a second, quieter door: PostgREST applies `db-max-rows` (supabase/config.toml\'s `max_rows`) to every set-returning function call, including these helpers. relation_privileges (~relations × 3 grantees × up to 8 verbs) and relation_columns (one row per column) are the ones likeliest to cross that ceiling as this schema grows across two sub-projects — and a `data` array that is merely non-empty cannot distinguish a small schema from a snapshot cut off at max_rows. Requesting `count: \'exact\'` and comparing it to `data.length` is what catches the cut, rather than every guard downstream going quietly, partially blind on whichever rows happened to sort last.',
         remediation:
-          'supabase/seed.sql is applied only by `supabase db reset`, not by `supabase db push` — run `npm run db:reset` so the six introspection helpers exist. If truncated, raise `max_rows` in supabase/config.toml (and restart the local stack so PostgREST reloads it) rather than working around the guard.',
+          'supabase/seed.sql is applied only by `supabase db reset`, not by `supabase db push` — run `npm run db:reset` so every introspection helper exists. If truncated, raise `max_rows` in supabase/config.toml (and restart the local stack so PostgREST reloads it) rather than working around the guard.',
         exception: NO_ALLOWLIST,
       }),
     ).toEqual([]);
@@ -711,6 +726,40 @@ describe('Tier 2 — allow-listed', () => {
       }),
     ).toEqual([]);
   });
+
+  it('G15: every base table with a write policy carries an audit trigger', () => {
+    const audited = new Set(
+      triggerInventory
+        .filter((t) => t.function_name === 'audit_row_change')
+        .map((t) => t.table_name),
+    );
+
+    // Any policy that is not SELECT-only is a write path, and every write path
+    // must leave a record. Derived from policy_inventory rather than from a
+    // hand list, for the reason this whole file exists: a table added by a
+    // later session is invisible to a hand list until somebody remembers it.
+    const writePolicied = [...new Set(
+      policyInventory.filter((p) => p.cmd !== 'SELECT').map((p) => p.tablename),
+    )].sort();
+
+    const offenders = writePolicied
+      .filter((table) => !audited.has(table) && !(table in AUDIT_EXEMPT))
+      .map((table) => `public.${table} has a write policy and no audit_row_change trigger`);
+
+    expect(
+      offenders,
+      guardMessage({
+        offenders,
+        rule:
+          `${CLAUDE_MD}: audit_log is the accountability record for every admin write, and PRD 6.9 states the log spans every entity type, not resources only. A table anyone may write with no trigger to record it is an unaudited write path.`,
+        why:
+          'The audit row is written by the database precisely so it cannot drift from the mutation (SP3 design spec 4.2): a trigger runs inside the statement that fired it, so the pair shares one transaction and a failed audit insert aborts the write. That guarantee is per table, and it is established by attaching the trigger -- so the failure mode this guard exists for is not a broken trigger but a missing one, on a table whose admin screen arrives three sub-projects later and whose writes silently go unrecorded. SP3 Task 1 therefore attaches it to all fifteen write-policied tables, including the ones whose screens are deferred, and this guard is what keeps that set complete rather than complete-as-of-2026.',
+        remediation:
+          "Add `create trigger <table>_audit after insert or update or delete on public.<table> for each row execute function public.audit_row_change('<entity_type>', '<label columns>', '<label prefix>', '<redact list>');` in a new migration, following supabase/migrations/0017_audit_triggers.sql. If the table genuinely must not be audited, add it to AUDIT_EXEMPT in tests/rls/security-allowlist.ts with a reason and bump EXPECTED_AUDIT_EXEMPT.",
+        exception: allowlistException('EXPECTED_AUDIT_EXEMPT'),
+      }),
+    ).toEqual([]);
+  });
 });
 
 describe('allow-list meta-test — tests/rls/security-allowlist.ts must itself be well-formed', () => {
@@ -752,6 +801,22 @@ describe('allow-list meta-test — tests/rls/security-allowlist.ts must itself b
         offenders,
         rule:
           'Every ANON_SELECTABLE entry needs a real approvedIn plan-task reference and a why that is not a restated name, per Requirement 3 of Task 11b.',
+        remediation:
+          'Fix the offending entry in tests/rls/security-allowlist.ts directly.',
+        exception:
+          'This is the meta-test for the allow-list itself — there is no further allow-list above it.',
+      }),
+    ).toEqual([]);
+  });
+
+  it('AUDIT_EXEMPT entries are well-formed and the count is pinned', () => {
+    const offenders = checkRegistry(AUDIT_EXEMPT, EXPECTED_AUDIT_EXEMPT, 'EXPECTED_AUDIT_EXEMPT');
+    expect(
+      offenders,
+      guardMessage({
+        offenders,
+        rule:
+          'Every AUDIT_EXEMPT entry needs a real approvedIn plan-task reference and a why that is not a restated name, held to the same standard as the two anon registries — an entry here is a table whose writes nobody can reconstruct afterwards.',
         remediation:
           'Fix the offending entry in tests/rls/security-allowlist.ts directly.',
         exception:

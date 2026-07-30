@@ -429,3 +429,76 @@ $$;
 
 revoke all on function public.function_privileges() from public, anon, authenticated;
 grant execute on function public.function_privileges() to service_role;
+
+
+-- Trigger inventory for schema guard G15. Same pattern and same grants as
+-- relation_privileges() and function_privileges() above: local-only, needed
+-- because information_schema.triggers is not reachable through PostgREST.
+--
+-- tgargs is a NUL-separated blob of C strings, so it is exposed as a plain
+-- count rather than parsed here: G15 only asks whether the audit trigger is
+-- attached, and a half-decoded argument list would invite a test to assert on
+-- an encoding detail instead of on the invariant.
+create or replace function public.trigger_inventory()
+returns table (
+  table_name text,
+  trigger_name text,
+  function_name text,
+  argument_count smallint
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select c.relname::text,
+         t.tgname::text,
+         p.proname::text,
+         t.tgnargs
+    from pg_catalog.pg_trigger t
+    join pg_catalog.pg_class c on c.oid = t.tgrelid
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+    join pg_catalog.pg_proc p on p.oid = t.tgfoid
+   where n.nspname = 'public'
+     and not t.tgisinternal
+$$;
+
+revoke all on function public.trigger_inventory() from public, anon, authenticated;
+grant execute on function public.trigger_inventory() to service_role;
+
+-- Deliberately breaks the audit insert so a test can prove that a mutation
+-- fails rather than committing unaudited (SP3 design spec 4.2, property 3).
+-- `not valid` is what makes this possible: the constraint is enforced on new
+-- inserts while the existing audit rows other suites depend on are left alone.
+--
+-- Lives in seed.sql, which only ever runs against the local stack via
+-- `supabase db reset`. It is not a migration and must never become one: a
+-- production database that can be told to break its own audit log has a
+-- switch nobody should be able to reach.
+create or replace function public.test_break_audit_log()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  alter table public.audit_log
+    add constraint audit_log_test_break check (false) not valid;
+end;
+$$;
+
+create or replace function public.test_unbreak_audit_log()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  alter table public.audit_log drop constraint if exists audit_log_test_break;
+end;
+$$;
+
+revoke all on function public.test_break_audit_log() from public, anon, authenticated;
+revoke all on function public.test_unbreak_audit_log() from public, anon, authenticated;
+grant execute on function public.test_break_audit_log() to service_role;
+grant execute on function public.test_unbreak_audit_log() to service_role;

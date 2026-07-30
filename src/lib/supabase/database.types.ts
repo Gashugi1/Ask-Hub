@@ -1,17 +1,3 @@
-/**
- * GENERATED FILE. Produced by `npm run db:types` (`supabase gen types typescript
- * --local`) against the current local schema. Never hand-edit — a hand-written
- * type that disagrees with the schema is worse than no type, because it still
- * typechecks. Regenerate after every migration.
- *
- * Before this file was generated, `Tables` was `Record<string, never>`, and
- * `db.from('resources').select('id, name, partner')` still typechecked clean —
- * an empty schema member does not turn a `.from('...')` call into a type
- * error. What was actually true, and quieter than that placeholder claimed:
- * every query compiled with no type safety at all, so a typo'd or renamed
- * column, a wrong enum literal, or a missing NOT NULL field passed silently
- * until it failed at runtime. Real generated types below close that gap.
- */
 export type Json =
   | string
   | number
@@ -1046,6 +1032,15 @@ export type Database = {
       }
     }
     Functions: {
+      audit_change_summary: {
+        Args: {
+          p_action: Database["public"]["Enums"]["audit_action"]
+          p_diff: Json
+          p_entity_type: string
+        }
+        Returns: string
+      }
+      audit_sentence_case: { Args: { p_value: string }; Returns: string }
       column_names: {
         Args: { table_name: string }
         Returns: {
@@ -1119,6 +1114,17 @@ export type Database = {
           relname: string
           rls_enabled: boolean
           rls_forced: boolean
+        }[]
+      }
+      test_break_audit_log: { Args: never; Returns: undefined }
+      test_unbreak_audit_log: { Args: never; Returns: undefined }
+      trigger_inventory: {
+        Args: never
+        Returns: {
+          argument_count: number
+          function_name: string
+          table_name: string
+          trigger_name: string
         }[]
       }
       view_column_sources: {
