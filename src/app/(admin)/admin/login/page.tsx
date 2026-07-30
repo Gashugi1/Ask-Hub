@@ -1,11 +1,14 @@
+import { getCurrentUser } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import SignInForm from '@/components/admin/SignInForm';
+
 /**
- * Placeholder for `/admin/login`. Email and password against Supabase Auth,
- * built in SP3.
- *
  * PRD 3 and 14.3: there is no sign-up route, and public signup is disabled at
- * the Supabase project level so one cannot be added by application code.
- * Users are created by an admin.
+ * the Supabase project level, so one cannot be added by application code.
+ * Users are created by an admin — `scripts/provision-admins.ts` for the first
+ * two, /admin/users for everyone after.
  */
-export default function AdminLoginPage() {
-  return <main data-route="/admin/login" />;
+export default async function AdminLoginPage() {
+  if (await getCurrentUser()) redirect('/admin');
+  return <SignInForm />;
 }
