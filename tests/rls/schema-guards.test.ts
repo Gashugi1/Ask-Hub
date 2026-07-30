@@ -720,10 +720,13 @@ describe('allow-list meta-test — tests/rls/security-allowlist.ts must itself b
     expectedCountName: string,
   ): string[] {
     const offenders: string[] = [];
+    // The optional letter after the SP number (not just after the T number)
+    // was added for SP2a, SP2b, ... -- sub-projects of SP2 named with a
+    // letter suffix, distinct from a lettered task variant like SP1-T12l.
     for (const [name, exception] of Object.entries(registry)) {
-      if (!/^SP\d+-T\d+[a-z]?$/.test(exception.approvedIn)) {
+      if (!/^SP\d+[a-z]?-T\d+[a-z]?$/.test(exception.approvedIn)) {
         offenders.push(
-          `${name}: approvedIn "${exception.approvedIn}" does not match /^SP\\d+-T\\d+[a-z]?$/`,
+          `${name}: approvedIn "${exception.approvedIn}" does not match /^SP\\d+[a-z]?-T\\d+[a-z]?$/`,
         );
       }
       if (exception.why.length < 40) {

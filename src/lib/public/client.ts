@@ -1,0 +1,30 @@
+import 'server-only';
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
+
+/**
+ * The public site's only database client.
+ *
+ * Deliberately NOT the request-scoped `createServerSupabase()`: that one
+ * carries the caller's cookies, so an admin browsing the public site would
+ * read the views as `authenticated` rather than as `anon`, and the pages
+ * they cached would be the ones every anonymous visitor then received.
+ * A cookie-free client makes every public read identical for every visitor,
+ * which is what makes the response cacheable at all.
+ *
+ * Deliberately NOT the `service_role` client either, and that is not a style
+ * preference: `service_role` holds no SELECT on any `*_public` view (the
+ * grant is `to anon, authenticated`), so reaching for it here returns 42501.
+ * Never "fix" a failing public read by swapping this client for the admin one
+ * -- the failure is the signal, and the views are the public contract.
+ */
+export function createPublicSupabase() {
+  // Named, not valued. Never interpolate a key into a thrown message.
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) throw new Error('NEXT_PUBLIC_SUPABASE_URL is not set');
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!anonKey) throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set');
+  return createClient<Database>(url, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}

@@ -1011,6 +1011,21 @@ export type Database = {
           },
         ]
       }
+      settings_public: {
+        Row: {
+          key: string | null
+          value: Json | null
+        }
+        Insert: {
+          key?: string | null
+          value?: Json | null
+        }
+        Update: {
+          key?: string | null
+          value?: Json | null
+        }
+        Relationships: []
+      }
       site_content_public: {
         Row: {
           key: string | null

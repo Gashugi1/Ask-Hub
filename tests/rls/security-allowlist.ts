@@ -62,6 +62,10 @@ export const ANON_SELECTABLE: Record<string, Exception> = {
     approvedIn: 'SP1-T11',
     why: 'Server-side aggregate live count per need for the home page browse band, computed in Postgres rather than fetched row by row.',
   },
+  settings_public: {
+    approvedIn: 'SP2a-T1',
+    why: 'Allow-listed projection of the two feature flag rows so a public page can resolve feature_public_impact_page without the service_role client; no other settings key is projected.',
+  },
 };
 
 // Keyed by `proname(identity_args)` (e.g. `"my_fn(a text, b int)"`), not
@@ -78,5 +82,5 @@ export const ANON_SELECTABLE: Record<string, Exception> = {
 // that shortcut, so there is no slot to fill.
 export const ANON_EXECUTABLE: Record<string, Exception> = {};
 
-export const EXPECTED_ANON_SELECTABLE = 8;
+export const EXPECTED_ANON_SELECTABLE = 9;
 export const EXPECTED_ANON_EXECUTABLE = 0;

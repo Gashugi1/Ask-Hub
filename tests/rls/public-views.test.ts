@@ -1,12 +1,15 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { anonClient, serviceClient } from '../helpers/clients';
 
-// Eight views. compute_metrics_public is the one the brief's contract
+// Nine views. compute_metrics_public is the one the brief's contract
 // omits from Produces/Interfaces; it is created and tested here like the
 // other seven. partners_public is back as of Task 12L: the client
 // confirmed they want partner logos after all, reversing the Task 12r
 // (H8) denormalisation that had dropped the partners table and this view
-// along with it.
+// along with it. settings_public is the ninth, added by SP2a Task 1: an
+// allow-listed projection of the two feature flag keys in public.settings
+// so a public page can resolve feature_public_impact_page without the
+// service_role client.
 const PUBLIC_VIEWS = [
   'resources_public',
   'headline_stats_public',
@@ -16,6 +19,7 @@ const PUBLIC_VIEWS = [
   'impact_stories_public',
   'need_counts_public',
   'partners_public',
+  'settings_public',
 ] as const;
 
 // Ruling 5, updated by Task 12L: resources_public is a join again (it
@@ -38,6 +42,7 @@ const WRITABLE_SHAPE_VIEWS = [
   'programmes_public',
   'impact_stories_public',
   'partners_public',
+  'settings_public',
 ] as const;
 
 describe('public-safe views', () => {
@@ -278,6 +283,7 @@ describe('public-safe views', () => {
     impact_stories_public: { organisation: `Injected ${Date.now()}` },
     need_counts_public: { need_primary: 'compute', live_count: 999 },
     partners_public: { name: `Injected Partner ${Date.now()}` },
+    settings_public: { key: 'probe', value: true },
   };
 
   const UPDATE_PAYLOAD: Record<(typeof WRITABLE_SHAPE_VIEWS)[number], Record<string, unknown>> = {
@@ -287,6 +293,7 @@ describe('public-safe views', () => {
     programmes_public: { title: `Overwritten ${Date.now()}` },
     impact_stories_public: { organisation: `Overwritten ${Date.now()}` },
     partners_public: { sort_order: 999 },
+    settings_public: { value: true },
   };
 
   // site_content_public has no `id` column (its key is key+locale), and
@@ -302,6 +309,7 @@ describe('public-safe views', () => {
     programmes_public: ['id', '00000000-0000-0000-0000-000000000000'],
     impact_stories_public: ['id', '00000000-0000-0000-0000-000000000000'],
     partners_public: ['name', 'no-such-partner'],
+    settings_public: ['key', 'feature_public_impact_page'],
   };
 
   // Requirement 8 (Task 11b), updated by Task 12L: assert the SQLSTATE,
@@ -310,9 +318,10 @@ describe('public-safe views', () => {
   // column name in the payload) masquerade as a real permission denial --
   // confirmed directly against this database: the single-table views
   // (headline_stats_public, compute_metrics_public, site_content_public,
-  // programmes_public, impact_stories_public and, as of Task 12L,
-  // partners_public) are auto-updatable, so their write is stopped by an
-  // actual GRANT check (42501, "permission denied for view <name>");
+  // programmes_public, impact_stories_public, partners_public as of
+  // Task 12L, and settings_public as of SP2a Task 1) are auto-updatable,
+  // so their write is stopped by an actual GRANT check (42501, "permission
+  // denied for view <name>");
   // need_counts_public (a GROUP BY aggregate) and, as of Task 12L,
   // resources_public (a join against partners again) are not
   // automatically updatable at all, so Postgres rejects the write before
@@ -355,10 +364,11 @@ describe('public-safe views', () => {
   // 0014_partner_logos.sql) would leave every other test in this file
   // green while the public page backed by that view now 403s. Asserting
   // `error` is null only, not a row count: most of the base tables
-  // underlying these eight views are empty in a fresh reset (only
-  // resources gets fixture rows in this file), so a row-count assertion
+  // underlying these nine views are empty in a fresh reset (only
+  // resources gets fixture rows in this file, and settings is seeded by
+  // migration 0006 with its two flag rows), so a row-count assertion
   // would be asserting fixture data, not the grant.
-  it('can be read anonymously on all eight public views', async () => {
+  it('can be read anonymously on all nine public views', async () => {
     const anon = anonClient();
     for (const view of PUBLIC_VIEWS) {
       const { error } = await anon.from(view).select().limit(1);
