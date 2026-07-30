@@ -343,25 +343,33 @@ navigation link, no internal link, no sitemap entry and no generated metadata** 
 
 ## Task breakdown
 
-Seven tasks. The order is a dependency order: each builds on verified pieces from the last, and
-the riskiest logic lands in task 2 where it is reviewed on its own.
+Eight tasks. The order is a dependency order: each builds on verified pieces from the last, and
+the riskiest logic lands in task 3 where it is reviewed on its own. See
+`docs/superpowers/plans/2026-07-30-sp2a-public-read-surface.md` for the step-by-step version.
 
-1. **Layout and the cached data layer** — public layout shell, header and footer (no login link
-   or admin reference, per PRD §5.8), `noindex` while gated, `src/lib/public-data.ts` with the
-   no-cookie anon client, the six readers, and the `CACHE_TAGS` constant with `RESOURCE_TTL`
-2. **Shared components and tested logic** — `deadlineLabel`, `ResourceCard`, `filterResources`,
-   `parseFilters` / `toSearchParams`, `sortResources`
-3. **The directory** — filters, search, sort, count, export, URL state, the two distinct empty
+1. **The cached data layer** — the no-cookie anon client, the six readers, `CACHE_TAGS` and
+   `RESOURCE_TTL`, the domain types and mappers, and migration `0016_settings_public.sql`
+2. **The AST copy guard and the layout shell** — header and footer with no login link or admin
+   reference (PRD §5.8)
+3. **Shared logic** — `deadlineLabel`, `filterResources`, `parseFilters` / `toSearchParams`,
+   `sortResources`, `ResourceCard`
+4. **The directory** — filters, search, sort, count, export, URL state, the three distinct empty
    states
-4. **Resource detail** — banner through apply button, share pop-up, JSON-LD, `notFound()` for a
+5. **Resource detail** — banner through apply button, share pop-up, JSON-LD, `notFound()` for a
    row absent from `resources_public`
-5. **Home bands** — the seven bands in PRD §5.1 order, each hiding when it has no rows
-6. **Static pages and the Impact gate** — About, Privacy, Terms, and `/impact` built and
+6. **Home bands** — the seven bands in PRD §5.1 order, each hiding when it has no rows
+7. **Static pages and the Impact gate** — About, Privacy, Terms, and `/impact` built and
    404-gated with no link to it
-7. **Gated Vercel deploy** — DoD item 15, reachable, `noindex`, DNS records documented
+8. **Gated Vercel deploy** — DoD item 15, reachable, `noindex`, DNS records documented
 
-The AST copy guard is written in task 1, so every later task is held to it as it is written
-rather than retrofitted at the end.
+The copy guard is written in task 2, alongside the first component that has anything to catch,
+so every later task is held to it as it is written rather than retrofitted at the end.
+
+**One planning correction to record here.** This document says SP2a adds no views. It has to add
+one: `/impact` is gated on `settings.feature_public_impact_page`, and `anon` holds nothing on
+`public.settings`, so there is no anonymous path to the flag. Migration `0016` projects **only**
+the two `feature_*` keys. The alternative — rendering a public page through the `service_role`
+client — is the pattern the "never fall back to the admin client" rule above exists to prevent.
 
 ## Verification
 
