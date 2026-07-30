@@ -46,6 +46,19 @@ which talks to PostgREST on the local Supabase instance. Start it with
 `npm run db:start`. The credentials come from `.env.test`, which is gitignored;
 copy the names from `.env.example` and fill them from `npx supabase status`.
 
+**`npm run build` itself needs no Supabase credentials**, even though every
+`/admin` route reads the caller's session and, on the Dashboard, live rows.
+`src/app/(admin)/admin/layout.tsx` declares `export const dynamic =
+'force-dynamic'`, which the whole subtree inherits, so Next's build never
+attempts to render these pages ahead of a real request — only a live deploy
+does, and that is exactly where `NEXT_PUBLIC_SUPABASE_URL` and
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` must be set for `/admin` to work at all (as
+build *and* runtime env vars on Vercel; there is no separate CI workflow in
+this repository to catch a missing one earlier). Locally, `npm run dev` still
+needs them the same way `npm test` needs `.env.test` — copy `.env.example` to
+`.env.local` and fill it from `npx supabase status`, exactly as for
+`.env.test`, and never commit either file.
+
 ```bash
 npm run db:start   # Docker must already be running
 npm run build
