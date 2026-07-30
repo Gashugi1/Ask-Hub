@@ -2824,6 +2824,7 @@ is worse than saying nothing."
     description?: string; image?: string; availabilityEnds?: string; eligibleRegion?: string[];
   }
   export function resourceJsonLd(resource: PublicResource, canonicalUrl: string): ResourceJsonLd;
+  export function serialiseJsonLd(value: ResourceJsonLd): string;
   // ShareModal({ url, title }: { url: string; title: string })  -- 'use client'
   ```
 
@@ -2862,7 +2863,7 @@ Create `tests/unit/jsonld.test.ts`:
 
 ```ts
 import { describe, it, expect } from 'vitest';
-import { resourceJsonLd } from '@/lib/public/jsonld';
+import { resourceJsonLd, serialiseJsonLd } from '@/lib/public/jsonld';
 import { RESOURCE_VIEW_COLUMNS, type PublicResource } from '@/lib/public/types';
 
 function resource(overrides: Partial<PublicResource> = {}): PublicResource {
@@ -2966,6 +2967,29 @@ describe('resourceJsonLd', () => {
     }
   });
 
+  it('escapes a description that tries to close the script element', () => {
+    // JSON.stringify escapes quotes and backslashes but never `<`. Inside a
+    // <script> element the HTML parser is still hunting for the closing tag,
+    // so an unescaped `</script>` in partner-supplied copy ends the JSON-LD
+    // block and starts an executable one. This is the whole reason
+    // serialiseJsonLd exists.
+    const hostile = resource({ description: '</script><script>alert(1)</script>' });
+    const html = serialiseJsonLd(resourceJsonLd(hostile, CANONICAL));
+    expect(html).not.toContain('</script>');
+    expect(html).not.toContain('<');
+    expect(html).toContain('\\u003c');
+    // Still valid JSON, and still the original text once parsed.
+    expect(JSON.parse(html).description).toBe('</script><script>alert(1)</script>');
+  });
+
+  it('escapes ampersands so an HTML entity in copy survives round-trip', () => {
+    const html = serialiseJsonLd(
+      resourceJsonLd(resource({ name: 'Energy & Water programme' }), CANONICAL),
+    );
+    expect(html).toContain('\\u0026');
+    expect(JSON.parse(html).name).toBe('Energy & Water programme');
+  });
+
   it('draws every field it uses from a real resources_public column', () => {
     for (const field of ['name', 'description', 'externalUrl', 'bannerImageUrl', 'deadline', 'countriesEligible', 'partnerName', 'partnerWebsiteUrl', 'isClosed'] as const) {
       expect(RESOURCE_VIEW_COLUMNS[field], `${field} is not a public view column`).toBeDefined();
@@ -3049,6 +3073,32 @@ export function resourceJsonLd(
       ...(resource.partnerWebsiteUrl ? { url: resource.partnerWebsiteUrl } : {}),
     },
   };
+}
+
+/**
+ * Serialise the object for injection into a `<script type="application/ld+json">`.
+ *
+ * `JSON.stringify` alone is **not** safe here, and this is the reason this
+ * function exists rather than the page calling stringify directly. Inside a
+ * `<script>` element the HTML parser is still looking for the closing tag, so
+ * a resource description containing `</script><script>...` ends the JSON-LD
+ * block and starts an executable one -- `JSON.stringify` escapes quotes and
+ * backslashes but never `<`. Resource copy is partner-supplied and
+ * admin-entered, so it is user content by CLAUDE.md's definition, and
+ * CLAUDE.md forbids dangerouslySetInnerHTML with user content unescaped.
+ *
+ * Escaping `<`, `>` and `&` to their \\u form keeps the JSON byte-for-byte
+ * equivalent -- a JSON parser reads \\u003c as `<` -- while leaving the HTML
+ * parser nothing to act on.
+ *
+ * React's normal text escaping cannot be used instead: it would emit `&quot;`
+ * inside the script element, which is not valid JSON.
+ */
+export function serialiseJsonLd(value: ResourceJsonLd): string {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026');
 }
 ```
 
@@ -3163,7 +3213,7 @@ import { t } from '@/lib/i18n';
 import NeedBadge from '@/components/public/NeedBadge';
 import ShareModal from '@/components/public/ShareModal';
 import { deadlineLabel } from '@/lib/public/deadline-label';
-import { resourceJsonLd } from '@/lib/public/jsonld';
+import { resourceJsonLd, serialiseJsonLd } from '@/lib/public/jsonld';
 import { getPublicResource, listPublicResources } from '@/lib/public/readers';
 
 /**
@@ -3217,12 +3267,13 @@ export default async function ResourceDetailPage({
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-12">
-      {/* Server-rendered from public view fields only. Serialised with
-          JSON.stringify rather than interpolated, and the object is built
-          from a typed shape, so no user content reaches the DOM as markup. */}
+      {/* Server-rendered from public view fields only, and serialised by
+          `serialiseJsonLd`, which escapes < > & so a description containing
+          `</script>` cannot break out of this element. See that function for
+          why JSON.stringify alone is not enough. */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serialiseJsonLd(jsonLd) }}
       />
 
       <Link className="text-sm text-primary underline" href="/#directory">
