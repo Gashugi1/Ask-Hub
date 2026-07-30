@@ -242,5 +242,20 @@
   "admin.content.deleteConfirmHeading": "Delete this entry?",
   "admin.content.deleteConfirmBody": "This cannot be undone. The entry will be permanently removed from the public site.",
   "admin.content.deleteCancel": "Cancel",
-  "admin.content.deleteConfirmAction": "Yes, delete"
+  "admin.content.deleteConfirmAction": "Yes, delete",
+  "admin.settings.heading": "Settings",
+  "admin.settings.intro": "GA4 identifiers, the contact mailbox and the two feature flags. Admin only.",
+  "admin.settings.section.analytics": "Analytics",
+  "admin.settings.ga4.measurementId": "GA4 Measurement ID",
+  "admin.settings.ga4.propertyId": "GA4 Property ID",
+  "admin.settings.ga4.eventsNote": "Custom events fired once connected: resource_view, apply_click, search_performed, filter_used, export_clicked.",
+  "admin.settings.ga4.invalidMeasurementId": "Must be empty, or a Measurement ID in the form G-XXXXXXXXXX.",
+  "admin.settings.ga4.invalidPropertyId": "Must be empty, or a numeric GA4 property ID.",
+  "admin.settings.section.contact": "Contact mailbox",
+  "admin.settings.contact.label": "Contact email",
+  "admin.settings.contact.note": "Fixed to the one AI Hub mailbox; no other address is accepted.",
+  "admin.settings.section.flags": "Feature flags",
+  "admin.settings.flags.innovatorProfiles": "Innovator profiles and matching",
+  "admin.settings.flags.publicImpactPage": "Public Impact page",
+  "admin.settings.flags.offAtLaunch": "Off at launch"
 }

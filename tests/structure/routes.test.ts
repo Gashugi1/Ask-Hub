@@ -89,6 +89,10 @@ describe('route structure', () => {
     expect(routes()['/(admin)/admin/content/page']).toBe('/admin/content');
   });
 
+  it('serves the admin-only settings screen at /admin/settings', () => {
+    expect(routes()['/(admin)/admin/settings/page']).toBe('/admin/settings');
+  });
+
   it('serves the edit-resource form at /admin/resources/[id]', () => {
     expect(routes()['/(admin)/admin/resources/[id]/page']).toBe('/admin/resources/[id]');
   });

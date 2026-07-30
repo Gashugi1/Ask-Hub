@@ -18,6 +18,7 @@ import {
 import { AUDIT_PAGE_SIZE, type AuditFilters } from './audit-view';
 import { rowToResourceInput, type ResourceInput } from '@/lib/schemas/resource';
 import { CONTENT_KEYS, type ContentKey } from '@/lib/schemas/content';
+import { SETTING_KEYS, type SettingKey } from '@/lib/schemas/settings';
 
 export interface ResourceCounts {
   live: number;
@@ -161,6 +162,46 @@ export async function readSiteContent(): Promise<SiteContentMap> {
   for (const row of data ?? []) {
     if ((CONTENT_KEYS as readonly string[]).includes(row.key)) {
       map[row.key as ContentKey] = row.value;
+    }
+  }
+  return map;
+}
+
+/** The two feature-flag keys default to `false` when missing; everything else here is a string. */
+const SETTING_DEFAULTS: Record<SettingKey, string | boolean> = {
+  ga4_measurement_id: '',
+  ga4_property_id: '',
+  contact_email: '',
+  feature_innovator_profiles: false,
+  feature_public_impact_page: false,
+};
+
+/**
+ * The five `settings` rows this screen edits. `value` is jsonb — PostgREST
+ * decodes it to the matching native JS type, so a GA4 id or the mailbox
+ * arrives as a `string` and a feature flag as a `boolean` with no manual
+ * parsing here.
+ *
+ * Missing keys fall back to `SETTING_DEFAULTS` rather than throwing, same
+ * as `readSiteContent`: a screen render must not crash if a row is
+ * momentarily absent. In steady state all five are always present —
+ * migration 0006_site.sql seeds them and no action here deletes a row.
+ *
+ * Uncached, like every reader in this file: an admin who has just flipped a
+ * flag must see their own write on their very next page load.
+ */
+export async function readSettings(): Promise<Record<string, string | boolean>> {
+  const supabase = await createAdminReadClient();
+  const { data, error } = await supabase
+    .from('settings')
+    .select('key, value')
+    .in('key', SETTING_KEYS);
+  if (error) throw new Error(`admin read failed (settings): ${error.message}`);
+
+  const map: Record<string, string | boolean> = { ...SETTING_DEFAULTS };
+  for (const row of data ?? []) {
+    if ((SETTING_KEYS as readonly string[]).includes(row.key)) {
+      map[row.key] = row.value as string | boolean;
     }
   }
   return map;
