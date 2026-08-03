@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
 import { serviceClient } from '../helpers/clients';
 import {
   cleanupFixtures,
@@ -21,6 +21,14 @@ import {
  * own fixtures, which is not the property that matters. `African Development
  * Bank` comes from `scripts/seed-data.ts` and is exactly the kind of row a
  * false positive would destroy.
+ *
+ * Deletion is exercised for five of the eleven tables the sweep touches:
+ * `partners` and `resources` below, and `programmes`, `impact_stories` and
+ * `updates_log` in the block after them. The other six -- engagement_events,
+ * submissions, partnerships, digest_sends, contact_messages, subscribers --
+ * are still covered only by `isFixtureValue`, the predicate, not by an
+ * end-to-end delete. Stated so nobody reads this file as proving the whole
+ * sweep works.
  */
 const REAL_PARTNER = 'African Development Bank';
 const STABLE_FIXTURES = ['Test Partner', 'Public View Partner'] as const;
@@ -167,6 +175,117 @@ describe('cleanupFixtures deletion', () => {
     expect(count ?? 0, 'seeded resources must survive').toBeGreaterThan(0);
   });
 });
+
+/**
+ * The three tables that joined the sweep with `tests/rls/role-matrix.test.ts`
+ * and had no deletion assertion of their own until now.
+ *
+ * Two of them are anon-readable -- `programmes_public` and
+ * `impact_stories_public` are both in `tests/rls/public-views.test.ts`'s
+ * registry -- so a sweep that silently stops working for one of them leaves
+ * stamped test fixtures rendering as programme and impact content on a public
+ * page for a UN programme. That is CLAUDE.md's first hard rule, reached by an
+ * unusual route: nobody fabricated anything, the housekeeping just stopped.
+ *
+ * The sweep keys all three on `id`. `column` below is the one it matches
+ * against, which for `updates_log` is `text` -- its only NOT NULL column
+ * without a default, and the only one that identifies an entry at all, and a
+ * freer-form one than a title or an organisation name, so `FIXTURE_STAMP_RE`'s
+ * digit boundaries are what keep a real update note containing a long number
+ * out of the sweep's way.
+ *
+ * `updates_log` is append-only for every authenticated role (0007_logs.sql
+ * creates a select policy and an insert policy and no others), so both its
+ * fixture and its control are written with the service client -- which
+ * bypasses RLS, exactly as the sweep itself does.
+ */
+const SWEPT_TABLES = [
+  {
+    table: 'programmes',
+    column: 'title',
+    control: 'Sweep control programme (tests/rls/fixture-sweep.test.ts)',
+    row: (label: string) => ({ title: label }),
+  },
+  {
+    table: 'impact_stories',
+    column: 'organisation',
+    control: 'Sweep control organisation (tests/rls/fixture-sweep.test.ts)',
+    row: (label: string) => ({ organisation: label }),
+  },
+  {
+    table: 'updates_log',
+    column: 'text',
+    control: 'Sweep control update note (tests/rls/fixture-sweep.test.ts)',
+    row: (label: string) => ({ text: label }),
+  },
+] as const;
+
+describe('cleanupFixtures deletion, per table', () => {
+  // Every id this block creates, deleted unconditionally at the end.
+  //
+  // The house rule from tests/rls/admin-actions-content.test.ts, and it
+  // matters more here than there: the *control* row is by construction one
+  // the sweep will never remove -- that is the property being tested -- so
+  // nothing else in the repository would ever clean it up. A control stranded
+  // in `programmes` is a fixture on an anon-readable view for good. The label
+  // names this file for the same reason: if one ever does survive a crash
+  // between the insert and this hook, it reads as the test artefact it is
+  // rather than as content.
+  const created: { table: string; id: string }[] = [];
+
+  afterAll(async () => {
+    const svc = serviceClient();
+    for (const { table, id } of created) {
+      const { error } = await svc.from(table).delete().eq('id', id);
+      if (error) console.warn(`[fixture-sweep] could not delete ${table} ${id}: ${error.message}`);
+    }
+  });
+
+  for (const { table, column, control, row } of SWEPT_TABLES) {
+    it(`sweeps a stamped ${table} row and spares an unstamped one`, async () => {
+      const svc = serviceClient();
+      const fixtureLabel = `Sweep fixture ${table} ${fixtureStamp()}`;
+
+      // A control stranded by an earlier interrupted run would otherwise
+      // accumulate a duplicate per run, and this test would pass on the old
+      // row rather than the one it just wrote.
+      const { error: purgeError } = await svc.from(table).delete().eq(column, control);
+      expect(purgeError, `clearing a stale ${table} control`).toBeNull();
+
+      const { data: inserted, error: insertError } = await svc
+        .from(table)
+        .insert([row(fixtureLabel), row(control)])
+        .select('id');
+      expect(insertError, `seeding ${table}`).toBeNull();
+      for (const { id } of (inserted ?? []) as { id: string }[]) created.push({ table, id });
+
+      const before = await labels(svc, table, column, [fixtureLabel, control]);
+      expect(before).toEqual(expect.arrayContaining([fixtureLabel, control]));
+
+      await cleanupFixtures(svc);
+
+      const after = await labels(svc, table, column, [fixtureLabel, control]);
+      expect(
+        after,
+        `${table}: a stamped fixture survived the sweep — it is no longer being cleaned up`,
+      ).not.toContain(fixtureLabel);
+      // The assertion that matters in the other direction: an unstamped row is
+      // what real content looks like, and the sweep must not touch it.
+      expect(after, `${table}: the sweep deleted an unstamped row`).toContain(control);
+    });
+  }
+});
+
+async function labels(
+  svc: ReturnType<typeof serviceClient>,
+  table: string,
+  column: string,
+  wanted: readonly string[],
+): Promise<string[]> {
+  const { data, error } = await svc.from(table).select(column).in(column, wanted);
+  expect(error, `reading ${table}`).toBeNull();
+  return ((data ?? []) as unknown as Record<string, string>[]).map((r) => r[column]!);
+}
 
 async function partnerNames(svc: ReturnType<typeof serviceClient>): Promise<string[]> {
   const { data, error } = await svc.from('partners').select('name');

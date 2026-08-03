@@ -4,9 +4,11 @@ import {
   ANON_SELECTABLE,
   ANON_EXECUTABLE,
   AUDIT_EXEMPT,
+  PUBLIC_VIEW_COLUMNS,
   EXPECTED_ANON_SELECTABLE,
   EXPECTED_ANON_EXECUTABLE,
   EXPECTED_AUDIT_EXEMPT,
+  EXPECTED_PUBLIC_VIEW_COLUMNS,
 } from './security-allowlist';
 
 // ---------------------------------------------------------------------
@@ -753,9 +755,9 @@ describe('Tier 2 — allow-listed', () => {
         rule:
           `${CLAUDE_MD}: "Anonymous reads go through public-safe views that exclude ... internal notes" — extended here to internal-only enum types. Only need_type, geo_scope, partner_tier and exclusivity may appear as a *_public view's output column type among public's enums.`,
         why:
-          "Type-based, so alias-proof for resources.status specifically: resources_public legitimately filters `where status = 'live'` (and Postgres's rewrite dependency tracking makes view_column_sources() report that qual reference — confirmed directly against this database), so status cannot be marked @sensitive without making G7 flag the one view that correctly filters on it. Any projection of resources.status as an output column, however renamed, still carries type public.resource_status, so G14 catches it where a name-based check could be dodged by an alias. submission_status, partnership_stage, audit_action and app_role reaching the public surface would be defects for the same reason. exclusivity (Task 12r) is allow-listed for the opposite reason those five are excluded: it is a two-value **public badge** with no internal-workflow meaning at all — 'exclusive' or 'early_access', displayed on the public site by design (ruling H10) — unlike resource_status/submission_status/partnership_stage/audit_action/app_role, which describe internal pipeline or access state and must never reach the public surface. The line a new enum must be judged against is exactly that: does its value describe something the public site is meant to show (allow-list it, by name, here), or internal state a public visitor must never see (keep it off this list, and prefer a derived column — the is_closed boolean, not status — if only part of the meaning needs to be public). Note also what this guard cannot see: a `::text` cast of a disallowed enum (e.g. `r.status::text as availability`) erases the type before G14's introspection ever runs, and G7 does not backstop it either since resources.status is deliberately unmarked (marking it @sensitive would make G7 flag the one view that legitimately filters on it). G14 is not a complete defence against that specific bypass — review remains load-bearing for a cast that erases an enum's type rather than exposing it honestly.",
+          "Type-based, so alias-proof for resources.status specifically: resources_public legitimately filters `where status = 'live'` (and Postgres's rewrite dependency tracking makes view_column_sources() report that qual reference — confirmed directly against this database), so status cannot be marked @sensitive without making G7 flag the one view that correctly filters on it. Any projection of resources.status as an output column, however renamed, still carries type public.resource_status, so G14 catches it where a name-based check could be dodged by an alias. submission_status, partnership_stage, audit_action and app_role reaching the public surface would be defects for the same reason. exclusivity (Task 12r) is allow-listed for the opposite reason those five are excluded: it is a two-value **public badge** with no internal-workflow meaning at all — 'exclusive' or 'early_access', displayed on the public site by design (ruling H10) — unlike resource_status/submission_status/partnership_stage/audit_action/app_role, which describe internal pipeline or access state and must never reach the public surface. The line a new enum must be judged against is exactly that: does its value describe something the public site is meant to show (allow-list it, by name, here), or internal state a public visitor must never see (keep it off this list, and prefer a derived column — the is_closed boolean, not status — if only part of the meaning needs to be public). Note what this guard still cannot see, and what now backstops it. A `::text` cast of a disallowed enum (e.g. `r.status::text as availability`) erases the type before G14's introspection ever runs, and G7 does not backstop it either since resources.status is deliberately unmarked (marking it @sensitive would make G7 flag the one view that legitimately filters on it). Until SP2a that was an uncovered hole standing on human review alone, and a live instance of it — an internal resource_status served to anonymous readers — passed all 577 tests. G17/G18 below now cover it mechanically: they compare each *_public view's output column *names* against PUBLIC_VIEW_COLUMNS, and a name survives every cast, expression and alias, so the cast arrives as an unregistered column and fails there. Verified by mutating this database directly with the exact `availability` alias, with a second alias, and with an unaliased column: G17 went red and named the column in all three, while G14 and G7 stayed green in all three. G14 itself is still no defence against that bypass — G17 is, and G14 remains the guard for an enum exposed honestly. What no guard here covers is a change to what an *already-registered* column computes: redefining is_closed to return status text keeps the registered name and passes G14, G7 and G17 alike, so review stays load-bearing for that case specifically rather than for a new column appearing.",
         remediation:
-          'Remove the column from the view\'s select list in supabase/migrations/0009_public_views.sql (or supabase/migrations/0013_reconcile_partners.sql for resources_public). If only a derived boolean/label is needed (the resources_public shape: is_closed, not status), compute that in the view instead of projecting the enum itself. If the enum is a genuine public-safe value like exclusivity, add it to ALLOWED here with a why explaining which side of the public/internal line it falls on — never dodge the guard with a `::text` cast instead.',
+          'Remove the column from the view\'s select list in supabase/migrations/0009_public_views.sql (or supabase/migrations/0013_reconcile_partners.sql for resources_public). If only a derived boolean/label is needed (the resources_public shape: is_closed, not status), compute that in the view instead of projecting the enum itself. If the enum is a genuine public-safe value like exclusivity, add it to ALLOWED here with a why explaining which side of the public/internal line it falls on — never dodge the guard with a `::text` cast instead, which G17 now fails as an unregistered column rather than leaving to review.',
         exception: NO_ALLOWLIST,
       }),
     ).toEqual([]);
@@ -791,6 +793,152 @@ describe('Tier 2 — allow-listed', () => {
         remediation:
           "Add `create trigger <table>_audit after insert or update or delete on public.<table> for each row execute function public.audit_row_change('<entity_type>', '<label columns>', '<label prefix>', '<redact list>');` in a new migration, following supabase/migrations/0018_audit_triggers.sql. If the table genuinely must not be audited, add it to AUDIT_EXEMPT in tests/rls/security-allowlist.ts with a reason and bump EXPECTED_AUDIT_EXEMPT.",
         exception: allowlistException('EXPECTED_AUDIT_EXEMPT'),
+      }),
+    ).toEqual([]);
+  });
+
+  // -------------------------------------------------------------------
+  // G17/G18 -- the column-level registry.
+  //
+  // Deliberately name-based, and deliberately not built on type
+  // introspection, because the two type-based guards above have a shared
+  // blind spot that a name-based check does not:
+  //
+  //   G14 reads pg_attribute's atttypid. A `::text` cast erases the enum
+  //   type before that column ever reaches the catalog, so
+  //   `r.status::text as availability` on resources_public is type
+  //   `text` by the time G14 looks -- indistinguishable from any other
+  //   text column.
+  //
+  //   G7 reads pg_rewrite -> pg_depend, which records a dependency for
+  //   every Var in the query tree including one that appears only in a
+  //   WHERE qual. resources_public's `where status = 'live'` therefore
+  //   makes resources.status a dependency of the view whether or not it
+  //   is projected, so status cannot be marked @sensitive without G7
+  //   flagging the view that correctly filters on it.
+  //
+  // Both of those are properties of *what is being inspected*, not of
+  // how carefully either guard was written. A registry keyed on output
+  // column *names* is indifferent to types, casts, expressions and
+  // aliases: whatever a column is computed from and whatever type
+  // survives, it lands in pg_attribute under some name, and that name
+  // either is on the list or is not. That is the whole mechanism, and it
+  // is why a cast that erases an enum's type -- the one bypass G14
+  // structurally cannot see -- fails here instead.
+  //
+  // Exactly what these two guards enforce, and what they do not, stated
+  // plainly so nobody reads more into them than the code does:
+  //
+  //   They enforce that every output column of every view in public
+  //   whose name ends in `_public` appears on that view's list in
+  //   PUBLIC_VIEW_COLUMNS, and vice versa. That is the whole claim.
+  //
+  //   They do NOT by themselves prove anything about anonymous readers.
+  //   The step from "*_public views" to "everything anon can read" is
+  //   G10's, which fails any anon SELECT grant on a relation that is not
+  //   a registered *_public view, and G12's, which fails any function
+  //   anon can execute that is not in ANON_EXECUTABLE (currently empty).
+  //   G17 is one link in that chain, not the chain. A view named
+  //   something else is out of G17's scope by construction; what keeps
+  //   that from mattering is G10, not this guard.
+  //
+  //   They do NOT prove a registered column is safe. That judgement is
+  //   made by the human who adds the name and re-made in review of the
+  //   diff that adds it. Changing what an already-registered column
+  //   *computes* (redefining `is_closed` to return status text under the
+  //   same name) passes G17 by construction. Names are the mechanism and
+  //   also the limit.
+  // -------------------------------------------------------------------
+
+  /** Actual output columns of every view named *_public, from pg_attribute. */
+  function actualPublicViewColumns(): Map<string, RelationColumnRow[]> {
+    const byView = new Map<string, RelationColumnRow[]>();
+    for (const c of relationColumns) {
+      if (c.relkind !== 'v' || !/_public$/.test(c.relname)) continue;
+      const existing = byView.get(c.relname);
+      if (existing) existing.push(c);
+      else byView.set(c.relname, [c]);
+    }
+    return byView;
+  }
+
+  it('G17: every output column of every *_public view is registered in PUBLIC_VIEW_COLUMNS', () => {
+    const offenders = [...actualPublicViewColumns().entries()]
+      .flatMap(([view, columns]) => {
+        const registered = new Set(PUBLIC_VIEW_COLUMNS[view] ?? []);
+        const unregisteredView = !(view in PUBLIC_VIEW_COLUMNS);
+        return columns
+          .filter((c) => !registered.has(c.column_name))
+          .map(
+            (c) =>
+              `public.${view}.${c.column_name} (type ${c.type_schema}.${c.type_name}) is an output column of a *_public view but is not registered` +
+              (unregisteredView ? ' — this view has no entry in PUBLIC_VIEW_COLUMNS at all' : ''),
+          );
+      })
+      .sort();
+
+    expect(
+      offenders,
+      guardMessage({
+        offenders,
+        rule:
+          `${CLAUDE_MD}: "Anonymous reads go through public-safe views that exclude views, clicks, CTR, submitter emails and internal notes." Every output column of every *_public view must appear on that view's list in tests/rls/security-allowlist.ts (PUBLIC_VIEW_COLUMNS). A column that is not on the list is a column nobody declared safe for anonymous readers.`,
+        why:
+          'Name-based on purpose. G14 is type-based and G7 is dependency-based, and both are dodged by the same one-token edit: `r.status::text as availability` in resources_public served an internal resource_status to anonymous readers with the entire suite green. The cast erases the enum type from pg_attribute before G14 introspects it, and G7 cannot help because resources_public legitimately *filters* on status — pg_rewrite records that qual as a dependency, so marking the column @sensitive would flag the one view that uses it correctly. This guard asks a question neither of those can be made to ask: whatever the column is computed from, whatever cast it carries, whatever it is renamed to, it exists in pg_attribute under a name — is that name on the list? A cast cannot change a name, and an alias only changes it to another name that is equally unregistered. Note the boundary, because it is not a formality and it is wider than one guard: G17 proves nothing about the *content* of an already-registered column. `r.status::text as sub_category` -- the same internal enum, the same anonymous readers, the same one-line edit -- keeps a registered name and passes the ENTIRE suite, not merely this guard. Reviewing it as a G17 gap understates it: it applies to every registered column whose value no behavioural test asserts on, which on resources_public is most of them. Do not reach for a worked example here: `is_closed` returning status text happens to be caught by public-views and deadline-status, which makes it the one case that is NOT representative.',
+        remediation:
+          'Remove the column from the view\'s select list in the migration that defines it (supabase/migrations/0009_public_views.sql, 0014_partner_logos.sql for resources_public/partners_public, 0016_settings_public.sql, 0017_need_counts_secondary.sql). If the column genuinely belongs on the anonymous surface, add its name to that view\'s list in PUBLIC_VIEW_COLUMNS in tests/rls/security-allowlist.ts and bump EXPECTED_PUBLIC_VIEW_COLUMNS in the same diff. If what is needed is only part of an internal value\'s meaning, derive a public column instead — the resources_public shape is is_closed/days_left computed from deadline, never status in any form.',
+        exception:
+          'There is no exception path and no per-column exemption slot. PUBLIC_VIEW_COLUMNS is a declaration of the intended anonymous surface, not a list of exceptions to it: registering a name IS the assertion that the column is safe to serve anonymously, so add one only when that is true.',
+      }),
+    ).toEqual([]);
+  });
+
+  it('G18: the registered column set equals each *_public view\'s actual column set, exactly', () => {
+    const actual = actualPublicViewColumns();
+    const views = [...new Set([...actual.keys(), ...Object.keys(PUBLIC_VIEW_COLUMNS)])].sort();
+
+    const offenders: string[] = [];
+    for (const view of views) {
+      const actualNames = (actual.get(view) ?? []).map((c) => c.column_name).sort();
+      const registeredNames = [...(PUBLIC_VIEW_COLUMNS[view] ?? [])].sort();
+      if (JSON.stringify(actualNames) === JSON.stringify(registeredNames)) continue;
+      const unregistered = actualNames.filter((n) => !registeredNames.includes(n));
+      const vanished = registeredNames.filter((n) => !actualNames.includes(n));
+      if (unregistered.length) {
+        offenders.push(`public.${view}: projects but does not register ${unregistered.join(', ')}`);
+      }
+      if (vanished.length) {
+        offenders.push(
+          `public.${view}: registers but no longer projects ${vanished.join(', ')}` +
+            (actual.has(view) ? '' : ' — the view itself does not exist'),
+        );
+      }
+      // The two set differences above do not account for every way the
+      // sorted lists can differ: a name registered twice makes them
+      // unequal while leaving both differences empty, so without this the
+      // branch could be entered and report nothing -- the "can never fail"
+      // shape this file's header rules out. The meta-test on
+      // PUBLIC_VIEW_COLUMNS catches a duplicate on its own; this makes
+      // sure G18 cannot pass quietly on any mismatch it entered on.
+      if (!unregistered.length && !vanished.length) {
+        offenders.push(
+          `public.${view}: registered and actual column lists differ but neither direction explains it — likely a duplicate name in the registry (registered: ${registeredNames.join(', ')}; actual: ${actualNames.join(', ')})`,
+        );
+      }
+    }
+
+    expect(
+      offenders,
+      guardMessage({
+        offenders,
+        rule:
+          'For every *_public view, the registered column list in tests/rls/security-allowlist.ts must equal the view\'s actual output columns exactly, in both directions.',
+        why:
+          'G17 covers one direction only — a column appearing that nobody registered. This covers the other, and a shrinking view is a different defect from a growing one, not a harmless one. Nothing else in this repo notices a column leaving one of these views. src/lib/public/readers.ts reads most of them with `select(\'*\')`, so a dropped column arrives as an absent key rather than an error; src/lib/supabase/database.types.ts is generated, so it keeps declaring the column until someone re-runs `npm run db:types` and typecheck stays green in the meantime. What happens next depends on the column: required() in src/lib/public/types.ts throws at request time for the non-null fields, while a nullable one is indistinguishable from a genuine null and simply renders as missing content with no error anywhere — the quieter and worse outcome. The two readers that do name columns (site_content_public, settings_public) get PostgREST 42703, also at request time. Every one of those is a request-time failure on a deployed public page, from a migration that shipped green. That is the same failure shape G11 exists for at the view level (dropping a view from the anon grant would leave a `toContain`-style check passing while the page it powers 403s), applied one level down. It also removes a quieter way to weaken G17: if only G17 existed, a diff could delete a name from the registry and leave the view untouched with nothing failing, so the registry could be hollowed out one line at a time and only start mattering again once someone re-added a column. Requiring equality in both directions means the registry cannot drift out of contact with the database at all.',
+        remediation:
+          'If the view changed deliberately, update that view\'s list in PUBLIC_VIEW_COLUMNS and EXPECTED_PUBLIC_VIEW_COLUMNS in tests/rls/security-allowlist.ts in the same diff as the migration. If the view changed by accident (a drop/recreate that lost a column, a rename), restore the column in the migration — check src/ for the readers of that column first, since they will be failing at request time rather than at build time.',
+        exception:
+          'There is no exception path. A column the database projects and the registry does not know about, or vice versa, is the condition this guard exists to report; silencing it means the registry has stopped describing the public surface.',
       }),
     ).toEqual([]);
   });
@@ -855,6 +1003,55 @@ describe('allow-list meta-test — tests/rls/security-allowlist.ts must itself b
           'Fix the offending entry in tests/rls/security-allowlist.ts directly.',
         exception:
           'This is the meta-test for the allow-list itself — there is no further allow-list above it.',
+      }),
+    ).toEqual([]);
+  });
+
+  // PUBLIC_VIEW_COLUMNS is not an Exception record, so checkRegistry above
+  // does not apply to it: there is no approvedIn/why to validate, because
+  // it declares the intended public surface rather than exempting anything
+  // from a rule. What it does share with the three Exception registries is
+  // the pinned count, and for the same reason -- so that changing the
+  // anonymous read surface costs two coordinated edits in one diff rather
+  // than one appended line.
+  it('PUBLIC_VIEW_COLUMNS is well-formed and the total column count is pinned', () => {
+    const offenders: string[] = [];
+    let total = 0;
+    for (const [view, columns] of Object.entries(PUBLIC_VIEW_COLUMNS)) {
+      total += columns.length;
+      if (!/_public$/.test(view)) {
+        offenders.push(`${view}: key is not named *_public, so G17/G18 would never look at it`);
+      }
+      if (columns.length === 0) {
+        offenders.push(`${view}: registered with zero columns`);
+      }
+      // A duplicate name inflates this total by one, which would let a genuine
+      // column removal pass the pinned count without the count being touched.
+      // G18 catches a duplicate too, via its length-mismatch branch -- an
+      // earlier version of this comment claimed it did not, which was simply
+      // wrong and contradicted G18's own comment above.
+      const seen = new Set<string>();
+      const duplicates = columns.filter((c) => (seen.has(c) ? true : (seen.add(c), false)));
+      if (duplicates.length) {
+        offenders.push(`${view}: duplicate column name(s) ${[...new Set(duplicates)].sort().join(', ')}`);
+      }
+    }
+    if (total !== EXPECTED_PUBLIC_VIEW_COLUMNS) {
+      offenders.push(
+        `PUBLIC_VIEW_COLUMNS registers ${total} columns in total, EXPECTED_PUBLIC_VIEW_COLUMNS = ${EXPECTED_PUBLIC_VIEW_COLUMNS}`,
+      );
+    }
+
+    expect(
+      offenders,
+      guardMessage({
+        offenders,
+        rule:
+          'PUBLIC_VIEW_COLUMNS in tests/rls/security-allowlist.ts must be keyed by *_public view names, hold no empty and no duplicated entries, and its total column count must equal the pinned EXPECTED_PUBLIC_VIEW_COLUMNS.',
+        remediation:
+          'Fix the offending entry in tests/rls/security-allowlist.ts directly, and update EXPECTED_PUBLIC_VIEW_COLUMNS to the new total in the same diff as the migration that changed the view.',
+        exception:
+          'This is the meta-test for the registry itself — there is no further allow-list above it.',
       }),
     ).toEqual([]);
   });

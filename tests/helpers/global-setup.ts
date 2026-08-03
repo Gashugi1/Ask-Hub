@@ -8,7 +8,7 @@ import { cleanupFixtures, describeTally } from './fixtures';
  * than inheriting the wreckage. After, because that is the normal path.
  *
  * Running in `globalSetup` rather than a per-file `afterAll` is deliberate:
- * the leak spans nine suites across five tables, and a per-file hook only
+ * the leak spans eleven tables plus auth.users, and a per-file hook only
  * ever cleans what that file remembered to track. Driving cleanup from the
  * fixture-name pattern instead catches rows whose creating suite has since
  * been deleted, rows left by a run that was killed, and rows a future suite

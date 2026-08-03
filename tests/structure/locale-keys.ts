@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { walk } from './ts-source';
+import { calleeName, walk } from './ts-source';
 
 /**
  * Every `t()` key `src/` asks for, resolved statically.
@@ -31,6 +31,23 @@ import { walk } from './ts-source';
  * `column.*`, `need.*`, `status.*`, `geo.*`, `admin.nav.*` and the role, tier,
  * scope and audit-action families -- the parts of `en.json` most likely to
  * drift, because each one mirrors a list that lives somewhere else.
+ *
+ * **What it resolves today**, measured on this branch and stated as a
+ * snapshot, not as a promise: 441 key-uses across 329 call sites in 55 files,
+ * 283 distinct keys, nothing unresolvable. "Key-use" and "call site" are not
+ * the same count and the gap is the whole point of the template branch -- one
+ * `` t(`need.${key}`) `` is one call site and five key-uses. Only two of these
+ * numbers are asserted anywhere: `unresolved` must be empty, and
+ * `locale-keys.test.ts` holds a floor under the file count. The rest are here
+ * to be re-measured, not trusted.
+ *
+ * `via: 'type'` is the exception: it resolves zero call sites in `src/`. It is
+ * kept, and covered by a fixture in `tests/structure/fixtures/locale-keys/`
+ * rather than by anything in the app, because without it a `t(key)` whose
+ * parameter is typed as a union of string literals -- the narrowest, most
+ * checkable shape a caller could write -- would fall through to `unresolved`
+ * and fail the suite. The branch is what keeps the guard from punishing the
+ * good case.
  *
  * **Nothing is skipped silently.** A call this module cannot resolve is
  * returned in `unresolved`, and the test fails on a non-empty list. A guard
@@ -74,13 +91,13 @@ function compilerOptions(): ts.CompilerOptions {
 
 /**
  * Every string literal assigned to an object property of the given name, per
- * file and across `src/` as a whole.
+ * file and across the scanned tree as a whole.
  *
  * This is what resolves `t(item.labelKey)`: `labelKey` is declared `string` on
  * an interface, so the checker has nothing narrower to offer, but the six
  * literals in `src/lib/admin/guard.ts` are right there in the source.
  *
- * File-scoped first, `src/`-wide only as a fallback, and the order matters:
+ * File-scoped first, tree-wide only as a fallback, and the order matters:
  * `key` is used for locale keys in `admin/page.tsx` and `lib/public/geo.ts`
  * and for *field* names ('title', 'timeframe') in `admin/content/page.tsx`.
  * Taking the file's own literals when it has any keeps those apart; the
@@ -138,8 +155,50 @@ function relative(fileName: string): string {
   return fileName.startsWith(cwd) ? fileName.slice(cwd.length + 1) : fileName;
 }
 
-export function scanTranslationKeys(): KeyScan {
-  const files = walk('src', /\.tsx?$/);
+/** Whether a declaration is the `t` function `src/lib/i18n.ts` exports. */
+function isI18nT(declaration: ts.Declaration): boolean {
+  return (
+    ts.isFunctionDeclaration(declaration) &&
+    declaration.name?.text === 't' &&
+    relative(declaration.getSourceFile().fileName) === I18N_MODULE
+  );
+}
+
+/**
+ * What a call actually calls: the declaration of the signature the checker
+ * resolves it to, or `undefined` when it could not bind the callee at all.
+ *
+ * `getResolvedSignature` rather than `getSymbolAtLocation` on the callee, and
+ * the difference is the point. Resolving the *symbol* answers "what does this
+ * name refer to here", which needs `getAliasedSymbol` to see through
+ * `import { t as translate }` and still stops at the variable declaration for
+ * `const translate = t`. Resolving the *signature* answers "what is being
+ * called", which reaches i18n.ts through an alias, a namespace import and a
+ * local rebinding alike. Both mechanisms were written; the symbol half was
+ * then deleted after removing it changed no result in `src/` and failed no
+ * fixture -- unexercised resolution logic in a guard is how the guard's
+ * behaviour stops matching what its comments say.
+ *
+ * `undefined` is deliberately distinct from "bound, and not ours": the caller
+ * turns only the first into a name-gated fallback.
+ */
+function calleeDeclaration(
+  checker: ts.TypeChecker,
+  call: ts.CallExpression,
+): ts.Declaration | undefined {
+  return checker.getResolvedSignature(call)?.declaration;
+}
+
+/**
+ * @param root The directory to scan. `src` is the guard; the only other caller
+ *   is `locale-keys.test.ts`, which points this at
+ *   `tests/structure/fixtures/locale-keys` to assert the scanner still sees
+ *   the call shapes it claims to. Those shapes cannot be asserted from `src/`
+ *   without writing deliberately-broken code into the app -- and an aliased
+ *   import was invisible to this scanner until it was.
+ */
+export function scanTranslationKeys(root = 'src'): KeyScan {
+  const files = walk(root, /\.tsx?$/);
   const program = ts.createProgram(files, compilerOptions());
   const checker = program.getTypeChecker();
 
@@ -160,23 +219,33 @@ export function scanTranslationKeys(): KeyScan {
     const lineOf = (node: ts.Node) =>
       source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
 
-    /** Whether this call's callee is the `t` exported by src/lib/i18n.ts. */
+    /**
+     * Whether this call's callee is the `t` exported by src/lib/i18n.ts.
+     *
+     * Resolved from what is called, never from what it is called. The gate
+     * this replaced (`call.expression.text !== 't'`) resolved the symbol only
+     * *after* deciding the callee was spelled `t`, so it prevented false
+     * positives and no false negatives at all: a reviewer added
+     *
+     *     import { t as translate } from '@/lib/i18n';
+     *     export function probe() { return translate('no.such.key'); }
+     *
+     * to `src/` and all seven tests in locale-keys.test.ts passed. An aliased
+     * import is a one-line, entirely idiomatic way to make this guard stop
+     * seeing a call site, and nothing would have reported it. The shapes now
+     * covered are pinned by fixtures in
+     * `tests/structure/fixtures/locale-keys/`, including a local helper also
+     * named `t` that must NOT be scanned -- resolving the callee has to stay a
+     * different thing from matching its name in both directions.
+     */
     const isTranslationCall = (call: ts.CallExpression): boolean => {
-      if (!ts.isIdentifier(call.expression) || call.expression.text !== 't') return false;
-      let symbol = checker.getSymbolAtLocation(call.expression);
-      // An imported name is an alias; the declaration that matters is the one
-      // it points at. Without this every call site would resolve to its own
-      // import statement rather than to the function.
-      if (symbol && symbol.flags & ts.SymbolFlags.Alias) symbol = checker.getAliasedSymbol(symbol);
-      const declarations = symbol?.getDeclarations() ?? [];
-      // No symbol means the checker could not resolve the identifier at all.
-      // Treated as ours so it surfaces as an unresolved call rather than
-      // disappearing: a `t(...)` the compiler cannot bind is a defect either
-      // way, and silence is the one response that is certainly wrong.
-      if (declarations.length === 0) return true;
-      return declarations.some((declaration) =>
-        relative(declaration.getSourceFile().fileName) === I18N_MODULE,
-      );
+      const declaration = calleeDeclaration(checker, call);
+      // Nothing bound at all: the checker could not resolve the callee. Gated
+      // on the name here and only here, so a `t(...)` the compiler cannot bind
+      // surfaces as an unresolved call rather than disappearing. Silence is
+      // the one response that is certainly wrong.
+      if (!declaration) return calleeName(call) === 't';
+      return isI18nT(declaration);
     };
 
     const record = (node: ts.Node, key: string, via: KeyUse['via']) => {
@@ -234,7 +303,7 @@ export function scanTranslationKeys(): KeyScan {
           call,
           argument.getText(source),
           `no string literal is assigned to a \`${name}\` property in ${file} or anywhere ` +
-            `under src/, so the possible keys are unknown.`,
+            `under ${root}/, so the possible keys are unknown.`,
         );
         return;
       }

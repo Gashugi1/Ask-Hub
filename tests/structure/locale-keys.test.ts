@@ -96,6 +96,71 @@ describe('the scan sees the call shapes it claims to', () => {
 });
 
 /**
+ * How the scanner decides a call is a call to i18n's `t`.
+ *
+ * The block above proves the scanner sees the shapes `src/` happens to
+ * contain. It cannot prove what the scanner is *blind* to, and the answer used
+ * to be "an aliased import": `isTranslationCall` gated on the callee being
+ * spelled `t` before it resolved anything, so
+ *
+ *     import { t as translate } from '@/lib/i18n';
+ *     export function probe() { return translate('this.key.does.not.exist'); }
+ *
+ * added to `src/` left all seven tests green. A reviewer demonstrated it and
+ * removed it again, which left the repository exactly where it started.
+ *
+ * These fixtures are that demonstration, kept. They are scanned from their own
+ * directory -- `src/` must not contain a `t()` call for a key that does not
+ * exist, which is the very thing this guard exists to prevent -- and asserted
+ * on how each key was recovered, not against `en.json`.
+ */
+describe('the scanner resolves the callee rather than its name', () => {
+  const fixtures = scanTranslationKeys('tests/structure/fixtures/locale-keys');
+  const via = (key: string) => fixtures.uses.find((use) => use.key === key)?.via;
+
+  it('resolves every fixture call site, skipping none', () => {
+    expect(
+      fixtures.unresolved.map((call) => `${call.file}:${call.line}: ${call.reason}`),
+      'a fixture call the scanner could not resolve',
+    ).toEqual([]);
+  });
+
+  it('follows an aliased import', () => {
+    // The regression that started this. `translate('probe.aliased')` is
+    // invisible to any check that reads the callee's spelling.
+    expect(via('probe.aliased'), 'an aliased import of t() was not seen at all').toBe('literal');
+  });
+
+  it('still sees a plain, unaliased call', () => {
+    // The original coverage, asserted so that fixing the alias case cannot
+    // quietly cost the ordinary one.
+    expect(via('probe.plain')).toBe('literal');
+  });
+
+  it('follows a namespace import and a local rebinding', () => {
+    expect(via('probe.namespaced'), 'i18n.t() was not seen').toBe('literal');
+    expect(via('probe.rebound'), 'a rebound const was not seen').toBe('literal');
+  });
+
+  it('enumerates an argument whose type is a union of string literals', () => {
+    // The `via: 'type'` branch, which resolves zero call sites in src/. It is
+    // kept because deleting it turns the best-typed caller into a suite
+    // failure, and this is the only thing that exercises it.
+    expect(via('probe.typed.one')).toBe('type');
+    expect(via('probe.typed.two')).toBe('type');
+  });
+
+  it('ignores a local function that merely shares the name', () => {
+    // The false-positive direction. Without it, "resolve the callee" could be
+    // replaced by "match the name" and only this assertion would notice.
+    expect(
+      fixtures.uses.map((use) => use.key),
+      'a local helper named t() was scanned as if it were i18n',
+    ).not.toContain('probe.decoy.is.not.a.translation.key');
+  });
+});
+
+/**
  * The reverse direction: copy in `en.json` that nothing asks for.
  *
  * Weaker than the forward direction and deliberately so -- an unused key is

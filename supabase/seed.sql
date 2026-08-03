@@ -324,8 +324,12 @@ revoke all on function public.view_column_sources() from public, anon, authentic
 grant execute on function public.view_column_sources() to service_role;
 
 -- Every live column of every relation in public, with its type and
--- column comment. This is what a sensitivity-name heuristic and the
--- enum-type guard (G13, G14) run against: unlike view_column_sources
+-- column comment. This is what a sensitivity-name heuristic (G13), the
+-- enum-type guard (G14) and the column-level public-surface registry
+-- (G17/G18, which read attname and ignore the type entirely, so a
+-- `::text` cast cannot hide a NEW column from them -- it says nothing
+-- about what an already-registered column computes) run against: unlike
+-- view_column_sources
 -- above, this reflects only a relation's actual output columns (its
 -- own pg_attribute rows), not qual-only dependencies -- confirmed
 -- directly: resources_public's own columns do not include `status`,

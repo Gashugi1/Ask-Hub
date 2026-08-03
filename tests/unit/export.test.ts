@@ -88,10 +88,28 @@ describe('EXPORT_COLUMNS', () => {
     // which is where this check used to point and where it could never fail:
     // EXPORT_COLUMNS is typed `(keyof PublicResource)[]`, and no key of
     // PublicResource contains any of these substrings, so the loop was a
-    // tautology dressed as a security floor. The mapping is the real boundary
-    // — a forbidden column can only reach the export by being added to
-    // resources_public first, and that is what this now catches, in both the
-    // camelCase field name and the database column behind it.
+    // tautology dressed as a security floor.
+    //
+    // What this actually enforces, and nothing more: that the hand-maintained
+    // literal RESOURCE_VIEW_COLUMNS (src/lib/public/types.ts) names no
+    // forbidden field, in either the camelCase key or the database column
+    // behind it. It does NOT observe the SQL view's live column set. The map's
+    // value type is `keyof ResourceRow`, which is generated from the view, so
+    // there is a link — but only in the removal direction, and only once
+    // someone re-runs `npm run db:types`. It is not a completeness link: the
+    // view projects 28 columns and this map names 25. So a column ADDED to the
+    // view in a migration never reaches this assertion. An earlier version of
+    // this comment claimed this test guarded that; a `::text`-cast internal
+    // status aliased onto the view was demonstrated to pass the entire suite.
+    //
+    // G17/G18 in tests/rls/schema-guards.test.ts cover the live column set,
+    // pinning every output column of every *_public view against a registry by
+    // name, so a cast, an alias or a bare column cannot add one unnoticed.
+    // What NOTHING here covers: repointing an already-registered column at
+    // internal data. `r.status::text as sub_category` is the same leak wearing
+    // a registered name, and it passes this suite entire. That is not a G17
+    // limit to be reviewed around — it is a whole-suite limit, and it applies
+    // to every registered column whose value no test asserts on.
     const surface = [
       ...Object.keys(RESOURCE_VIEW_COLUMNS),
       ...Object.values(RESOURCE_VIEW_COLUMNS),

@@ -3,12 +3,19 @@
 // incidental side effect of adding a test.
 //
 // The meta-test in tests/rls/schema-guards.test.ts enforces, for every
-// entry: `approvedIn` matches /^SP\d+-T\d+[a-z]?$/, `why` is at least 40
-// characters and is not a substring of the object's own name, and each
-// record's length equals its pinned EXPECTED_* count below. Adding an
-// exception therefore costs three coordinated, visible acts in one diff
-// -- a new entry, a real rationale citing a real plan task, and a bumped
-// count -- not one line silencing a guard.
+// entry of the three `Exception` registries here (ANON_SELECTABLE,
+// ANON_EXECUTABLE, AUDIT_EXEMPT): `approvedIn` matches
+// /^SP\d+[a-z]?-T\d+[a-z]?$/, `why` is at least 40 characters and is not
+// a substring of the object's own name, and each record's length equals
+// its pinned EXPECTED_* count below. Adding an exception therefore costs
+// three coordinated, visible acts in one diff -- a new entry, a real
+// rationale citing a real plan task, and a bumped count -- not one line
+// silencing a guard.
+//
+// PUBLIC_VIEW_COLUMNS below is a fourth record of a different kind -- a
+// declaration of the intended public surface rather than a list of
+// exceptions to a rule -- and is checked by its own meta-test, not by
+// the Exception one. Its own comment explains the distinction.
 
 export interface Exception {
   approvedIn: string;
@@ -68,6 +75,103 @@ export const ANON_SELECTABLE: Record<string, Exception> = {
     why: 'Allow-listed projection of the two feature flag rows so a public page can resolve feature_public_impact_page without the service_role client; no other settings key is projected.',
   },
 };
+
+// ---------------------------------------------------------------------
+// The column-level public surface: for every *_public view, the exact
+// list of output columns anonymous readers are allowed to see.
+//
+// Unlike the three registries around it, this is NOT an exception list.
+// It is a declaration: the intended anonymous read surface, written down
+// once so a guard can compare it against what the database actually
+// projects. It is the *whole* anonymous read surface only in combination
+// with G10 and G12, which are what forbid anon from selecting any
+// relation that is not a registered *_public view, or executing any
+// function at all. There is therefore no per-entry `approvedIn`/`why`
+// and no slot to add "except this one column" -- adding a name here IS
+// the assertion that the column is safe for anonymous readers, and G17
+// below has no other exception path.
+//
+// Why it lives here and not in the migrations. The whole value of this
+// registry is that it is a *second, independent* statement of the public
+// surface, maintained apart from the DDL that creates it. A registry
+// expressed in the migrations -- as a table, a view comment, or anything
+// else the schema carries -- would be edited by the very same migration
+// that adds a column to a view, so a leak and its own authorisation
+// would arrive in one act and the guard would certify itself. The
+// reviewer's `r.status::text as availability` leak was exactly one
+// migration edit; a migrations-resident registry would have been part of
+// that edit. Two files that must agree, changed deliberately together,
+// is the property being bought. Three further reasons point the same
+// way: migrations are an append-only history, so a registry living there
+// could never be read as current state without replaying it; the guard
+// needs no schema change at all, since seed.sql's relation_columns()
+// already exposes every view's output columns; and adding a migration
+// would put test-only surface into production for no benefit, which is
+// the same reasoning that keeps the introspection helpers in seed.sql.
+//
+// The lists are the views' own column order (pg_attribute.attnum), not
+// alphabetical, so this file reads against the `create view` statements
+// in supabase/migrations/0009_public_views.sql, 0014_partner_logos.sql,
+// 0016_settings_public.sql and 0017_need_counts_secondary.sql side by
+// side. G17/G18 compare as sets, so the order is for the reader only.
+//
+// What is deliberately absent, per CLAUDE.md ("Anonymous reads go
+// through public-safe views that exclude views, clicks, CTR, submitter
+// emails and internal notes"): resources.status in every form, including
+// a cast or a rename -- resources_public filters on it and must never
+// project it (PRD 4.2: a past deadline never transitions status, so the
+// public surface gets the derived is_closed/days_left instead); and
+// every analytics counter, submitter email and internal note on the base
+// tables behind these nine views.
+export const PUBLIC_VIEW_COLUMNS: Record<string, readonly string[]> = {
+  resources_public: [
+    'id',
+    'name',
+    'partner_name',
+    'partner_logo_url',
+    'partner_website_url',
+    'partner_tier',
+    'resource_type',
+    'need_primary',
+    'need_secondary',
+    'sub_category',
+    'description',
+    'description_fr',
+    'description_pt',
+    'description_ar',
+    'action_label',
+    'external_url',
+    'banner_image_url',
+    'countries_eligible',
+    'sectors_eligible',
+    'stages_eligible',
+    'geo_scope',
+    'deadline',
+    'is_featured',
+    'exclusivity',
+    'sort_order',
+    'added_date',
+    // Derived in the view from `deadline`, which is why they are here and
+    // `status` is not: they carry the public meaning of a passed deadline
+    // without carrying the internal pipeline state that produced it.
+    'is_closed',
+    'days_left',
+  ],
+  partners_public: ['name', 'logo_url', 'website_url', 'sort_order'],
+  headline_stats_public: ['id', 'value', 'label', 'is_hero', 'sort_order'],
+  compute_metrics_public: ['id', 'value', 'label', 'sub_note', 'sort_order'],
+  site_content_public: ['key', 'value', 'locale'],
+  programmes_public: ['id', 'title', 'timeframe', 'description', 'sort_order'],
+  impact_stories_public: ['id', 'organisation', 'country', 'description', 'sort_order'],
+  need_counts_public: ['need', 'live_count'],
+  settings_public: ['key', 'value'],
+};
+
+// Total registered columns across all nine views, pinned for the same
+// reason EXPECTED_ANON_SELECTABLE is: adding a column to the public
+// surface should cost two coordinated, visible edits in one diff -- the
+// column name and this number -- not one line appended to a list.
+export const EXPECTED_PUBLIC_VIEW_COLUMNS = 59;
 
 // Keyed by `proname(identity_args)` (e.g. `"my_fn(a text, b int)"`), not
 // proname alone -- matching how G12 in tests/rls/schema-guards.test.ts
