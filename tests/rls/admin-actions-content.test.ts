@@ -5,7 +5,7 @@ import { ensureTestUsers, roleClient, serviceClient } from '../helpers/clients';
  * The database boundary for Site Content's five tables (design spec §3,
  * PRD 6.7 panels 3-8): editor may write, viewer may not, and every
  * successful write produces exactly one audit row carrying the entity-type
- * prefix from 0017_audit_triggers.sql / PRD 4.15.
+ * prefix from 0018_audit_triggers.sql / PRD 4.15.
  *
  * Like tests/rls/admin-actions-resources.test.ts, this exercises the tables
  * directly through role-authenticated Supabase clients rather than the

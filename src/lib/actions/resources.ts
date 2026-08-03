@@ -34,7 +34,7 @@ function revalidateResources(): void {
  * not check — because an action can be invoked directly, with no page and no
  * proxy in the path (PRD 14.4).
  *
- * No action writes an audit_log row: the trigger from 0017_audit_triggers.sql
+ * No action writes an audit_log row: the trigger from 0018_audit_triggers.sql
  * writes it inside this mutation's own transaction, attributed to auth.uid().
  * See src/lib/actions/README.md.
  *

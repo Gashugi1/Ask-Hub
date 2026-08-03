@@ -85,7 +85,7 @@ export const ANON_EXECUTABLE: Record<string, Exception> = {};
 
 // Base tables that legitimately carry no audit trigger (G15).
 //
-// SP3's migration 0017_audit_triggers.sql attaches public.audit_row_change to
+// SP3's migration 0018_audit_triggers.sql attaches public.audit_row_change to
 // every base table with a write policy -- all fifteen, including the ones whose
 // admin screens are deferred -- so that no later screen can ship against an
 // unrecorded write path by omission. These two are the exemptions of principle

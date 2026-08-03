@@ -115,7 +115,7 @@ function stranded(email: string, detail: string): Error {
  * refuses it at the database regardless of what this function does.
  *
  * No audit row is written here. The `profiles_audit` trigger records the
- * change as `role_changed` automatically (0017_audit_triggers.sql), resolving
+ * change as `role_changed` automatically (0018_audit_triggers.sql), resolving
  * the actor from `auth.uid()`, inside this statement's own transaction.
  */
 export async function changeUserRole(input: unknown): Promise<void> {

@@ -1,5 +1,21 @@
 -- The audit spine.
 --
+-- Numbered 0018, not 0017, and the history matters because the collision was
+-- live rather than hypothetical. This file was written as 0017 on this branch
+-- while sp2a/public-read-surface independently wrote its own
+-- 0017_need_counts_secondary.sql. Both were applied to the shared local stack,
+-- but supabase_migrations.schema_migrations has primary key (version), so it
+-- recorded only one of them. A replay from either branch therefore produced a
+-- database missing the other's work, and `supabase db push` would skip
+-- whichever version it believed already applied.
+--
+-- The two are independent -- this file creates functions and triggers on base
+-- tables, that one drops and recreates a view, and neither reads the other's
+-- objects -- so the order between them is a free choice. It goes second
+-- because the auditing that observes the data model reads better after the
+-- data model is complete, and because renumbering the incoming branch leaves
+-- the merge target's already-published history untouched.
+--
 -- Why the database writes these rows rather than the server action that caused
 -- them: audit_log has no insert policy for any role (0007_logs.sql), so an
 -- action running on the caller's session cannot insert its own audit row. The
