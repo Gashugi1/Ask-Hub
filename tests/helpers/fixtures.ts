@@ -36,6 +36,26 @@ import { serviceClient } from './clients';
  */
 const FIXTURE_STAMP_RE = /(?<!\d)1[7-9]\d{11}(?!\d)/;
 
+/**
+ * Fixtures that deliberately carry no stamp, and so are invisible to the
+ * pattern above.
+ *
+ * Both are upserted under a fixed name precisely so they survive across runs
+ * and can be referenced by later inserts -- `tests/rls/resources.test.ts:19`
+ * and `tests/rls/public-views.test.ts:62`. That made them permanently
+ * unsweepable: they sat in `partners` alongside Google, Microsoft and the
+ * African Development Bank, and `partners_public` served them to anonymous
+ * readers.
+ *
+ * Matched on the exact, whole string. These are not names a curated partner
+ * directory for a UN programme could plausibly hold, but exact matching means
+ * even a real partner whose name merely contained one of them is untouched.
+ */
+const STABLE_FIXTURE_NAMES: ReadonlySet<string> = new Set([
+  'Test Partner',
+  'Public View Partner',
+]);
+
 /** The stamp every fixture name should carry. Use this, not a bare `Date.now()`. */
 export function fixtureStamp(): number {
   return Date.now();
@@ -43,7 +63,59 @@ export function fixtureStamp(): number {
 
 /** Whether a value looks like a fixture identifier this module owns. */
 export function isFixtureValue(value: string | null | undefined): boolean {
-  return typeof value === 'string' && FIXTURE_STAMP_RE.test(value);
+  if (typeof value !== 'string') return false;
+  return STABLE_FIXTURE_NAMES.has(value) || FIXTURE_STAMP_RE.test(value);
+}
+
+/**
+ * Refuse to sweep anything but a local database.
+ *
+ * This function deletes rows with the `service_role` key, which bypasses RLS
+ * entirely. It resolves its target from `process.env.SUPABASE_URL`, and
+ * `vitest.config.ts` loads `.env.test` with dotenv -- which does NOT overwrite
+ * a variable already present in the environment. So an exported SUPABASE_URL
+ * silently wins, and every `vitest` invocation runs this sweep, including a
+ * single unit file.
+ *
+ * That is not a theoretical path. `scripts/seed.ts:98-109` and
+ * `scripts/provision-admins.ts:83-95` read the SAME variable names and both
+ * already guard against exactly this, and the documented remote-seed workflow
+ * (`SEED_CONFIRM_REMOTE=1 SUPABASE_URL=https://... npm run seed`) puts remote
+ * credentials into the developer's shell. The guard on the seeding path is
+ * what makes the unguarded test path reachable.
+ *
+ * Deliberately unlike those two scripts, there is NO confirmation escape
+ * hatch. Seeding a remote database is a real if rare intention; sweeping one
+ * from a test run never is. And this throws rather than warning: every other
+ * failure in this module is warned-and-skipped because housekeeping must not
+ * turn a green suite red, but a sweep pointed at the wrong database is the one
+ * failure that must stop the run before it touches anything.
+ */
+export function assertLoopbackTarget(rawUrl = process.env.SUPABASE_URL): void {
+  if (!rawUrl) {
+    throw new Error(
+      'fixture cleanup: SUPABASE_URL is not set. Refusing to run against an ' +
+        'unknown target.',
+    );
+  }
+  let hostname: string;
+  try {
+    hostname = new URL(rawUrl).hostname;
+  } catch {
+    throw new Error(`fixture cleanup: SUPABASE_URL is not a valid URL: ${rawUrl}`);
+  }
+  const isLoopback =
+    hostname === '127.0.0.1' ||
+    hostname === 'localhost' ||
+    hostname === '::1' ||
+    hostname === '[::1]';
+  if (!isLoopback) {
+    throw new Error(
+      `fixture cleanup: refusing to delete rows from non-loopback host ${hostname}. ` +
+        'This sweep deletes with the service_role key, which bypasses RLS. There is ' +
+        'no confirmation flag: point SUPABASE_URL at a local stack instead.',
+    );
+  }
 }
 
 /** How many rows were removed from each table, for reporting. */
@@ -117,6 +189,11 @@ async function deleteIds(
  * buys nothing.
  */
 export async function cleanupFixtures(client?: SupabaseClient): Promise<CleanupTally> {
+  // Before any client is constructed, and regardless of whether one was
+  // passed in: the target is read from the environment either way.
+  // Before any client is constructed, and regardless of whether one was
+  // passed in: the target is read from the environment either way.
+  assertLoopbackTarget();
   const svc = client ?? serviceClient();
   const tally: CleanupTally = {};
 

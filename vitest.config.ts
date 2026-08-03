@@ -3,7 +3,13 @@ import { config } from 'dotenv';
 
 // Loaded here rather than in a setup file so the DB suites added by the
 // schema tasks see credentials before their module-level client factories run.
-config({ path: '.env.test' });
+// `override: true` is load-bearing, not tidiness. dotenv's default is to leave
+// an already-set variable alone, so an exported SUPABASE_URL would silently win
+// over .env.test -- and the fixture sweep in tests/helpers/fixtures.ts deletes
+// rows with the service_role key against whatever that resolves to. The sweep
+// carries its own loopback guard as the real defence; this makes the shadowing
+// impossible in the first place.
+config({ path: '.env.test', override: true });
 
 export default defineConfig({
   test: {
