@@ -103,10 +103,25 @@ describe('service_role containment', () => {
     // error rather than a leaked secret. vitest.config.ts aliases `server-only`
     // to the package's own no-op shim so server modules stay testable, which
     // means no test would notice the marker's removal — hence this assertion.
+    //
+    // Asserted on the import declaration rather than on the file's text, and
+    // that distinction is not theoretical: the first version of this check was
+    // a `toMatch(/import ['"]server-only['"]/)`, and deleting the real import
+    // left it green, because the module's own docstring explains what `import
+    // 'server-only'` does. The prose satisfied the pattern. Only the parser can
+    // tell the sentence about the import from the import.
+    const source = parseSource(ADMIN_MODULE, readFileSync(ADMIN_MODULE, 'utf8'));
+    const imports = source.statements
+      .filter(ts.isImportDeclaration)
+      .map((statement) => statement.moduleSpecifier)
+      .filter(ts.isStringLiteral)
+      .map((specifier) => specifier.text);
+
     expect(
-      readFileSync(ADMIN_MODULE, 'utf8'),
+      imports,
       `${ADMIN_MODULE} must import 'server-only'; without it a client component importing this ` +
-        'module compiles, and the service_role key ships to the browser.',
-    ).toMatch(/import ['"]server-only['"]/);
+        `module compiles, and the service_role key ships to the browser. Imports found: ` +
+        `${imports.join(', ')}`,
+    ).toContain('server-only');
   });
 });
