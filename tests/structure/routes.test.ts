@@ -77,6 +77,34 @@ describe('route structure', () => {
     expect(routes()['/(admin)/admin/login/page']).toBe('/admin/login');
   });
 
+  it('serves the admin resources table at /admin/resources', () => {
+    expect(routes()['/(admin)/admin/resources/page']).toBe('/admin/resources');
+  });
+
+  it('serves the new-resource form at /admin/resources/new', () => {
+    expect(routes()['/(admin)/admin/resources/new/page']).toBe('/admin/resources/new');
+  });
+
+  it('serves the site content screen at /admin/content', () => {
+    expect(routes()['/(admin)/admin/content/page']).toBe('/admin/content');
+  });
+
+  it('serves the admin-only settings screen at /admin/settings', () => {
+    expect(routes()['/(admin)/admin/settings/page']).toBe('/admin/settings');
+  });
+
+  it('serves the edit-resource form at /admin/resources/[id]', () => {
+    expect(routes()['/(admin)/admin/resources/[id]/page']).toBe('/admin/resources/[id]');
+  });
+
+  it('serves the admin-only users screen at /admin/users', () => {
+    expect(routes()['/(admin)/admin/users/page']).toBe('/admin/users');
+  });
+
+  it('serves the admin audit log at /admin/audit', () => {
+    expect(routes()['/(admin)/admin/audit/page']).toBe('/admin/audit');
+  });
+
   it('exposes the health route handler at /api/health', () => {
     expect(routes()['/api/health/route']).toBe('/api/health');
   });
@@ -140,29 +168,12 @@ describe('route structure', () => {
   });
 });
 
-describe('placeholder pages', () => {
-  // The public home stopped being a placeholder in SP2a Task 4, which puts
-  // the directory on it; Task 6 adds the bands above. The two admin
-  // placeholders stay until SP3.
-  const PLACEHOLDERS = [
-    'src/app/(admin)/admin/page.tsx',
-    'src/app/(admin)/admin/login/page.tsx',
-  ];
-
-  for (const file of PLACEHOLDERS) {
-    it(`${file} renders no text`, () => {
-      const code = readFileSync(file, 'utf8')
-        .replace(/\/\*[\s\S]*?\*\//g, '')
-        .replace(/\/\/.*$/gm, '');
-      // A self-closing element structurally cannot contain a text node, so
-      // these two assertions together are exact rather than heuristic: the
-      // only JSX is <main data-route="..." />, and nothing has children.
-      // Any text node here would be an unlocalised user-facing string.
-      expect(code).toMatch(/<main data-route="[^"]+" \/>/);
-      expect(code, 'placeholder renders an element with children').not.toMatch(/<\/[a-zA-Z]/);
-    });
-  }
-});
+// Both admin placeholders became real screens in SP3 Task 2. Nothing under
+// src/app is a placeholder any more, so the former `describe('placeholder
+// pages', ...)` block — which looped over a PLACEHOLDERS array to build its
+// `it`s — is removed rather than kept with an empty array: Vitest treats a
+// `describe` that registers zero tests as a failure ("No test found in
+// suite"), so an inert loop is not actually harmless here.
 
 describe('route handler and server action placement', () => {
   it('keeps server actions out of the route tree', () => {

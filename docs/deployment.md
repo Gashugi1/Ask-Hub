@@ -87,53 +87,57 @@ truth and carries names with no values (enforced by
 `tests/structure/env-contract.test.ts`, which fails the build if a value is
 committed or if a required name goes missing):
 
-| Name | Public, secret, or test-only | Set on Vercel for this deployment? | Purpose |
+| Name | Public or secret | Set on Vercel for this deployment? | Purpose |
 | --- | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Public | **Yes** — Preview and Production | Supabase project URL. `NEXT_PUBLIC_`-prefixed variables are inlined into the client bundle by Next.js at build time — public by definition, per PRD 13.5. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public | **Yes** — Preview and Production | Supabase anonymous key. Also inlined into the client bundle; it only ever grants what RLS policies allow the `anon` role. |
-| `SUPABASE_SERVICE_ROLE_KEY` | **Secret** | **No — not for this deployment.** Add it when SP2b/SP3 lands; see below for why. | Bypasses Row Level Security entirely. Server-only. **Must never be given a `NEXT_PUBLIC_` prefix** — `tests/structure/env-contract.test.ts` asserts `.env.example` contains no such name, and that assertion is what makes this invariant structural rather than a matter of discipline. |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Secret** | **Yes** — SP3's Users screen has shipped, so a build off this branch needs it | Bypasses Row Level Security entirely. Server-only. **Not needed by a build scoped to the SP2a public read surface**, and needed by exactly one code path in any build that includes SP3's Users screen — `src/lib/actions/users.ts`, the sole caller of `createAdminSupabase()` under `src/`; see the note below. **Must never be given a `NEXT_PUBLIC_` prefix** — `tests/structure/env-contract.test.ts` asserts `.env.example` contains no such name, and that assertion is what makes this invariant structural rather than a matter of discipline. |
+
 | `SUPABASE_URL` | Test-only | **No, never.** | Read directly by test helpers and `tests/smoke.test.ts` from `.env.test`, against the local Supabase CLI stack. Not a deployment variable under any circumstance. |
 | `SUPABASE_ANON_KEY` | Test-only | **No, never.** | Same as above — a local-stack test credential, not something a Vercel project ever needs. |
 
 Set the two `NEXT_PUBLIC_` variables on Vercel for both the Preview and
-Production environments (see "Operator steps"). Do not set
-`SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL` or `SUPABASE_ANON_KEY` on this
-deployment — the disposition column above is the checklist; the reasoning
-for the service-role key follows because a credential that bypasses RLS
-entirely is worth explaining, not just flagging.
+Production environments (see "Operator steps"), and
+`SUPABASE_SERVICE_ROLE_KEY` for any deployment whose build includes SP3's
+Users screen — it has shipped, so a build off this branch does. `.env.example`'s
+remaining two names, `SUPABASE_URL` and `SUPABASE_ANON_KEY`, are test-only —
+read directly by test helpers and `tests/smoke.test.ts` from `.env.test`
+against the local Supabase CLI stack — and have no place in a Vercel project.
 
-**Why the service-role key is deliberately absent from this deployment.**
-`createAdminSupabase()` in `src/lib/supabase/admin.ts` is defined and, as of
-this build, called nowhere under `src/`. The only other reference to it in
-this repository is `src/app/api/README.md`, which records that the four
-public write endpoints will use it once they exist — and those endpoints are
-SP2b and SP4's work, not SP2a's. So for the deployment this runbook covers,
-there is no code path that reads this key at all: setting it anyway would
-mean a credential that bypasses Row Level Security entirely sits in a live
-deployment's environment for no corresponding benefit. `admin.ts`'s own
-docstring is direct about the risk such a key exists to avoid: a
-service-role client is "[n]ever for reading on a user's behalf — that is
-`createServerSupabase`, so RLS still applies. A service_role read is how a
-viewer ends up seeing something their policies deny." An earlier draft of
-this table justified setting the key here anyway with "for SP3's server
-actions and for any server-side reader that needs it" — that second clause
-was invented, evidenced nowhere, and directly contradicts the docstring just
-quoted plus this project's own invariant that anonymous reads go through
-public-safe views. It has been removed.
+### What actually needs the service-role key
 
-**When the key becomes required, and why.** `public.audit_log` (migration
-`supabase/migrations/0007_logs.sql`) has exactly one RLS policy,
-`audit_log_select_authenticated`, and it is `SELECT`-only. There is no
-INSERT policy for any role, including admin — while `authenticated`
-separately holds INSERT, UPDATE and DELETE table grants that RLS renders
-unusable without a policy. The consequence: a server action running on the
-caller's own authenticated session cannot write its own audit row. Every
-mutating admin action will need the service-role client for that one
-insert, which is exactly the second bullet in `admin.ts`'s own docstring.
-That makes the key required the moment SP2b/SP3 lands, not before. **Add
-`SUPABASE_SERVICE_ROLE_KEY` to Vercel as part of that deployment**, and
-expect every admin write to fail on a missing-audit-insert error until it is
-added.
+Worth stating precisely, because an earlier draft of the SP3 design concluded
+that **every** admin write would need this key, and that conclusion was wrong.
+It followed from a true premise — `audit_log` has no insert policy for any
+role, so a server action running on the caller's session cannot write its own
+audit row — but the fix it implied put the mutation and its audit row on two
+different connections, therefore in two different transactions, therefore able
+to end up inconsistent. SP3 instead has the database write the audit row from
+a trigger inside the mutation's own transaction, so ordinary admin writes run
+as the signed-in user, under RLS, with no service-role key in the path
+(`docs/superpowers/specs/2026-07-30-sp3-admin-portal-design.md` §4).
+
+What is left:
+
+| Caller | Needs it because | Where |
+|---|---|---|
+| The Users screen's invite action | Creating a Supabase Auth user is a GoTrue Admin API call, not a table write. No RLS policy can grant it, and there is no public sign-up route to do it instead (PRD §3, §14.3) | `src/lib/actions/users.ts` (SP3, shipped — `inviteUser` wraps only the `auth.admin.inviteUserByEmail` call in it) |
+| `scripts/provision-admins.ts` | Bootstraps the first admin accounts before any admin exists to invite them. Operator-run, never deployed | already in the repository |
+| `scripts/seed.ts` | Writes seed content across tables no single role may write | already in the repository |
+| `tests/helpers/clients.ts` | Creates and role-assigns the RLS fixture users, and reads what a given role must *not* see | already in the repository |
+| SP2b's four public write endpoints | Anonymous submissions, after Zod validation | not built yet |
+
+Only the first of those runs on Vercel. Three consequences for this runbook:
+
+- If a deployment is scoped without the Users screen, this variable can be
+  omitted entirely and nothing else in the application will look for it.
+- The role, name, label and deactivation controls on that screen are ordinary
+  `profiles` updates made as the signed-in admin — they are *not* reasons for
+  this key, and an implementation that reaches for it there has widened the
+  blast radius for no gain.
+- `tests/structure/service-role-containment.test.ts` (SP3) pins the production
+  caller list to exactly one file, so a second caller has to argue for itself
+  in a diff rather than appearing quietly.
 
 `.env.example` may also carry `NEXT_PUBLIC_SITE_URL` by the time this
 deployment happens; check the file as it stands rather than trusting this
@@ -210,6 +214,15 @@ this list; do not remove protection with any box unchecked.
       legal review" — that review has to have happened, and the reviewed
       copy has to be the copy actually stored under the `privacy_copy` and
       `terms_copy` keys, not the placeholder that shipped with the seed.
+- [ ] **At least two admin accounts are provisioned, and the client team's
+      roles are assigned.** PRD §3 requires two admins so that a single
+      lockout does not lock out the team, and it is the one launch requirement
+      that cannot be fixed after the fact by an operator who is themselves
+      locked out. Run `scripts/provision-admins.ts` for the first two; every
+      account after that is invited from `/admin/users` (SP3). Confirm no
+      account is still sitting at the default `viewer` role that was meant to
+      be an editor — `handle_new_user()` mints every profile as `viewer` by
+      design, so an unassigned invitation looks like a deliberate viewer.
 - [ ] **SP4 is merged**: CSP, HSTS (with `includeSubDomains`), Turnstile,
       honeypots, rate limiting, payload caps, and the image-host policy
       `next/image` needs. This deployment intentionally predates all of it;

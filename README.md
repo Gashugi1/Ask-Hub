@@ -46,6 +46,19 @@ which talks to PostgREST on the local Supabase instance. Start it with
 `npm run db:start`. The credentials come from `.env.test`, which is gitignored;
 copy the names from `.env.example` and fill them from `npx supabase status`.
 
+**`npm run build` itself needs no Supabase credentials**, even though every
+`/admin` route reads the caller's session and, on the Dashboard, live rows.
+`src/app/(admin)/admin/layout.tsx` declares `export const dynamic =
+'force-dynamic'`, which the whole subtree inherits, so Next's build never
+attempts to render these pages ahead of a real request — only a live deploy
+does, and that is exactly where `NEXT_PUBLIC_SUPABASE_URL` and
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` must be set for `/admin` to work at all (as
+build *and* runtime env vars on Vercel; there is no separate CI workflow in
+this repository to catch a missing one earlier). Locally, `npm run dev` still
+needs them the same way `npm test` needs `.env.test` — copy `.env.example` to
+`.env.local` and fill it from `npx supabase status`, exactly as for
+`.env.test`, and never commit either file.
+
 ```bash
 npm run db:start   # Docker must already be running
 npm run build
@@ -58,13 +71,16 @@ This repository began as an application **skeleton**, with every `page.tsx`
 rendering its own route path and nothing else, each to be replaced in turn by
 the sub-project that builds the real surface. SP1's database schema and RLS
 policies have since landed, and SP2 is landing the public site page by page.
-The admin portal is SP3 and has not started; `/admin` and `/admin/login` are
-still placeholder routes.
+The admin portal landed with SP3, merged into this branch: sign-in, the
+role-aware shell, Dashboard, Resources (list and edit), Site Content, Settings,
+Users and a read-only Audit Log. Five of PRD §6's nine screens are deliberately
+not built — Review queue, Alerts &amp; subscribers, Partnerships, Reach &amp;
+engagement, and Updates — and do not exist at any layer.
 
-Design tokens are also deliberately absent — `src/app/globals.css` only imports
-Tailwind. A test asserts that no colour value in any notation appears anywhere
-under `src/`; the `@theme` block that makes that assertion obsolete is SP1
-Task 2, which must narrow the guard rather than delete it.
+Design tokens landed with SP1 Task 2: `src/app/globals.css` carries the full
+`@theme` block, and the guard that once asserted no colour value appeared
+anywhere under `src/` was narrowed to that block rather than deleted, so a hex
+literal outside it still fails.
 
 **This build is not a public go-live.** It ships behind Vercel Deployment
 Protection for a gated stakeholder review, and it declares itself

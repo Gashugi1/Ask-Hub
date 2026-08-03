@@ -59,6 +59,14 @@
   --color-danger: #C0392B;
   --color-danger-bg: #FBEAE8;
 
+  /* PRD 4.15's `digest_sent` audit badge is the one action with no colour
+     family of its own (published/approved green, edited/created blue,
+     deleted/rejected red and role_changed amber all reuse an existing
+     token below) — a plain grey with no blue or brand tint, so it reads as
+     "neutral" rather than borrowing a hue that means something else. */
+  --color-neutral: #5A6472;
+  --color-neutral-bg: #EEF0F3;
+
   --color-need-compute: #1F5FBF;
   --color-need-compute-bg: #EAEFFB;
   --color-need-training: #0E7A8A;

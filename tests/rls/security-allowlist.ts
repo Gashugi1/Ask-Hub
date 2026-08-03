@@ -83,5 +83,25 @@ export const ANON_SELECTABLE: Record<string, Exception> = {
 // that shortcut, so there is no slot to fill.
 export const ANON_EXECUTABLE: Record<string, Exception> = {};
 
+// Base tables that legitimately carry no audit trigger (G15).
+//
+// SP3's migration 0018_audit_triggers.sql attaches public.audit_row_change to
+// every base table with a write policy -- all fifteen, including the ones whose
+// admin screens are deferred -- so that no later screen can ship against an
+// unrecorded write path by omission. These two are the exemptions of principle
+// rather than of convenience, and the list must stay this short: an entry here
+// is a table whose writes nobody can reconstruct afterwards.
+export const AUDIT_EXEMPT: Record<string, Exception> = {
+  audit_log: {
+    approvedIn: 'SP3-T1',
+    why: 'Has no write policy for any role and is append-only by trigger; a table recording its own inserts into itself is circular, and the append-only triggers already make the recording pointless.',
+  },
+  engagement_events: {
+    approvedIn: 'SP3-T1',
+    why: 'A high-volume first-party stream that is already the record of its own writes; mirroring every page view into the who-did-what log would bury human actions under machine traffic.',
+  },
+};
+
 export const EXPECTED_ANON_SELECTABLE = 9;
 export const EXPECTED_ANON_EXECUTABLE = 0;
+export const EXPECTED_AUDIT_EXEMPT = 2;
