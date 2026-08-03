@@ -4,6 +4,17 @@ import type { ContentKey } from '@/lib/schemas/content';
 
 export type ResourceStatus = 'live' | 'pipeline' | 'reference';
 
+/**
+ * The `need_type` enum itself, not `string`. `resources.need_primary` is an
+ * enum column, so widening it here threw away a fact the database already
+ * guarantees — and the loss was not theoretical: `ResourceTable` builds a
+ * locale key as `` t(`need.${row.needPrimary}`) ``, which
+ * `tests/structure/locale-keys.test.ts` can only check against `en.json` if
+ * the set of values is knowable. Widened to `string` it was not, and that one
+ * call site was the only unresolvable `t()` in `src/`.
+ */
+type NeedType = Database['public']['Enums']['need_type'];
+
 export interface AdminResource {
   id: string;
   name: string;
@@ -11,8 +22,8 @@ export interface AdminResource {
   partnerTier: string;
   resourceType: string;
   subCategory: string | null;
-  needPrimary: string;
-  needSecondary: string | null;
+  needPrimary: NeedType;
+  needSecondary: NeedType | null;
   geoScope: string;
   countriesEligible: string[];
   sectorsEligible: string[];

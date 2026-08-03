@@ -190,14 +190,81 @@ describe('route handler and server action placement', () => {
     ).toEqual([]);
   });
 
-  it('documents why server actions live outside the route tree', () => {
-    expect(existsSync('src/lib/actions/README.md')).toBe(true);
+  it('documents why server actions live outside the route tree, and the rules that apply there', () => {
+    // This used to be `expect(existsSync(...)).toBe(true)`, which truncating
+    // the file to zero bytes passed — the exact shape the test above declines
+    // to use, sitting ten lines below it.
+    //
+    // A doc cannot guard an invariant, so this does not pretend to. What it
+    // guards is that the written contract for src/lib/actions still states
+    // every rule a *machine* guard enforces elsewhere, because each of those
+    // guards fails with a message that assumes the reader can go and find out
+    // why the rule exists. Delete the paragraph and the guard survives with
+    // its reason gone; that is what this catches.
+    const readme = readFileSync('src/lib/actions/README.md', 'utf8');
+
+    // The placement reason, which is the thing the file is named for.
+    for (const reason of ['src/app/api', 'route.ts']) {
+      expect(readme, `the README no longer explains the placement in terms of ${reason}`).toContain(
+        reason,
+      );
+    }
+
+    // One entry per rule that a test in tests/structure asserts against the
+    // action modules themselves. The comment names the enforcing guard so a
+    // failure here is traceable to what it leaves unexplained.
+    const enforcedRules: [rule: string, enforcedBy: string][] = [
+      ['requireRole', 'tests/structure/action-role-checks.test.ts'],
+      ['revalidateTag', 'tests/structure/revalidation-contract.test.ts'],
+      ['createAdminSupabase', 'tests/structure/service-role-containment.test.ts'],
+      ['audit_log', 'the append-only policies in tests/rls'],
+      ['Zod', 'the schema suites in tests/unit'],
+    ];
+    for (const [rule, enforcedBy] of enforcedRules) {
+      expect(
+        readme,
+        `${rule} is enforced by ${enforcedBy} but is no longer explained in ` +
+          `src/lib/actions/README.md`,
+      ).toContain(rule);
+    }
   });
 
-  it('documents which sub-project adds each api endpoint', () => {
+  it('documents every api endpoint that exists, and names the sub-project adding each planned one', () => {
     const readme = readFileSync('src/app/api/README.md', 'utf8');
+
+    // The half that guards rather than describes: every route handler the
+    // build actually produced must be documented. A `toContain('events')`
+    // check is satisfied by the word appearing anywhere in prose, and says
+    // nothing at all about the endpoints that exist.
+    const live = Object.values(routes()).filter((url) => url.startsWith('/api/'));
+    expect(live.length, 'no /api route in the manifest — this assertion would be vacuous').
+      toBeGreaterThan(0);
+    for (const url of live) {
+      expect(readme, `${url} is built but undocumented in src/app/api/README.md`).toContain(url);
+    }
+
+    // The planned ones, each of which must appear as a real table row whose
+    // third column names the sub-project that adds it. Read as cells rather
+    // than as a regex over the whole line: the notes column mentions SP5 for
+    // the contact endpoint's email delivery, so a line-wide `.*SP\d` is
+    // satisfied by a row whose sub-project cell has been emptied — which is
+    // precisely the "matched something, guarded nothing" failure this file is
+    // being cleaned of.
+    const cellsOf = (endpoint: string): string[] => {
+      const line = readme
+        .split('\n')
+        .find((row) => row.includes(`\`POST /api/${endpoint}\``));
+      return line ? line.split('|').map((cell) => cell.trim()) : [];
+    };
     for (const endpoint of ['events', 'contact', 'submissions', 'subscribers']) {
-      expect(readme, `README does not mention ${endpoint}`).toContain(endpoint);
+      const cells = cellsOf(endpoint);
+      expect(cells[1], `/api/${endpoint} has no row in the endpoint table`).toBe(
+        `\`POST /api/${endpoint}\``,
+      );
+      expect(
+        cells[3],
+        `/api/${endpoint} does not name the sub-project that adds it`,
+      ).toMatch(/^SP\d$/);
     }
   });
 });

@@ -19,10 +19,22 @@ const HERO_LIMIT = 4;
  * launch-blocking defect. A partial set is expected -- the client supplies
  * the fifteen figures over time, not in one delivery -- so the band must
  * never wait for a complete set before rendering any of them.
+ *
+ * **Hero is the whole filter, with no fallback to "the first four of
+ * anything".** This used to read `hero.length > 0 ? hero : stats.slice(0, 4)`,
+ * which sounds harmless and is not: `headline_stats.is_hero` is `not null
+ * default false` (0006_site.sql) and the admin Site Content screen creates
+ * every new stat unticked, so "nothing is hero" is the *starting* state of the
+ * table, not an edge case. Under that fallback the Hero checkbox did nothing
+ * at all until the first tick, and the home strip showed four figures nobody
+ * had chosen for it -- while PRD 5.1 item 2 says the strip is the first four
+ * hero stats and PRD 5.6 gives the About page the job of showing all of them.
+ * An editor who ticks nothing now gets no strip, which is visible and is fixed
+ * by ticking a box; the fallback's failure was invisible and disagreed with
+ * the spec.
  */
 export default function StatsBand({ stats }: { stats: PublicStat[] }) {
-  const hero = stats.filter((s) => s.isHero).slice(0, HERO_LIMIT);
-  const shown = hero.length > 0 ? hero : stats.slice(0, HERO_LIMIT);
+  const shown = stats.filter((s) => s.isHero).slice(0, HERO_LIMIT);
   if (shown.length === 0) return null;
 
   return (

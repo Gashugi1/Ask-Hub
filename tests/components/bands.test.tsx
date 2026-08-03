@@ -9,11 +9,21 @@ import type { PublicStat, PublicPartner, PublicResource, NeedCount } from '@/lib
 
 afterEach(cleanup);
 
-const stat = (over: Partial<PublicStat> = {}): PublicStat => ({
+/**
+ * `isHero` is required, not defaulted.
+ *
+ * It used to default to `true`, which made every one of these tests build a
+ * band of six heroes and left `StatsBand`'s hero filter untested: deleting the
+ * filter outright kept all twelve tests green, because with six heroes and no
+ * heroes alike the first four rows come out the same. A default cannot stand
+ * in for the value under test. `headline_stats.is_hero` is `not null default
+ * false`, so a test that does not say which it means is not describing a real
+ * row anyway.
+ */
+const stat = (over: Partial<PublicStat> & Pick<PublicStat, 'isHero'>): PublicStat => ({
   id: 's1',
   value: '18',
   label: 'partner countries',
-  isHero: true,
   sortOrder: 0,
   ...over,
 });
@@ -42,8 +52,8 @@ describe('StatsBand', () => {
     render(
       <StatsBand
         stats={[
-          stat({ id: 'a', value: '18', label: 'partner countries' }),
-          stat({ id: 'b', value: '6', label: 'priority sectors' }),
+          stat({ id: 'a', value: '18', label: 'partner countries', isHero: true }),
+          stat({ id: 'b', value: '6', label: 'priority sectors', isHero: true }),
         ]}
       />,
     );
@@ -52,15 +62,63 @@ describe('StatsBand', () => {
     expect(screen.getByText('6')).toBeDefined();
   });
 
-  it('shows at most the first four hero figures', () => {
+  it('shows the first four hero figures and drops the rest', () => {
     // PRD 5.1 item 2: the home strip is the first four hero stats. The About
-    // page renders all of them; this band is the strip.
+    // page renders all of them; this band is the strip. Asserted by value, not
+    // by count alone -- a count of four is equally satisfied by the wrong four.
     render(
       <StatsBand
-        stats={[1, 2, 3, 4, 5, 6].map((n) => stat({ id: `s${n}`, value: String(n) }))}
+        stats={[1, 2, 3, 4, 5, 6].map((n) => stat({ id: `s${n}`, value: String(n), isHero: true }))}
       />,
     );
     expect(screen.getAllByRole('term')).toHaveLength(4);
+    for (const shown of ['1', '2', '3', '4']) {
+      expect(screen.getByText(shown), `hero ${shown} is missing from the strip`).toBeDefined();
+    }
+    for (const dropped of ['5', '6']) {
+      expect(screen.queryByText(dropped), `stat ${dropped} is past the limit of four`).toBeNull();
+    }
+  });
+
+  it('renders the hero figures and only those', () => {
+    // The filter, stated positively and negatively in one render: the two
+    // heroes appear, the two non-heroes do not, and the count is exactly two
+    // rather than "at most four". A test that only asserts absence passes just
+    // as well when the component renders nothing at all.
+    render(
+      <StatsBand
+        stats={[
+          stat({ id: 'a', value: '18', label: 'partner countries', isHero: true }),
+          stat({ id: 'b', value: '6', label: 'priority sectors', isHero: false }),
+          stat({ id: 'c', value: '400', label: 'GPU hours', isHero: true }),
+          stat({ id: 'd', value: '9', label: 'workshops held', isHero: false }),
+        ]}
+      />,
+    );
+    expect(screen.getAllByRole('term')).toHaveLength(2);
+    expect(screen.getByText('18')).toBeDefined();
+    expect(screen.getByText('400')).toBeDefined();
+    expect(screen.queryByText('6'), 'a non-hero stat reached the home strip').toBeNull();
+    expect(screen.queryByText('9'), 'a non-hero stat reached the home strip').toBeNull();
+  });
+
+  it('renders nothing when figures exist but none is marked hero', () => {
+    // `headline_stats.is_hero` is `not null default false` and the Site
+    // Content screen creates every stat unticked, so this is the table's
+    // starting state, not a corner. The component used to fall back to
+    // `stats.slice(0, 4)` here, which put four figures nobody had designated
+    // into the slot PRD 5.1 item 2 reserves for hero stats and made the Hero
+    // checkbox a no-op until the first tick. The About page (PRD 5.6) is where
+    // every attested figure is shown regardless of the flag.
+    const { container } = render(
+      <StatsBand
+        stats={[
+          stat({ id: 'a', value: '18', label: 'partner countries', isHero: false }),
+          stat({ id: 'b', value: '6', label: 'priority sectors', isHero: false }),
+        ]}
+      />,
+    );
+    expect(container.firstChild).toBeNull();
   });
 });
 
@@ -126,12 +184,40 @@ describe('FeaturedCarousel', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders only the featured resources', () => {
+  it('renders the featured resources, and only those', () => {
+    // Both halves in one render. The absence half on its own is worthless: it
+    // passed unchanged when the whole component was made to `return null`,
+    // because a rail that renders nothing also renders no non-featured card.
     render(
       <FeaturedCarousel
-        resources={[resource({ id: 'a' }), resource({ id: 'b', isFeatured: false, name: 'Not featured' })]}
+        resources={[
+          resource({ id: 'a', name: 'Cloud credits' }),
+          resource({ id: 'b', isFeatured: false, name: 'Not featured' }),
+        ]}
       />,
     );
+    expect(screen.getByRole('heading', { name: 'Featured opportunities' })).toBeDefined();
+    const card = screen.getByRole('link', { name: 'Cloud credits' });
+    expect(card.getAttribute('href')).toBe('/resources/a');
     expect(screen.queryByText('Not featured')).toBeNull();
+    // Exactly one card, so "renders the featured ones" cannot be satisfied by
+    // rendering everything and hiding one of them.
+    expect(screen.getAllByRole('article')).toHaveLength(1);
+  });
+
+  it('orders the rail by sort order rather than by arrival', () => {
+    // PRD 5.1 item 5's rail is curated: `sort_order` is what the admin screen
+    // sets to arrange it. Without the sortResources call the rail would render
+    // in whatever order the reader happened to return.
+    render(
+      <FeaturedCarousel
+        resources={[
+          resource({ id: 'second', name: 'Second in the rail', sortOrder: 2 }),
+          resource({ id: 'first', name: 'First in the rail', sortOrder: 1 }),
+        ]}
+      />,
+    );
+    const names = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
+    expect(names).toEqual(['First in the rail', 'Second in the rail']);
   });
 });

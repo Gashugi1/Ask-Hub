@@ -11,7 +11,7 @@ import {
  * Tests for the fixture sweep itself.
  *
  * This is the most destructive automation in the repository: it deletes rows
- * across eight tables using the `service_role` key, which bypasses RLS. Until
+ * across eleven tables using the `service_role` key, which bypasses RLS. Until
  * now the only thing tested was `isFixtureValue`, a pure predicate -- the
  * deletion, the target it deletes from, and the rows it must NOT touch were
  * all unexercised.

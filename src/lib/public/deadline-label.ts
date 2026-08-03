@@ -20,8 +20,12 @@ export interface DeadlineDisplay {
  * supabase/migrations/0014_partner_logos.sql -- and a second implementation
  * here would be two answers to one question, drifting the moment either
  * changed. `deadlineInfo()` in src/lib/deadline.ts still computes, because
- * SP3's admin "expiring soon" flag legitimately needs to; it must not be
- * called from the public card path.
+ * the admin surface legitimately needs to — it now backs the Expiring soon
+ * and Closed tabs on /admin/resources, the Dashboard's "Deadlines within 14
+ * days" card and the admin table's Deadline cell. (That was a forward
+ * reference to SP3 when this comment was written; the admin portal has since
+ * landed, so it is a statement of fact, not a plan.) It must not be called
+ * from the public card path.
  *
  * PRD 4.2: a past deadline changes the display, never the status.
  */

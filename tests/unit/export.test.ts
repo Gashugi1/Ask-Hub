@@ -33,7 +33,43 @@ function resource(overrides: Partial<PublicResource> = {}): PublicResource {
   };
 }
 
+/**
+ * The columns the download is allowed to contain, written out.
+ *
+ * Pinned rather than derived, and that is the whole point of the assertion:
+ * every other check in this block passed when `'partnerTier'` was added to
+ * `EXPORT_COLUMNS`, because a scan for forbidden substrings can only catch a
+ * column whose *name* is incriminating and no key of `PublicResource` has
+ * one. Widening the export is a decision, so it has to be made twice — once
+ * in `src/lib/public/export.ts` and once here, in a test whose failure says
+ * what the reviewer is being asked to approve.
+ */
+const PUBLISHED_COLUMNS = [
+  'name',
+  'partnerName',
+  'resourceType',
+  'needPrimary',
+  'needSecondary',
+  'subCategory',
+  'description',
+  'externalUrl',
+  'countriesEligible',
+  'sectorsEligible',
+  'stagesEligible',
+  'geoScope',
+  'deadline',
+  'addedDate',
+];
+
 describe('EXPORT_COLUMNS', () => {
+  it('is exactly the agreed set of columns, in order', () => {
+    expect(
+      [...EXPORT_COLUMNS],
+      'the public export gained or lost a column — PRD 5.2 and CLAUDE.md govern what may ' +
+        'leave the site in a download, so update PUBLISHED_COLUMNS deliberately',
+    ).toEqual(PUBLISHED_COLUMNS);
+  });
+
   it('names only real resources_public columns', () => {
     // The subset relation is already a type-level fact: EXPORT_COLUMNS is
     // (keyof PublicResource)[] and RESOURCE_VIEW_COLUMNS maps every one of
@@ -44,13 +80,26 @@ describe('EXPORT_COLUMNS', () => {
     }
   });
 
-  it('excludes every analytics and internal field', () => {
-    // CLAUDE.md and PRD 5.2: the public export must exclude views, clicks,
-    // CTR, internal notes and submitter emails. None of them exist on
-    // resources_public, so this is a floor that must not be lowered later.
-    const columns = EXPORT_COLUMNS.map(String).join(' ').toLowerCase();
+  it('reads a public view that carries no analytics or internal field at all', () => {
+    // CLAUDE.md and PRD 5.2: anonymous reads go through public-safe views that
+    // exclude views, clicks, CTR, submitter emails and internal notes.
+    //
+    // Asserted against the view mapping rather than against EXPORT_COLUMNS,
+    // which is where this check used to point and where it could never fail:
+    // EXPORT_COLUMNS is typed `(keyof PublicResource)[]`, and no key of
+    // PublicResource contains any of these substrings, so the loop was a
+    // tautology dressed as a security floor. The mapping is the real boundary
+    // — a forbidden column can only reach the export by being added to
+    // resources_public first, and that is what this now catches, in both the
+    // camelCase field name and the database column behind it.
+    const surface = [
+      ...Object.keys(RESOURCE_VIEW_COLUMNS),
+      ...Object.values(RESOURCE_VIEW_COLUMNS),
+    ]
+      .join(' ')
+      .toLowerCase();
     for (const forbidden of ['view', 'click', 'ctr', 'internal', 'note', 'submitter', 'email', 'status']) {
-      expect(columns, `${forbidden} reached the public export`).not.toContain(forbidden);
+      expect(surface, `${forbidden} reached the public resource view`).not.toContain(forbidden);
     }
   });
 
@@ -107,6 +156,30 @@ describe('toCsvText', () => {
 });
 
 describe('toExportRows', () => {
+  it('writes header labels a reader can read, never a raw locale key', () => {
+    // `t()` returns the key itself when en.json has no entry for it, which is
+    // right for a screen — a visible token beats blank space — and wrong for a
+    // file that leaves the site. `toExportRows` builds every header as
+    // t(`column.${c}`), so a column added to EXPORT_COLUMNS without its
+    // `column.*` entry ships a spreadsheet whose header row reads literally
+    // `column.partnerTier`. That was one line away from happening, with the
+    // suite green, because nothing compared the two lists.
+    //
+    // tests/structure/locale-keys.test.ts now guards the general case across
+    // src/. This is the same property asserted where it is actually visible to
+    // a user: on the header row itself.
+    const [headers = []] = toExportRows([]);
+    expect(headers).toHaveLength(EXPORT_COLUMNS.length);
+    for (const [index, header] of headers.entries()) {
+      expect(header, `header ${index} is empty`).not.toBe('');
+      expect(
+        header,
+        `the header for ${EXPORT_COLUMNS[index]} is the raw locale key "${header}" — add ` +
+          `"column.${EXPORT_COLUMNS[index]}" to src/locales/en.json`,
+      ).not.toMatch(/^column\./);
+    }
+  });
+
   it('returns a header row plus one row per resource, matching EXPORT_COLUMNS width', () => {
     const rows = toExportRows([resource()]);
     expect(rows).toHaveLength(2);

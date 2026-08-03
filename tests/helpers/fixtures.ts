@@ -239,12 +239,27 @@ export async function cleanupFixtures(client?: SupabaseClient): Promise<CleanupT
   // `partners` is keyed by `name`; the rest carry a uuid `id`. Partners come
   // after resources because `resources.partner` is RESTRICT — a fixture
   // partner still referenced by a real resource is left alone and warned about.
+  //
+  // programmes, impact_stories and updates_log joined this list with
+  // tests/rls/role-matrix.test.ts, which is the first suite to write to any
+  // of them with stamped fixtures. The first two are not merely untidy if
+  // left behind: programmes_public and impact_stories_public are both
+  // anon-readable (tests/rls/public-views.test.ts's registry), so a stranded
+  // fixture is invented content on a public page for a UN programme, which
+  // is the exact failure CLAUDE.md's "never fabricate data" rule names.
+  // updates_log is matched on `text` because that is its only NOT NULL
+  // identifier column; that column is freer-form than the others here, so
+  // note that FIXTURE_STAMP_RE's digit boundaries are what keep a real
+  // update note containing a long number from being swept.
   for (const [table, columns, key] of [
     ['partners', ['name'], 'name'],
     ['partnerships', ['organisation'], 'id'],
     ['digest_sends', ['subject'], 'id'],
     ['contact_messages', ['name', 'email'], 'id'],
     ['subscribers', ['email'], 'id'],
+    ['programmes', ['title'], 'id'],
+    ['impact_stories', ['organisation'], 'id'],
+    ['updates_log', ['text'], 'id'],
   ] as const) {
     const ids = await idsMatching(svc, table, columns, key);
     if (ids.length > 0) tally[table] = await deleteIds(svc, table, ids, key);

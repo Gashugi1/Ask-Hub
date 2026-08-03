@@ -149,7 +149,10 @@ export function readActionFunctions(): ActionFunction[] {
     const code = readFileSync(file, 'utf8');
     const source = parseSource(file, code);
     const helpers = revalidationHelpers(source);
-    const module = file.slice(ACTIONS_DIR.length + 1);
+    // Not named `module`: `@next/next/no-assign-module-variable` forbids
+    // assigning to that identifier anywhere, because in a CommonJS scope it
+    // shadows the real `module` object.
+    const moduleName = file.slice(ACTIONS_DIR.length + 1);
 
     return exportedAsyncFunctions(source).map(({ name, body, statements }) => {
       const called = calledNames(body);
@@ -174,10 +177,10 @@ export function readActionFunctions(): ActionFunction[] {
       const first = statements[0];
 
       return {
-        module,
+        module: moduleName,
         file,
         name,
-        key: `${module}#${name}`,
+        key: `${moduleName}#${name}`,
         requireRoleFirst: first !== undefined && isRequireRoleStatement(first),
         requireRoleAnywhere: called.has('requireRole'),
         mutates,

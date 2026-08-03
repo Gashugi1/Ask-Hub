@@ -500,6 +500,40 @@ describe('Tier 1 — no exception path', () => {
       }),
     ).toEqual([]);
   });
+
+  // Numbered after Tier 2's G10-G15 but placed in Tier 1, because the tier is
+  // the load-bearing classification, not the number: this invariant has no
+  // allow-list. Every base table in this schema is checked against pg_policy
+  // directly, and as of SP2a all seventeen carry at least one policy -- so
+  // there is no exemption to register and none was invented. Should a table
+  // ever legitimately need zero, note first that G4 already requires
+  // `authenticated` to hold all four DML verbs on *every* base table: this
+  // schema has no service_role-only table by construction, so "zero policies"
+  // and "the app can reach it" cannot both be true.
+  it('G16: every table with RLS enabled carries at least one policy', () => {
+    const offenders = relationSecurity
+      .filter(
+        (r) => (r.relkind === 'r' || r.relkind === 'p') && r.rls_enabled && r.policy_count === 0,
+      )
+      .map(
+        (r) =>
+          `public.${r.relname} (relkind=${r.relkind}): rls_enabled=true, policy_count=0 — no role can reach a row through RLS`,
+      );
+
+    expect(
+      offenders,
+      guardMessage({
+        offenders,
+        rule:
+          `${CLAUDE_MD}: "RLS enabled on every table, deny by default." G1 proves the switch is on; this proves something is actually behind it. relation_security() has returned policy_count since it was written — until SP2a nothing asserted on it.`,
+        why:
+          'RLS enabled with zero policies is not the strict end of a spectrum, it is a broken table that every other guard in this file reports clean. G1 sees rls_enabled=true and passes. G4 sees the full SELECT/INSERT/UPDATE/DELETE grant to authenticated still in place and passes. G5 ("no policy names anon") passes vacuously — there are no policies to name anyone. G15 derives its subject set from policy_inventory, so a table whose policies were all dropped silently leaves the set it was being audited in rather than failing inside it. Meanwhile the application does not error: PostgREST reports an RLS-filtered read as `data: []` with `error: null`, indistinguishable from a table that genuinely holds no matching row, so an admin screen degrades to a permanently empty panel rather than a visible 403. That combination — every catalog guard green, every suite green, one screen quietly blank — is exactly how engagement_events_select_authenticated could be dropped outright with the whole RLS suite still passing before this guard existed.',
+        remediation:
+          'Restore the missing `create policy` in a new migration (the per-table migrations under supabase/migrations/ are the reference shape: `create policy "<table>_<verb>_<audience>" on public.<table> for <cmd> to authenticated using (...);`). If the table is genuinely meant to be unreachable by every role but service_role, revoke the grant too rather than leaving G4\'s four verbs pointing at a table no policy admits — a grant that can never succeed is a lie in the catalog.',
+        exception: NO_ALLOWLIST,
+      }),
+    ).toEqual([]);
+  });
 });
 
 describe('Tier 2 — allow-listed', () => {
