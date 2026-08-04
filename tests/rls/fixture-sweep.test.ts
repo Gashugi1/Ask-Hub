@@ -218,6 +218,38 @@ const SWEPT_TABLES = [
     control: 'Sweep control update note (tests/rls/fixture-sweep.test.ts)',
     row: (label: string) => ({ text: label }),
   },
+  // These two carry provenance because 0015_stat_provenance.sql makes
+  // source/attested_by/attested_on NOT NULL and non-blank, with no defaults --
+  // deliberately, so no figure can exist without a named person behind it.
+  // That is exactly why they are the worst tables to strand a fixture in: an
+  // orphaned row here is not junk, it is an invented statistic carrying a
+  // human attestation, on a view anon can read. The unstamped control is the
+  // sharper half of each test — the sweep must reclaim the fixture without
+  // touching a figure a real person vouched for.
+  {
+    table: 'headline_stats',
+    column: 'label',
+    control: 'Sweep control headline stat (tests/rls/fixture-sweep.test.ts)',
+    row: (label: string) => ({
+      label,
+      value: '0',
+      source: 'tests/rls/fixture-sweep.test.ts',
+      attested_by: 'fixture-sweep test',
+      attested_on: '2026-01-01',
+    }),
+  },
+  {
+    table: 'compute_metrics',
+    column: 'label',
+    control: 'Sweep control compute metric (tests/rls/fixture-sweep.test.ts)',
+    row: (label: string) => ({
+      label,
+      value: '0',
+      source: 'tests/rls/fixture-sweep.test.ts',
+      attested_by: 'fixture-sweep test',
+      attested_on: '2026-01-01',
+    }),
+  },
 ] as const;
 
 describe('cleanupFixtures deletion, per table', () => {

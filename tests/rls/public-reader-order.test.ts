@@ -51,13 +51,13 @@ const { listHeadlineStats, listPublicPartners, listImpactStories } = await impor
  * applies to `impact_stories` for the same reason (`impact_stories_public`),
  * and to `partners` because `partners_public` serves them too.
  *
- * Do not read `cleanupFixtures` as a safety net for all three. It sweeps
- * `partners` and `impact_stories`, but `headline_stats` is not in its table
- * list at all -- the very table where a stranded row is an invented attested
- * figure is the one the sweep would not catch, so this hook is the only thing
- * that removes them. And even for the two it does cover, the sweep runs once
- * the whole run is over: a fixture left behind here is visible to every suite
- * that runs after it.
+ * `cleanupFixtures` is now a genuine backstop for all three -- `headline_stats`
+ * was added to its table list once this file made the exposure concrete, and
+ * `tests/rls/fixture-sweep.test.ts` proves the sweep reclaims a stamped row
+ * there. This hook is still the primary mechanism, for a reason the sweep
+ * cannot fix: it runs once, after the whole run is over, so a row left to it
+ * is visible to every suite that runs in between. The sweep catches what a
+ * crash strands; this hook stops the row existing for the rest of the run.
  */
 const created: { table: string; column: string; value: string }[] = [];
 

@@ -260,6 +260,23 @@ export async function cleanupFixtures(client?: SupabaseClient): Promise<CleanupT
     ['programmes', ['title'], 'id'],
     ['impact_stories', ['organisation'], 'id'],
     ['updates_log', ['text'], 'id'],
+    // The two most fabrication-sensitive tables in the schema, and the last
+    // to be swept. Both are anon-readable through headline_stats_public and
+    // compute_metrics_public, and both carry NOT NULL source/attested_by/
+    // attested_on -- so a row here is, by construction, a figure a named
+    // person is recorded as having vouched for. A stranded fixture is not
+    // untidy test data; it is an invented attested statistic on a UN
+    // programme's public surface, which is CLAUDE.md's first hard rule.
+    //
+    // Until this entry existed, every suite touching them relied on its own
+    // afterAll, so a run killed between insert and hook left one behind
+    // permanently with nothing to reclaim it.
+    //
+    // Matched on `label` rather than `value`: value holds the figure itself
+    // ('18', '4.2M'), which carries no stamp and could collide with real
+    // content.
+    ['headline_stats', ['label'], 'id'],
+    ['compute_metrics', ['label'], 'id'],
   ] as const) {
     const ids = await idsMatching(svc, table, columns, key);
     if (ids.length > 0) tally[table] = await deleteIds(svc, table, ids, key);

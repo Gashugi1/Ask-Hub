@@ -76,9 +76,22 @@ them.
 All three — protection, header, metadata — stay in place until the launch
 checklist in Section 5 is fully satisfied. The database currently holds
 placeholder content transcribed from a prototype, not the client's dataset
-(`scripts/seed-data.ts` says so in its own header); if protection comes off
-before that placeholder content is replaced, a real visitor can apply to an
-opportunity that does not exist.
+(`scripts/seed-data.ts` says so in its own header).
+
+Be precise about the risk, because an imprecise version of it was carried in
+this document and reasoned from. The opportunities are real: AWS Activate,
+CINECA Leonardo, the AfDB Digital Jobs Programme and the rest are genuine
+programmes run by the named organisations. Nobody would apply to something
+that does not exist. What is unverified is every *detail* — the application
+URL, the deadline, the eligibility, the description — none of which has been
+confirmed with the partner, and all of which was transcribed from a demo of
+unknown vintage. AskHub links out rather than collecting applications, so the
+failure mode is a visitor sent to a dead URL, an application window that
+closed, or eligibility they do not meet: wasted effort and a directory that
+looks unmaintained, attributed to MIMIT and UNDP. That is why
+`docs/client-deliverables-request.md` asks for the dataset with a verified
+application URL per resource, and why a resource whose URL cannot be verified
+is held unpublished rather than shipped.
 
 ## 3. Environment variables
 

@@ -69,8 +69,13 @@ const FIXTURE_PARTNER = 'Test Partner';
  * surface (CLAUDE.md). Recorded as it is created, deleted in `afterAll`, never
  * at the end of a test body -- a failing assertion above such a line skips it.
  *
- * Neither table is in `cleanupFixtures`'s list, so nothing else would ever
- * remove these rows.
+ * Both tables are now in `cleanupFixtures`'s list -- added because this file
+ * and its public counterpart made the exposure concrete -- so a run killed
+ * between the insert above and the hook below no longer strands an attested
+ * figure permanently. `tests/rls/fixture-sweep.test.ts` proves the sweep
+ * reclaims a stamped row in each while sparing an unstamped one. The hook
+ * remains primary: the sweep runs once at the end of the whole run, so a row
+ * left to it is visible to every suite in between.
  *
  * What this cannot clean up is `audit_log`: every write below fires
  * `0018_audit_triggers.sql` and audit_log is append-only for all roles
