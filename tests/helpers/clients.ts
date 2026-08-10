@@ -1,4 +1,10 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { assertLoopbackTarget } from './loopback';
+
+// At module load, so no client in this file can be constructed against a
+// remote project. Every DB suite reaches Postgres through here, and the
+// clients below carry the service_role key, which bypasses RLS.
+assertLoopbackTarget(process.env.SUPABASE_URL, 'tests/helpers/clients.ts');
 
 const url = process.env.SUPABASE_URL!;
 const anonKey = process.env.SUPABASE_ANON_KEY!;

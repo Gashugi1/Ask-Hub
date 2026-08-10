@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { ensureTestUsers, roleClient, serviceClient } from '../helpers/clients';
+import { type SupabaseClient } from '@supabase/supabase-js';
+import { anonClient, ensureTestUsers, roleClient, serviceClient } from '../helpers/clients';
 
 /**
  * The database boundary behind `/admin/users`.
@@ -45,9 +45,10 @@ const probeContentValue = 'probe';
 
 /** A client signed in as a throwaway account created by this suite. */
 async function signedInClient(email: string): Promise<SupabaseClient> {
-  const client = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, {
-    auth: { persistSession: false },
-  });
+  // Via anonClient() rather than createClient(process.env...) directly: that
+  // module asserts a loopback target at load, and building a client here from
+  // the raw env would step around it.
+  const client = anonClient();
   const { error } = await client.auth.signInWithPassword({ email, password });
   if (error) throw error;
   return client;

@@ -1,6 +1,7 @@
 import 'server-only';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/database.types';
+import { supabaseUrlFromEnv } from '@/lib/supabase/env';
 
 /**
  * The public site's only database client.
@@ -24,8 +25,7 @@ import type { Database } from '@/lib/supabase/database.types';
  */
 export function createPublicSupabase() {
   // Named, not valued. Never interpolate a key into a thrown message.
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!url) throw new Error('NEXT_PUBLIC_SUPABASE_URL is not set');
+  const url = supabaseUrlFromEnv();
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!anonKey) throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set');
   return createClient<Database>(url, anonKey, {

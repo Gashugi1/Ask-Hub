@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { createClient } from '@supabase/supabase-js';
+import { anonClient } from './helpers/clients';
 
 describe('local supabase stack', () => {
   it('accepts a connection with the anon key', async () => {
-    const client = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_ANON_KEY!,
-    );
+    // Via anonClient() rather than createClient(process.env...): that module
+    // asserts a loopback target at load, so no suite can reach a remote
+    // project by building its own client from the raw environment.
+    const client = anonClient();
     // Probe a relation that is guaranteed never to exist, rather than a real
     // table. `profiles` (Task 4) now exists and `anon` has been revoked on
     // it at the grant layer, so probing it would return 42501 (permission

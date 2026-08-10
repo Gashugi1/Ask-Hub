@@ -1,4 +1,5 @@
 import { cleanupFixtures, describeTally } from './fixtures';
+import { RemoteDatabaseError } from './loopback';
 
 /**
  * Remove fixture rows before and after every run.
@@ -25,6 +26,15 @@ async function sweep(when: 'before' | 'after'): Promise<void> {
     const summary = describeTally(tally);
     if (summary) console.log(`[fixtures] cleared ${when} run: ${summary}`);
   } catch (error) {
+    // A wrong-database error must stop the run, not annotate it. Swallowing it
+    // is what made the remote-target hole reachable: the sweep would decline to
+    // delete, print one warning above the summary, and every DB suite would
+    // then run against that project with the service_role key. globalSetup
+    // throwing aborts before a single test file is collected.
+    if (error instanceof RemoteDatabaseError) throw error;
+    // Everything else stays warn-and-continue: housekeeping must not turn a
+    // green suite red, and an unreachable local database fails the DB suites
+    // themselves with a clearer message than this hook could give.
     console.warn(`[fixtures] cleanup ${when} run failed: ${(error as Error).message}`);
   }
 }

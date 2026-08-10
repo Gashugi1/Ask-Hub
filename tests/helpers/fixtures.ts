@@ -1,5 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { serviceClient } from './clients';
+import { assertLoopbackTarget } from './loopback';
+
+// Re-exported: tests/rls/fixture-sweep.test.ts and others import it from here,
+// and the guard's home moved to ./loopback so clients.ts can use it too
+// without an import cycle.
+export { assertLoopbackTarget } from './loopback';
 
 /**
  * Fixture rows created by the DB suites, and how they get removed again.
@@ -65,57 +71,6 @@ export function fixtureStamp(): number {
 export function isFixtureValue(value: string | null | undefined): boolean {
   if (typeof value !== 'string') return false;
   return STABLE_FIXTURE_NAMES.has(value) || FIXTURE_STAMP_RE.test(value);
-}
-
-/**
- * Refuse to sweep anything but a local database.
- *
- * This function deletes rows with the `service_role` key, which bypasses RLS
- * entirely. It resolves its target from `process.env.SUPABASE_URL`, and
- * `vitest.config.ts` loads `.env.test` with dotenv -- which does NOT overwrite
- * a variable already present in the environment. So an exported SUPABASE_URL
- * silently wins, and every `vitest` invocation runs this sweep, including a
- * single unit file.
- *
- * That is not a theoretical path. `scripts/seed.ts:98-109` and
- * `scripts/provision-admins.ts:83-95` read the SAME variable names and both
- * already guard against exactly this, and the documented remote-seed workflow
- * (`SEED_CONFIRM_REMOTE=1 SUPABASE_URL=https://... npm run seed`) puts remote
- * credentials into the developer's shell. The guard on the seeding path is
- * what makes the unguarded test path reachable.
- *
- * Deliberately unlike those two scripts, there is NO confirmation escape
- * hatch. Seeding a remote database is a real if rare intention; sweeping one
- * from a test run never is. And this throws rather than warning: every other
- * failure in this module is warned-and-skipped because housekeeping must not
- * turn a green suite red, but a sweep pointed at the wrong database is the one
- * failure that must stop the run before it touches anything.
- */
-export function assertLoopbackTarget(rawUrl = process.env.SUPABASE_URL): void {
-  if (!rawUrl) {
-    throw new Error(
-      'fixture cleanup: SUPABASE_URL is not set. Refusing to run against an ' +
-        'unknown target.',
-    );
-  }
-  let hostname: string;
-  try {
-    hostname = new URL(rawUrl).hostname;
-  } catch {
-    throw new Error(`fixture cleanup: SUPABASE_URL is not a valid URL: ${rawUrl}`);
-  }
-  const isLoopback =
-    hostname === '127.0.0.1' ||
-    hostname === 'localhost' ||
-    hostname === '::1' ||
-    hostname === '[::1]';
-  if (!isLoopback) {
-    throw new Error(
-      `fixture cleanup: refusing to delete rows from non-loopback host ${hostname}. ` +
-        'This sweep deletes with the service_role key, which bypasses RLS. There is ' +
-        'no confirmation flag: point SUPABASE_URL at a local stack instead.',
-    );
-  }
 }
 
 /** How many rows were removed from each table, for reporting. */
@@ -190,10 +145,9 @@ async function deleteIds(
  */
 export async function cleanupFixtures(client?: SupabaseClient): Promise<CleanupTally> {
   // Before any client is constructed, and regardless of whether one was
-  // passed in: the target is read from the environment either way.
   // Before any client is constructed, and regardless of whether one was
   // passed in: the target is read from the environment either way.
-  assertLoopbackTarget();
+  assertLoopbackTarget(process.env.SUPABASE_URL, 'fixture cleanup');
   const svc = client ?? serviceClient();
   const tally: CleanupTally = {};
 

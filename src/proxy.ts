@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { supabaseUrlFromEnv } from '@/lib/supabase/env';
 
 const LOGIN_PATH = '/admin/login';
 
@@ -48,8 +49,7 @@ export async function proxy(request: NextRequest) {
   // misconfigured deployment still serves the public site. The SDK's own
   // `supabaseUrl is required.` does not say which variable is missing, and
   // it would be thrown once per request.
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!url) throw new Error('NEXT_PUBLIC_SUPABASE_URL is not set');
+  const url = supabaseUrlFromEnv();
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!anonKey) throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set');
 

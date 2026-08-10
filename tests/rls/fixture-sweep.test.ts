@@ -47,8 +47,14 @@ describe('assertLoopbackTarget', () => {
   it('refuses a remote host, naming it', () => {
     // The exact scenario a reviewer demonstrated: an exported SUPABASE_URL
     // shadowing .env.test, and the sweep dutifully targeting it.
+    //
+    // "run against", not "delete rows from": the guard moved to
+    // tests/helpers/loopback.ts and now also gates every client in
+    // clients.ts, so its refusal is no longer only about deletion. The
+    // assertion still pins that the host is named, which is the part that
+    // makes the failure actionable.
     expect(() => assertLoopbackTarget('https://abcdefgh.supabase.co')).toThrow(
-      /refusing to delete rows from non-loopback host abcdefgh\.supabase\.co/,
+      /refusing to run against non-loopback host abcdefgh\.supabase\.co/,
     );
   });
 
