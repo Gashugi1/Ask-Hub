@@ -87,6 +87,39 @@ export async function readResourceForEdit(id: string): Promise<ResourceInput | n
 }
 
 /**
+ * The partner names the resource form's `partner` select offers.
+ *
+ * `resources.partner` is a foreign key to `partners(name)`
+ * (0014_partner_logos.sql), and `partners` has no id column — `name` is the
+ * primary key. So the string this list supplies is the exact value the
+ * constraint checks; there is nothing to map through.
+ *
+ * Only `name` is selected. The picker shows nothing else, and `logo_url` /
+ * `website_url` have no reason to travel to a form that cannot edit them —
+ * the same explicit-column discipline as `readAuditPage`.
+ *
+ * Ordered by `name`, which is the primary key and therefore unique, so this
+ * order is total: the same list on every render, with no tie-break needed.
+ * Deliberately not by `sort_order` like the other list readers in this file.
+ * On `partners` that column exists to curate the sequence of the public logo
+ * row (`listPublicPartners` in src/lib/public/readers.ts); applying it here
+ * would scatter the names a curator is scanning for, and it is nullable and
+ * non-unique, so it could not order this list on its own in any case.
+ *
+ * Uncached, like every reader in this file: a partner added moments ago must
+ * be selectable on the next page load.
+ */
+export async function readPartnerNames(): Promise<string[]> {
+  const supabase = await createAdminReadClient();
+  const { data, error } = await supabase
+    .from('partners')
+    .select('name')
+    .order('name', { ascending: true });
+  if (error) throw new Error(`admin read failed (partners): ${error.message}`);
+  return (data ?? []).map((row) => row.name);
+}
+
+/**
  * PRD 6.9's audit table, one page at a time. `diff`, `ip_hash` and
  * `user_agent` are `@sensitive` and this screen never displays them, so the
  * select list below is exactly the five columns the table shows plus `id` —

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { serviceClient } from './helpers/clients';
 import { seed } from '../scripts/seed';
-import { PARTNERS, RESOURCES, SITE_CONTENT } from '../scripts/seed-data';
+import { AI_HUB_PARTNERS, PARTNERS, RESOURCES, SITE_CONTENT } from '../scripts/seed-data';
 
 // Every assertion in this suite is scoped to the seed's own rows (by name or
 // by key/locale) rather than a global table count: other suites insert
@@ -102,6 +102,95 @@ describe('seed', () => {
     for (const table of tables) {
       const { count } = await svc.from(table).select('id', { count: 'exact', head: true });
       expect(count ?? 0, `${table} row count changed`).toBe(before[table]);
+    }
+  });
+
+  /**
+   * The CINECA rename, asserted after a re-seed rather than after the initial
+   * one, because a re-seed is exactly where a migration-only rename comes
+   * undone: `supabase db reset` applies 0019_ai_hub_partners.sql to an empty
+   * table, so its `update ... set name = 'CINECA'` matches nothing, and if
+   * scripts/seed-data.ts still declared the prototype's `CINECA / AI Hub`
+   * the next `npm run seed` would insert it as a 20th partner row and (the
+   * resources upsert key being `partner,name`) `CINECA Leonardo` under it as
+   * a 21st resource. `npm run seed` is run routinely, so "the migration did
+   * it once" is not a property this codebase can rely on.
+   *
+   * The old name is asserted absent globally, not scoped to PARTNERS: the
+   * whole point is that no row anywhere carries it.
+   */
+  it('leaves no CINECA / AI Hub row behind after a re-seed', async () => {
+    const svc = serviceClient();
+    await seed();
+
+    const { count: oldName, error: oldError } = await svc
+      .from('partners')
+      .select('name', { count: 'exact', head: true })
+      .eq('name', 'CINECA / AI Hub');
+    expect(oldError).toBeNull();
+    expect(oldName ?? 0, 'partners still holds the prototype name').toBe(0);
+
+    const { data: resources, error: resourcesError } = await svc
+      .from('resources')
+      .select('partner')
+      .eq('name', 'CINECA Leonardo');
+    expect(resourcesError).toBeNull();
+    // Exactly one, not merely "one of them says CINECA": the resources
+    // upsert key is (partner, name), so a partner name that came back would
+    // bring a second CINECA Leonardo row with it rather than colliding with
+    // this one. Note the local flow never exercises the FK's ON UPDATE
+    // CASCADE at all -- on a `db:reset` the resource is simply inserted
+    // under the new name. The cascade is what carries an already-populated
+    // database across, and it is covered in tests/rls/ai-hub-partners.test.ts.
+    expect(resources).toHaveLength(1);
+    expect(resources![0]!.partner).toBe('CINECA');
+  });
+
+  /**
+   * `is_ai_hub_partner` is the one column on `partners` the seed deliberately
+   * DOES rewrite on every run (logo_url and website_url are omitted from the
+   * payload so admin-uploaded assets survive). Asserted after a re-seed for
+   * that reason: this is the property that makes AI_HUB_PARTNERS the single
+   * declaration of which rows are flagged, rather than a one-off UPDATE in a
+   * migration that runs against an empty table.
+   *
+   * Scoped to PARTNERS' own names -- other suites insert flagged partner
+   * fixtures of their own, and this suite has no control over their lifetime.
+   */
+  it('flags exactly the AI Hub partners, and re-flags them on a re-seed', async () => {
+    const svc = serviceClient();
+    await seed();
+
+    const { data, error } = await svc
+      .from('partners')
+      .select('name, is_ai_hub_partner')
+      .in('name', [...PARTNERS]);
+    expect(error).toBeNull();
+
+    const flagged = (data ?? [])
+      .filter((row: { is_ai_hub_partner: boolean }) => row.is_ai_hub_partner)
+      .map((row: { name: string }) => row.name)
+      .sort();
+    expect(flagged).toEqual([...AI_HUB_PARTNERS].sort());
+
+    // Every remaining seeded partner is a resource provider, not a partner of
+    // the AI Hub. Stated as a count so that flagging an extra row fails here
+    // and not only in the equality above.
+    expect(data).toHaveLength(PARTNERS.length);
+    expect(flagged).toHaveLength(3);
+  });
+
+  /**
+   * AI_HUB_PARTNERS must stay a subset of PARTNERS: a name in the first that
+   * is missing from the second is a partner the seed never inserts, so the
+   * flag would silently apply to nothing and the home page would show fewer
+   * partners than the file claims, with no error anywhere. Same class of
+   * source-consistency check as the resource->partner one below.
+   */
+  it('declares no AI Hub partner that PARTNERS does not seed', () => {
+    const partnerNames = new Set(PARTNERS);
+    for (const name of AI_HUB_PARTNERS) {
+      expect(partnerNames.has(name), `AI_HUB_PARTNERS names unseeded partner "${name}"`).toBe(true);
     }
   });
 

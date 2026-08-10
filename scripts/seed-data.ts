@@ -91,12 +91,23 @@ export type Exclusivity = 'exclusive' | 'early_access';
 // new resource (out of scope for this seed — see file header), but the task
 // brief lists it among the 19 verbatim partner names, so it is seeded as a
 // name-only row like the rest.
+//
+// "CINECA" replaces the prototype's "CINECA / AI Hub" on the client's
+// confirmation that the entity is CINECA — the prototype had folded the
+// facility and the programme into one free-text provider string.
+// supabase/migrations/0019_ai_hub_partners.sql carries the same rename as an
+// UPDATE, for a database that already holds rows when it is applied; this
+// array is what performs the rename on a `db:reset` + `npm run seed`, where
+// migrations run against an empty table. Both must stay in step: leaving the
+// old name here would re-insert it as a 20th partner row on the next seed,
+// and (because the resources upsert key is `partner,name`) would re-insert
+// "CINECA Leonardo" under it as a 21st resource.
 export const PARTNERS: readonly string[] = [
   'AfriLabs',
   'African Development Bank',
   'Air Street Capital',
   'Amazon Web Services',
-  'CINECA / AI Hub',
+  'CINECA',
   'Cyber 4.0 and Cisco',
   'Deep Learning Indaba',
   'European Commission',
@@ -111,6 +122,25 @@ export const PARTNERS: readonly string[] = [
   'Safaricom',
   'Stanford / Coursera',
   'Zindi',
+];
+
+/**
+ * The subset of `PARTNERS` that `partners.is_ai_hub_partner` is set true for,
+ * and therefore the only rows `partners_public` returns and the home page
+ * partner row renders (supabase/migrations/0019_ai_hub_partners.sql).
+ *
+ * Client-confirmed as exactly these three. UNDP is deliberately absent: it
+ * co-leads the AI Hub with MIMIT rather than partnering with it, and already
+ * appears in the footer attribution (content rule 10.1). There is no UNDP row
+ * in `PARTNERS` either, and none should be added to make this list longer.
+ *
+ * Unlike `logo_url`/`website_url`, this flag IS written on every re-seed —
+ * see scripts/seed.ts's partner step for why the two are treated differently.
+ */
+export const AI_HUB_PARTNERS: readonly string[] = [
+  'Amazon Web Services',
+  'CINECA',
+  'Microsoft',
 ];
 
 // ============================================================================
@@ -225,7 +255,7 @@ export const RESOURCES: readonly SeedResource[] = [
   },
   {
     name: 'CINECA Leonardo',
-    partner: 'CINECA / AI Hub',
+    partner: 'CINECA',
     partner_tier: 'strategic',
     resource_type: 'Programme',
     need_primary: 'compute',

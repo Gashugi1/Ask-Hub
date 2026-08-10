@@ -107,7 +107,41 @@ function Required() {
   );
 }
 
-export default function ResourceForm({ initial }: { initial?: ResourceInput & { id: string } }) {
+/**
+ * The options the partner select offers: every known partner, plus the
+ * resource's own stored partner when that is somehow not among them.
+ *
+ * Keeping the stored value is the point, and the reason is narrower than
+ * "otherwise it gets saved wrong" — measured, not assumed. With the option
+ * absent, React sets a `value` no `<option>` carries, and the control falls
+ * back to displaying the first real one instead — a partner the row does not
+ * have. The submitted value is still React state, which
+ * still holds the stored partner, so nothing is silently rewritten; what
+ * breaks is that the field shows a partner the resource does not have, and
+ * the error below then names a value the curator cannot see selected.
+ * Listing the stored value fixes the display; `handleSubmit` still refuses to
+ * send it, so the only way past this screen is to choose a real partner.
+ *
+ * How reachable is that? Not, as the schema stands: `resources.partner` is a
+ * foreign key to `partners(name)` with `on update cascade` (a rename follows
+ * the row) and `on delete restrict` (a referenced partner cannot be deleted),
+ * so a stored partner is in `partners` by construction and `readPartnerNames`
+ * lists all of them unfiltered. This branch is for the case where that stops
+ * being true — a dropped constraint, a filtered reader — and costs one line.
+ */
+function partnerOptions(known: readonly string[], stored: string): string[] {
+  if (stored === '' || known.includes(stored)) return [...known];
+  return [stored, ...known];
+}
+
+export default function ResourceForm({
+  initial,
+  partners,
+}: {
+  initial?: ResourceInput & { id: string };
+  /** From `readPartnerNames()`; the create and edit routes both supply it. */
+  partners: readonly string[];
+}) {
   const [raw, setRaw] = useState<RawValues>(() => toRaw(initial));
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof RawValues, string>>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -132,6 +166,22 @@ export default function ResourceForm({ initial }: { initial?: ResourceInput & { 
         if (messages && messages.length > 0) next[key] = messages[0]!;
       }
       setFieldErrors(next);
+      setFormError(null);
+      return;
+    }
+
+    // The partner must be one this screen was offered, which is the one field
+    // `resourceInput` cannot judge: it is a foreign key to partners(name) and
+    // the schema has no database to ask (see assertKnownPartner). The action
+    // re-checks this server-side and is the actual guard — this is here so the
+    // operator gets a field-level message naming the value, rather than the
+    // generic form error a thrown server action produces. Next replaces a
+    // server action's error message with an opaque digest in production, so
+    // the specific wording has to be produced on this side.
+    if (!partners.includes(parsed.data.partner)) {
+      setFieldErrors({
+        partner: t('admin.resources.form.partnerUnknown', { partner: parsed.data.partner }),
+      });
       setFormError(null);
       return;
     }
@@ -184,13 +234,23 @@ export default function ResourceForm({ initial }: { initial?: ResourceInput & { 
         <label className="flex flex-col gap-1 text-sm text-navy">
           {t('column.partnerName')}
           <Required />
-          <input
-            type="text"
+          <select
             value={raw.partner}
             onChange={(e) => set('partner', e.target.value)}
             required
             className="rounded border border-hairline px-2 py-1"
-          />
+          >
+            <option value="" disabled>
+              {t('admin.resources.form.selectPlaceholder')}
+            </option>
+            {/* The stored value, not `raw.partner`: the option list must not
+                reshuffle as the curator picks. */}
+            {partnerOptions(partners, initial?.partner ?? '').map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
           {fieldErrors.partner ? (
             <span className="text-xs text-danger">{fieldErrors.partner}</span>
           ) : null}

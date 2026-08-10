@@ -4,9 +4,14 @@ import { revalidateTag } from 'next/cache';
 import { z } from 'zod';
 import { requireRole } from '@/lib/auth';
 import { createAdminReadClient } from '@/lib/admin/client';
+import { readPartnerNames } from '@/lib/admin/readers';
 import { resourceInput } from '@/lib/schemas/resource';
 import { CACHE_TAGS } from '@/lib/public/cache';
-import { assertRowAffected } from './resource-mutation-guards';
+import {
+  assertRowAffected,
+  assertKnownPartner,
+  resourceWriteError,
+} from './resource-mutation-guards';
 
 const id = z.string().uuid();
 const status = z.enum(['live', 'pipeline', 'reference']);
@@ -71,12 +76,16 @@ export async function createResource(input: unknown): Promise<{ id: string }> {
   await requireRole(['admin', 'editor']);
   const parsed = resourceInput.parse(input);
   const supabase = await createAdminReadClient();
+  // `partner` is a foreign key to partners(name) and the schema cannot check
+  // it — see assertKnownPartner. Before the insert, so the operator gets a
+  // message naming the value instead of a constraint violation.
+  assertKnownPartner(parsed.partner, await readPartnerNames());
   const { data, error } = await supabase
     .from('resources')
     .insert(toRow(parsed))
     .select('id')
     .single();
-  if (error) throw new Error(`createResource failed: ${error.message}`);
+  if (error) throw resourceWriteError('createResource', error, parsed.partner);
   revalidateResources();
   return { id: data!.id };
 }
@@ -86,12 +95,16 @@ export async function updateResource(rawId: unknown, input: unknown): Promise<vo
   const targetId = id.parse(rawId);
   const parsed = resourceInput.parse(input);
   const supabase = await createAdminReadClient();
+  // The same hole as createResource, and not a theoretical one: the edit form
+  // pre-fills a partner that is already valid, so this path only looks safe
+  // until someone changes the field.
+  assertKnownPartner(parsed.partner, await readPartnerNames());
   const { data, error } = await supabase
     .from('resources')
     .update(toRow(parsed))
     .eq('id', targetId)
     .select('id');
-  if (error) throw new Error(`updateResource failed: ${error.message}`);
+  if (error) throw resourceWriteError('updateResource', error, parsed.partner);
   assertRowAffected('updateResource', data);
   revalidateResources();
 }

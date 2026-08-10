@@ -14,6 +14,11 @@ import type { NeedCount } from '@/lib/public/types';
  *
  * Each chip links into the directory rather than to a route of its own:
  * there is no /directory, and the query string is the shareable state.
+ *
+ * Chip order is the reader's, not this component's: `listNeedCounts` sorts by
+ * the `need_type` enum, whose declaration order is the canonical NEED_KEYS
+ * order in src/lib/reference.ts. This component preserves the order it is
+ * given and imposes none of its own.
  */
 export default function BrowseByNeed({ counts }: { counts: NeedCount[] }) {
   const withResources = counts.filter((c) => c.liveCount > 0);

@@ -61,7 +61,30 @@ export const listNeedCounts = unstable_cache(
   async (): Promise<NeedCount[]> => {
     const { data, error } = await createPublicSupabase()
       .from('need_counts_public')
-      .select('*');
+      .select('*')
+      // Canonical need order, not alphabetical. `need_counts_public` has no
+      // ORDER BY of its own, so without this the rows arrive in whatever
+      // order the GROUP BY produced (accelerator, funding, partners, compute,
+      // training, as it happens) and BrowseByNeed renders its chips in that
+      // order -- arbitrary, and liable to change under the same content that
+      // changes the counts.
+      //
+      // `need` is the `public.need_type` enum, not text, so Postgres sorts it
+      // by declaration order rather than alphabetically: compute, training,
+      // funding, accelerator, partners. That is exactly NEED_KEYS in
+      // src/lib/reference.ts, and tests/unit/reference.test.ts already
+      // asserts the two are equal, element for element, against the live
+      // enum -- so this ordering cannot silently diverge from the canonical
+      // list without that test failing first.
+      //
+      // Ordered here rather than in the view because a view's ORDER BY is not
+      // guaranteed to survive the query PostgREST wraps around it, while this
+      // becomes that outer query's own ORDER BY; and rather than in
+      // BrowseByNeed because every list-returning reader in this module
+      // already owns its own output order (tests/rls/public-reader-order.test.ts
+      // is the standing suite for exactly that), which keeps a second
+      // consumer of these counts from having to re-sort them.
+      .order('need', { ascending: true });
     if (error) fail('need_counts_public', error.message);
     return (data ?? []).map(toNeedCount);
   },
@@ -72,6 +95,20 @@ export const listNeedCounts = unstable_cache(
   { tags: [CACHE_TAGS.resources] },
 );
 
+/**
+ * The AI Hub's own partners, for the home page partner row -- not every row
+ * of `partners`. That table doubles as the provider registry behind
+ * `resources.partner`, so most of its rows are organisations that run a
+ * listed resource rather than partners of the AI Hub. `partners_public`
+ * filters on `is_ai_hub_partner` (0019_ai_hub_partners.sql), which is why
+ * `select('*')` below is still correct and still returns only the four
+ * columns the anonymous surface has always had -- the flag itself is not
+ * projected, so there is nothing here to filter on in TypeScript.
+ *
+ * The admin resource form's partner picker deliberately does NOT come
+ * through here: it reads `partners` directly (readPartnerNames in
+ * src/lib/admin/readers.ts) and must keep offering every provider.
+ */
 export const listPublicPartners = unstable_cache(
   async (): Promise<PublicPartner[]> => {
     const { data, error } = await createPublicSupabase()

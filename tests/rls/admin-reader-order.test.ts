@@ -50,6 +50,7 @@ const {
   readImpactStories,
   readAdminResources,
   readAuditPage,
+  readPartnerNames,
 } = await import('@/lib/admin/readers');
 const { AUDIT_PAGE_SIZE } = await import('@/lib/admin/audit-view');
 
@@ -220,6 +221,49 @@ describe('admin readers order by sort_order, nulls last', () => {
         status: 'pipeline',
       }),
     });
+  });
+});
+
+describe('readPartnerNames', () => {
+  /**
+   * The one reader here that does NOT order by `sort_order`, for the reason
+   * recorded on it: on `partners` that column curates the public logo row's
+   * sequence, and it is nullable and non-unique besides. It orders by `name`,
+   * the primary key, which makes the order total.
+   *
+   * Ordering is load-bearing rather than cosmetic. This list populates the
+   * `partner` `<select>` on the resource form, whose value is the foreign key
+   * `resources.partner` -> `partners(name)`; an unordered list is PostgREST's
+   * physical row order, which changes as rows are inserted and deleted, so the
+   * options would reshuffle between page loads with nothing looking broken.
+   *
+   * Written in an order that is neither alphabetical nor its reverse, and
+   * narrowed to this test's own rows -- `partners` holds 19 seeded rows, so an
+   * assertion over the whole table would be asserting the seed.
+   */
+  it('returns partner names in alphabetical order', async () => {
+    const stamp = fixtureStamp();
+    const written = [
+      `Reader order partner gamma ${stamp}`,
+      `Reader order partner alpha ${stamp}`,
+      `Reader order partner beta ${stamp}`,
+    ];
+
+    const { error } = await serviceClient()
+      .from('partners')
+      .insert(written.map((name) => ({ name })));
+    expect(error, 'seeding partners').toBeNull();
+    for (const name of written) {
+      created.push({ table: 'partners', column: 'name', value: name });
+    }
+
+    const mine = new Set(written);
+    const names = (await readPartnerNames()).filter((name) => mine.has(name));
+
+    expect(names, 'partner row count').toHaveLength(written.length);
+    expect(names, 'readPartnerNames did not return names in alphabetical order').toEqual(
+      [...written].sort(),
+    );
   });
 });
 

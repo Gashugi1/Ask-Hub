@@ -4,6 +4,12 @@ import type { PublicPartner } from '@/lib/public/types';
 /**
  * PRD 5.1 item 6: each logo links to the partner's own official site.
  *
+ * The rows reaching this band are the AI Hub's own partners, already
+ * narrowed by `partners_public` (0019_ai_hub_partners.sql filters it on
+ * `is_ai_hub_partner`) -- not the whole `partners` table, most of which is
+ * the provider registry behind `resources.partner`. This component applies
+ * no filter of its own and renders exactly what it is given.
+ *
  * Content rule 10.10 is enforced in the database as a CHECK
  * (`logo_url is null or website_url is not null`), so a logo without a site
  * to link to cannot exist. Logos and URLs are a client deliverable; until

@@ -1,4 +1,5 @@
 import { requireRole } from '@/lib/auth';
+import { readPartnerNames } from '@/lib/admin/readers';
 import ResourceForm from '@/components/admin/ResourceForm';
 import { t } from '@/lib/i18n';
 
@@ -11,11 +12,14 @@ import { t } from '@/lib/i18n';
  */
 export default async function NewResourcePage() {
   await requireRole(['admin', 'editor']);
+  // `resources.partner` is a foreign key to partners(name), so the form picks
+  // from this list rather than accepting free text.
+  const partners = await readPartnerNames();
 
   return (
     <main data-route="/admin/resources/new" className="flex flex-col gap-4">
       <h1 className="text-xl font-semibold text-navy">{t('admin.resources.form.headingCreate')}</h1>
-      <ResourceForm />
+      <ResourceForm partners={partners} />
     </main>
   );
 }

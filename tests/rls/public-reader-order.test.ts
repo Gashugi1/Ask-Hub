@@ -35,9 +35,10 @@ vi.mock('next/cache', () => ({
   unstable_cache: (fn: unknown) => fn,
 }));
 
-const { listHeadlineStats, listPublicPartners, listImpactStories } = await import(
+const { listHeadlineStats, listPublicPartners, listImpactStories, listNeedCounts } = await import(
   '@/lib/public/readers'
 );
+const { NEED_KEYS } = await import('@/lib/reference');
 
 /**
  * Every row this file creates, removed unconditionally at the end.
@@ -136,10 +137,20 @@ describe('listPublicPartners', () => {
     // something to catch. Note what that rests on: "unspecified" is exactly
     // what the tie-break exists to handle, so this half of the test is
     // sensitive to how Postgres happens to sort, not to a guarantee.
+    //
+    // `is_ai_hub_partner: true` on every fixture is required, not cosmetic:
+    // since 0019_ai_hub_partners.sql `partners_public` returns only flagged
+    // rows, so an unflagged fixture is invisible to this reader and this test
+    // would assert over an empty array. tests/rls/ai-hub-partners.test.ts is
+    // where that filter itself is covered.
     const tied = ['F', 'E', 'D', 'C', 'B', 'A'];
     const rows = [
-      ...tied.map((letter) => ({ name: `Reader order partner ${letter} ${stamp}`, sort_order: 2 })),
-      { name: `Reader order partner first ${stamp}`, sort_order: 1 },
+      ...tied.map((letter) => ({
+        name: `Reader order partner ${letter} ${stamp}`,
+        sort_order: 2,
+        is_ai_hub_partner: true,
+      })),
+      { name: `Reader order partner first ${stamp}`, sort_order: 1, is_ai_hub_partner: true },
     ];
     const { error } = await svc.from('partners').insert(rows);
     expect(error, 'seeding partners').toBeNull();
@@ -173,5 +184,38 @@ describe('listImpactStories', () => {
     const stories = (await listImpactStories()).filter((story) => mine.has(story.organisation));
 
     expect(stories.map((story) => story.sortOrder)).toEqual([1, 2]);
+  });
+});
+
+describe('listNeedCounts', () => {
+  /**
+   * `need_counts_public` is a GROUP BY aggregate over every live resource, so
+   * unlike every other test in this file there is no way to scope it to
+   * fixtures this test owns -- the rows it returns are whatever the whole
+   * database currently holds. The assertion is written to survive that: it
+   * does not pin a fixed sequence (which needs would appear depends on the
+   * content) but asserts that whatever needs came back arrived in NEED_KEYS
+   * order.
+   *
+   * That is not vacuous. NEED_KEYS is compute, training, funding, accelerator,
+   * partners; the GROUP BY's own order on the seeded database is accelerator,
+   * funding, partners, compute, training -- a genuine permutation, so the
+   * filter below reorders it and the comparison fails. Removing `.order()`
+   * from the reader is the mutation this catches.
+   *
+   * The reader sorts by the `need_type` enum in Postgres, which sorts by
+   * declaration order; tests/unit/reference.test.ts is what pins that
+   * declaration order equal to NEED_KEYS, so this test and that one together
+   * are what tie the rendered chip order to the canonical list.
+   */
+  it('returns need counts in NEED_KEYS order, not GROUP BY order', async () => {
+    const counts = await listNeedCounts();
+    const needs = counts.map((count) => count.need);
+
+    // Guards against the assertion passing because there was nothing to sort.
+    expect(needs.length).toBeGreaterThan(1);
+
+    const canonical = NEED_KEYS.filter((key) => (needs as readonly string[]).includes(key));
+    expect(needs).toEqual(canonical);
   });
 });

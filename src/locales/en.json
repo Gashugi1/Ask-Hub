@@ -164,6 +164,7 @@
   "admin.resources.form.headingCreate": "Add resource",
   "admin.resources.form.headingEdit": "Edit resource",
   "admin.resources.form.partnerTier": "Partner tier",
+  "admin.resources.form.partnerUnknown": "{partner} is not a known partner — choose one from the list",
   "admin.resources.form.actionLabel": "Action label",
   "admin.resources.form.bannerImageUrl": "Banner image URL",
   "admin.resources.form.exclusivity": "Exclusivity",
