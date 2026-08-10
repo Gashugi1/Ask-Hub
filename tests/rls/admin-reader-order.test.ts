@@ -260,9 +260,27 @@ describe('readPartnerNames', () => {
     const mine = new Set(written);
     const names = (await readPartnerNames()).filter((name) => mine.has(name));
 
+    // The expectation comes from Postgres, not from JavaScript's sort. They
+    // genuinely disagree on this table: under the database's en_US.UTF-8
+    // collation `African Development Bank` precedes `AfriLabs`, while
+    // `[...].sort()` compares UTF-16 code units and puts `AfriLabs` first,
+    // because the space is weighted differently. The reader is ordered by
+    // Postgres, so a JS-sorted oracle asserts a rule the code does not follow
+    // -- it passed here only because these fixture names happen not to expose
+    // the difference, and a fixture containing a space would have made it
+    // flaky. Ordering the same rows through an explicit query is an
+    // independent statement of the expected order: if the reader drops its own
+    // `.order('name')` it returns heap order and this still fails.
+    const { data: expected, error: expectedError } = await serviceClient()
+      .from('partners')
+      .select('name')
+      .in('name', written)
+      .order('name', { ascending: true });
+    expect(expectedError, 'reading the expected partner order').toBeNull();
+
     expect(names, 'partner row count').toHaveLength(written.length);
-    expect(names, 'readPartnerNames did not return names in alphabetical order').toEqual(
-      [...written].sort(),
+    expect(names, 'readPartnerNames did not return names in the database’s collation order').toEqual(
+      (expected ?? []).map((row) => row.name as string),
     );
   });
 });

@@ -129,7 +129,11 @@ export const PARTNERS: readonly string[] = [
  * and therefore the only rows `partners_public` returns and the home page
  * partner row renders (supabase/migrations/0019_ai_hub_partners.sql).
  *
- * Client-confirmed as exactly these three. UNDP is deliberately absent: it
+ * Client-confirmed on 2026-08-10 and recorded in
+ * .superpowers/sdd/2026-07-30-sp2a-public-read-surface/progress.md, because a
+ * claim about a UN programme's partnerships that renders on the public home
+ * page should not have a source code comment as its only source.
+ * Exactly these three. UNDP is deliberately absent: it
  * co-leads the AI Hub with MIMIT rather than partnering with it, and already
  * appears in the footer attribution (content rule 10.1). There is no UNDP row
  * in `PARTNERS` either, and none should be added to make this list longer.

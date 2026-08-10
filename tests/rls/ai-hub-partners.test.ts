@@ -252,7 +252,22 @@ describe('the home page partner row', () => {
       .map((row) => row.name as string)
       .filter((name) => !name.includes(String(stamp)));
     expect(names.sort()).toEqual(['Amazon Web Services', 'CINECA', 'Microsoft']);
-    expect(names).not.toContain('UNDP');
+
+    // Asserted against the base table, not against `names`. A `not.toContain`
+    // on the array the line above already pinned by equality can never fail on
+    // its own -- the equality fails first -- so as a UNDP guard it was
+    // decorative. UNDP co-leads rather than partners (content rule 10.1, and
+    // it appears in the footer attribution), so the property worth pinning is
+    // that no such row exists anywhere in the registry, flagged or not.
+    const { data: undp, error: undpError } = await serviceClient()
+      .from('partners')
+      .select('name, is_ai_hub_partner')
+      .ilike('name', '%undp%');
+    expect(undpError, 'reading partners for a UNDP row').toBeNull();
+    expect(
+      undp ?? [],
+      'UNDP has a partners row — it co-leads the AI Hub rather than partnering with it',
+    ).toEqual([]);
   });
 });
 

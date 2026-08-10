@@ -5,8 +5,12 @@
 -- organisation that runs a listed resource -- Google, NVIDIA, Meta, the
 -- African Development Bank -- none of which is a partner of the AI Hub.
 --
--- Client-confirmed: the AI Hub's partners are Amazon Web Services, CINECA
--- and Microsoft. UNDP is deliberately NOT among them and gets no row here:
+-- Client-confirmed on 2026-08-10, recorded in
+-- .superpowers/sdd/2026-07-30-sp2a-public-read-surface/progress.md: the AI
+-- Hub's partners are Amazon Web Services, CINECA and Microsoft. That
+-- provenance line matters -- this is a factual claim about a UN
+-- programme's partnerships, rendered on the public home page, and before
+-- it was written down the only source for it was this comment. UNDP is deliberately NOT among them and gets no row here:
 -- it co-leads the AI Hub with MIMIT rather than partnering with it, and it
 -- is already named on every page by the footer's co-lead attribution
 -- (`site.footer` in src/locales/en.json, content rule 10.1). Adding a UNDP
@@ -22,9 +26,10 @@
 --
 -- Column name: `is_ai_hub_partner`, not `is_hub_partner`. Every row in this
 -- table is a "partner" in the registry sense, so `is_hub_partner` would
--- leave a reader guessing which sense is meant; naming the organisation in
--- full also matches CLAUDE.md's content rule that this programme is always
--- "AI Hub", never "the Hub" alone.
+-- leave a reader guessing which sense is meant. The full form also echoes
+-- how the programme is named everywhere else, though note that CLAUDE.md's
+-- rule on that governs user-facing copy -- a column identifier is never
+-- rendered, so this is consistency, not that rule applying.
 
 alter table public.partners
   add column is_ai_hub_partner boolean not null default false;
