@@ -91,7 +91,14 @@ describe('the page-gate exemption list is a policy document', () => {
   it('gives every entry a plan task and a real reason', () => {
     const offenders = Object.entries(PAGE_ROLE_EXEMPT).flatMap(([key, entry]) => {
       const problems: string[] = [];
-      if (!/^SP\d+-T\d+[a-z]?$/.test(entry.approvedIn)) {
+      // Third copy of this expression in the repository, and the second that
+      // could not express a lettered sub-project id. SP2 split into SP2a and
+      // SP2b, so the letter belongs after the number as well as after the
+      // task. tests/rls/schema-guards.test.ts has always used the wider form
+      // (/^SP\d+[a-z]?-T\d+[a-z]?$/) and carries entries like 'SP2a-T1' and
+      // 'SP1-T12l'; these three checks disagreeing about the shape of the same
+      // field is the defect. An id must still name a sub-project and a task.
+      if (!/^SP\d+[a-z]?-T\d+[a-z]?$/.test(entry.approvedIn)) {
         problems.push(`approvedIn "${entry.approvedIn}" is not a plan task id`);
       }
       if (entry.why.length < 40) problems.push('why is shorter than 40 characters');

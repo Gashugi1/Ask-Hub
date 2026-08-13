@@ -1,6 +1,7 @@
 'use server';
 
 import { z } from 'zod';
+import { headers } from 'next/headers';
 import { requireRole } from '@/lib/auth';
 import { createAdminReadClient } from '@/lib/admin/client';
 import { createAdminSupabase } from '@/lib/supabase/admin';
@@ -53,7 +54,27 @@ export async function inviteUser(input: unknown): Promise<void> {
   const parsed = inviteInput.parse(input);
 
   const auth = createAdminSupabase();
-  const invited = await auth.auth.admin.inviteUserByEmail(parsed.email);
+
+  // Without this the invitation link goes to the project's `site_url`, which
+  // was still Supabase's default `http://localhost:3000` — so every invitation
+  // this screen has ever sent pointed at a developer's laptop. That was half
+  // of why the link was reported broken; the other half was that no page
+  // existed to receive it.
+  //
+  // Derived from the request's own host rather than an environment variable so
+  // an invitation sent from a preview deployment lands back on that preview,
+  // and one sent from production lands on production. `x-forwarded-proto` is
+  // set by Vercel's edge; the fallback covers local development over http.
+  //
+  // Supabase refuses any redirect not matching the project's URI allow-list,
+  // so this cannot be pointed at an arbitrary host by a spoofed Host header:
+  // a value outside the list makes the link fall back to `site_url`.
+  const requestHeaders = await headers();
+  const host = requestHeaders.get('host');
+  const proto = requestHeaders.get('x-forwarded-proto') ?? 'http';
+  const redirectTo = host ? `${proto}://${host}/admin/set-password` : undefined;
+
+  const invited = await auth.auth.admin.inviteUserByEmail(parsed.email, { redirectTo });
   if (invited.error) {
     throw new Error(`inviteUser failed at the auth step: ${invited.error.message}`);
   }

@@ -56,7 +56,11 @@ export const PAGE_ROLE_EXEMPT: Record<string, Exception> = {
     approvedIn: 'SP3-T9',
     why: 'The one admin route that must render with no session at all; it calls getCurrentUser only to redirect an already-authenticated visitor away, and renders a form that writes nothing.',
   },
+  'src/app/(admin)/admin/set-password/page.tsx': {
+    approvedIn: 'SP2a-T9',
+    why: 'Where an invitation link lands. Supabase returns the session in a URL fragment, which is never sent to the server, so at render time there is no cookie and requireRole would bounce every invitee to the login screen before the browser could read it -- gating this page is what would make invitations impossible. It renders no data: a heading and a form. Authorisation sits where it can be enforced, in updateUser, which acts only on the session the browser holds.',
+  },
 };
 
 export const EXPECTED_ACTION_ROLE_EXEMPT = 3;
-export const EXPECTED_PAGE_ROLE_EXEMPT = 1;
+export const EXPECTED_PAGE_ROLE_EXEMPT = 2;
