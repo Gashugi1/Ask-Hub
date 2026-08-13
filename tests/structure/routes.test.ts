@@ -154,12 +154,22 @@ describe('route structure', () => {
     // is deliberately no /directory route because PRD 5.1 item 8 puts the
     // directory on the home page, where the query string is the shareable
     // filter state.
+    //
+    // /contact is PRD 9.1's contact form (name, email, message), added on the
+    // client's request that the public surface match the prototype, which has
+    // a Contact view of its own. Only the storage half exists: §9.1 also
+    // requires the message be delivered to the mailbox with reply-to set,
+    // rate limited and spam protected, and §9.4 makes delivery wait on a
+    // transactional email provider that has not been chosen. The row lands in
+    // contact_messages with delivered_at null, which is what marks it
+    // undelivered rather than silently claiming it was sent.
     const publicUrls = Object.entries(routes())
       .filter(([source]) => source.startsWith('/(public)/'))
       .map(([, url]) => url);
     expect(publicUrls.sort()).toEqual([
       '/',
       '/about',
+      '/contact',
       '/impact',
       '/privacy',
       '/resources/[id]',

@@ -91,7 +91,16 @@ describe('the action exemption list is a policy document', () => {
   it('gives every entry a plan task and a real reason', () => {
     const offenders = Object.entries(ACTION_ROLE_EXEMPT).flatMap(([key, entry]) => {
       const problems: string[] = [];
-      if (!/^SP\d+-T\d+[a-z]?$/.test(entry.approvedIn)) {
+      // Sub-project ids carry an optional letter -- SP2 split into SP2a and
+      // SP2b -- so the pattern must allow one after the number as well as
+      // after the task. This is the same expression the sibling registry's
+      // meta-test in tests/rls/schema-guards.test.ts already uses
+      // (/^SP\d+[a-z]?-T\d+[a-z]?$/), where entries like 'SP2a-T1' and
+      // 'SP1-T12l' are long-standing. The two policy documents disagreeing on
+      // the shape of the same field is the defect; this makes them agree.
+      // Nothing is loosened beyond that: an id still has to name a
+      // sub-project and a task.
+      if (!/^SP\d+[a-z]?-T\d+[a-z]?$/.test(entry.approvedIn)) {
         problems.push(`approvedIn "${entry.approvedIn}" is not a plan task id`);
       }
       if (entry.why.length < 40) problems.push('why is shorter than 40 characters');

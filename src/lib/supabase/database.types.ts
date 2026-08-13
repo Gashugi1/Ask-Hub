@@ -1119,6 +1119,10 @@ export type Database = {
           rls_forced: boolean
         }[]
       }
+      submit_contact_message: {
+        Args: { p_email: string; p_message: string; p_name: string }
+        Returns: undefined
+      }
       test_break_audit_log: { Args: never; Returns: undefined }
       test_unbreak_audit_log: { Args: never; Returns: undefined }
       trigger_inventory: {

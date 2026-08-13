@@ -26,6 +26,9 @@ export default function SiteHeader() {
           <li>
             <Link href="/about">{t('nav.about')}</Link>
           </li>
+          <li>
+            <Link href="/contact">{t('nav.contact')}</Link>
+          </li>
         </ul>
       </nav>
     </header>

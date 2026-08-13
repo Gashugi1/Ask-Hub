@@ -178,14 +178,46 @@ export const EXPECTED_PUBLIC_VIEW_COLUMNS = 59;
 // looks entries up and how it prints an offender, so two overloads of the
 // same function name cannot share one slot.
 //
-// Intentionally empty. Anonymous writes get no allow-list slot at all:
-// the public submission form, digest signup and contact form all need an
-// anonymous-facing insert, and the correct implementation is a server
-// action holding the service_role client behind Zod validation and a
-// rate limit -- never `grant insert on public.submissions to anon`.
-// Leaving a slot here guarantees it eventually gets used for exactly
-// that shortcut, so there is no slot to fill.
-export const ANON_EXECUTABLE: Record<string, Exception> = {};
+// This list was written empty, and its original note said so in as many
+// words: anonymous writes get no slot, because "the public submission form,
+// digest signup and contact form all need an anonymous-facing insert, and the
+// correct implementation is a server action holding the service_role client
+// behind Zod validation and a rate limit -- never `grant insert on
+// public.submissions to anon`. Leaving a slot here guarantees it eventually
+// gets used for exactly that shortcut, so there is no slot to fill."
+//
+// That reasoning is kept above rather than deleted, because the fear behind
+// it is still right and still binding: no anonymous role may hold a DML grant
+// on a base table, and nothing below changes that.
+//
+// What changed is the prescribed remedy, which SP3 reversed. Its
+// tests/structure/service-role-containment.test.ts refuses any caller of
+// createAdminSupabase beyond the Auth Admin invite, and
+// src/lib/actions/README.md states the rule plainly -- service_role bypasses
+// RLS entirely, so it takes the database's permission model out of the write
+// path; "if a write is being refused, the fix is a policy or an RPC, not this
+// client". Followed literally, the two documents prescribe opposite
+// implementations of the same contact form, and the contradiction is real: it
+// should be settled deliberately rather than by whichever guard a given
+// change happens to trip first.
+//
+// The entry below is the resolution that satisfies both intents rather than
+// either letter. It is not a table grant, so SP1's actual fear is untouched:
+// `anon` still holds nothing on public.contact_messages, and this function
+// exposes no SELECT, so the inbox cannot be read back. It is not
+// service_role, so SP3's rule holds too. A `security definer` function with
+// typed parameters is a narrower capability than either alternative -- three
+// columns, one row shape, no dynamic SQL.
+//
+// The bar for a second entry stays exactly as high. This slot is for a write
+// that a narrowly scoped function expresses completely; it is not a general
+// opening for anonymous DML.
+export const ANON_EXECUTABLE: Record<string, Exception> = {
+  'submit_contact_message(p_name text, p_email text, p_message text)': {
+    approvedIn: 'SP2a-T9',
+    why: 'PRD 9.1s public contact form, which by design has no caller to authenticate. Grants EXECUTE only: anon holds no grant and no insert policy on contact_messages, the function exposes no SELECT so the inbox cannot be read back, and its three typed parameters reach only name/email/message -- source_ip_hash, delivered_at and delivery_error are unreachable, so a submitter cannot mark their own message delivered. Bounds are re-checked in the function body, so they hold for a caller holding the anon key who never touches the application.',
+  },
+};
 
 // Base tables that legitimately carry no audit trigger (G15).
 //
@@ -207,5 +239,5 @@ export const AUDIT_EXEMPT: Record<string, Exception> = {
 };
 
 export const EXPECTED_ANON_SELECTABLE = 9;
-export const EXPECTED_ANON_EXECUTABLE = 0;
+export const EXPECTED_ANON_EXECUTABLE = 1;
 export const EXPECTED_AUDIT_EXEMPT = 2;
