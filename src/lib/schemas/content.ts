@@ -27,6 +27,12 @@ import { z } from 'zod';
  */
 export const CONTENT_KEYS = [
   'welcome_title',
+  // Added with the welcome band's dark-band restyle: the band renders a
+  // tagline between the title and the body, and every string in it is
+  // editor-supplied at runtime rather than hardcoded, so the key has to be
+  // writable from the Site Content screen or the line could never be
+  // corrected without a deploy. `scripts/seed-data.ts` seeds it.
+  'welcome_tagline',
   'welcome_body',
   'welcome_cta',
   'identity_lead',

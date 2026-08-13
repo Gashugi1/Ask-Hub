@@ -26,7 +26,7 @@ export default function BrowseByNeed({ counts }: { counts: NeedCount[] }) {
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-10">
-      <h2 className="text-xl font-semibold text-navy">{t('home.browseHeading')}</h2>
+      <h2 className="text-h2 font-extrabold text-navy">{t('home.browseHeading')}</h2>
       <ul className="mt-4 flex flex-wrap gap-3">
         {withResources.map((count) => (
           <li key={count.need}>

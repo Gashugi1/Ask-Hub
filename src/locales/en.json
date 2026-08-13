@@ -247,6 +247,7 @@
   "admin.content.section.programmes": "Programmes",
   "admin.content.section.impactStories": "Impact stories",
   "admin.content.field.welcomeTitle": "Welcome title",
+  "admin.content.field.welcomeTagline": "Welcome tagline",
   "admin.content.field.welcomeBody": "Welcome body",
   "admin.content.field.welcomeCta": "Call to action label",
   "admin.content.field.identityLead": "Lead paragraph",

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { t } from '@/lib/i18n';
-import NeedBadge from './NeedBadge';
+import NeedBadge, { NEED_HEADER_CLASSES } from './NeedBadge';
 import { deadlineLabel } from '@/lib/public/deadline-label';
 import type { PublicResource } from '@/lib/public/types';
 
@@ -16,7 +16,21 @@ import type { PublicResource } from '@/lib/public/types';
 export default function ResourceCard({ resource }: { resource: PublicResource }) {
   const label = deadlineLabel(resource);
   return (
-    <article className="flex flex-col gap-3 rounded-lg border border-hairline bg-surface p-5 shadow-card">
+    <article className="flex flex-col overflow-hidden rounded-lg border border-hairline bg-surface shadow-card">
+      {/* The prototype gives every card a solid, need-coloured header
+          carrying the providing organisation. It is the only place colour
+          distinguishes one card from another at a glance, so it is worth
+          reproducing — but as the need colour, which the tokens already
+          define and which matches the badge below it, rather than as a
+          per-organisation brand colour the database does not hold. The
+          partner name moves up here from the body; it is not repeated. */}
+      <div className={`px-5 py-3 ${NEED_HEADER_CLASSES[resource.needPrimary]}`}>
+        <p className="truncate text-eyebrow font-semibold uppercase text-surface">
+          {resource.partnerName}
+        </p>
+      </div>
+
+      <div className="flex flex-1 flex-col gap-3 p-5">
       <div className="flex flex-wrap items-center gap-2">
         <NeedBadge need={resource.needPrimary} />
         {resource.isFeatured ? (
@@ -45,8 +59,6 @@ export default function ResourceCard({ resource }: { resource: PublicResource })
         <Link href={`/resources/${resource.id}`}>{resource.name}</Link>
       </h3>
 
-      <p className="text-sm text-muted-light">{resource.partnerName}</p>
-
       {resource.description ? (
         <p className="line-clamp-3 text-sm text-muted">{resource.description}</p>
       ) : null}
@@ -65,6 +77,7 @@ export default function ResourceCard({ resource }: { resource: PublicResource })
             {resource.actionLabel ?? t('cta.apply')}
           </a>
         ) : null}
+        </div>
       </div>
     </article>
   );
