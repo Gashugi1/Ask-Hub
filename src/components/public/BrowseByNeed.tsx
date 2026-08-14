@@ -24,11 +24,12 @@ import type { NeedCount } from '@/lib/public/types';
  * Each entry links into the directory rather than to a route of its own:
  * there is no /directory, and the query string is the shareable state.
  *
- * **The prototype's one-line need definitions are not transcribed.** It shows
- * a short description under each label; no such copy exists in this product,
- * and writing five descriptions of a UN programme's offer is the client's
- * call, not a styling task. The line is omitted rather than filled with
- * plausible text.
+ * **The one-line need definitions are transcribed after all.** They were
+ * omitted at first on the grounds that writing five descriptions of a UN
+ * programme's offer is the client's call rather than a styling task. That was
+ * the wrong reading: the prototype is the client's own approved artefact, so
+ * its definitions are already their words. Transcribing them is what parity
+ * means here; inventing five of my own would have been the overreach.
  *
  * **Colours come from the tokens, not from the prototype's literals.** Every
  * other value here is transcribed verbatim, but `--color-need-training` and
@@ -70,7 +71,7 @@ export default function BrowseByNeed({ counts }: { counts: NeedCount[] }) {
           padding: '0 10px',
         }}
       >
-        {t('home.browseHeading')}
+        {t('home.browseLabel')}
       </div>
 
       <ul
@@ -120,7 +121,22 @@ export default function BrowseByNeed({ counts }: { counts: NeedCount[] }) {
                 >
                   {t(`need.${count.need}`)}
                 </span>
+                <span
+                  style={{
+                    display: 'block',
+                    fontSize: 11,
+                    lineHeight: 1.4,
+                    color: '#5B6B8C',
+                    marginTop: 2,
+                    fontWeight: 400,
+                  }}
+                >
+                  {t(`need.${count.need}.def`)}
+                </span>
               </span>
+              {/* The prototype shows a bare number in this column. On its own
+                  that is "4" of nothing, so the unit stays for screen readers
+                  while the column reads as the prototype's does. */}
               <span
                 style={{
                   fontSize: 11.5,
@@ -129,7 +145,10 @@ export default function BrowseByNeed({ counts }: { counts: NeedCount[] }) {
                   flexShrink: 0,
                 }}
               >
-                {t('home.browseCount', { count: count.liveCount })}
+                <span aria-hidden="true">{count.liveCount}</span>
+                <span className="sr-only">
+                  {t('home.browseCount', { count: count.liveCount })}
+                </span>
               </span>
             </Link>
           </li>

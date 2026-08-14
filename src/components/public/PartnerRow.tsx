@@ -114,16 +114,38 @@ export default function PartnerRow({ partners }: { partners: PublicPartner[] }) 
           marginTop: 12,
         }}
       >
-        <div className="proto-marquee-track" style={{ display: 'flex', width: 'max-content' }}>
-          {track(false)}
-          <span aria-hidden="true" style={{ display: 'contents' }}>
+        {/*
+          Each copy is its own flex row that is at least as wide as the panel.
+          That is what makes the loop work at any partner count: the track
+          travels -50%, so the second copy must land exactly where the first
+          began, which is only true if each copy spans the full container.
+
+          With `width: max-content` and a handful of short names -- three, as
+          the database currently holds -- the whole track was narrower than the
+          panel, so -50% slid it left and left a gap rather than looping. It
+          only looked right with the dozen partners the prototype's fixtures
+          carry. `space-around` spreads a short list across the width instead
+          of bunching it at the left.
+        */}
+        <div className="proto-marquee-track" style={{ display: 'flex' }}>
+          <div style={MARQUEE_COPY}>{track(false)}</div>
+          <div aria-hidden="true" style={MARQUEE_COPY}>
             {track(true)}
-          </span>
+          </div>
         </div>
       </div>
     </section>
   );
 }
+
+/** One full-width copy of the partner list; two of these make the loop. */
+const MARQUEE_COPY = {
+  display: 'flex',
+  alignItems: 'center',
+  flex: '0 0 auto',
+  minWidth: '100%',
+  justifyContent: 'space-around',
+} as const;
 
 const MARQUEE_ITEM = {
   display: 'inline-flex',
