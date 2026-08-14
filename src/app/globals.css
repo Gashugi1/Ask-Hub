@@ -281,6 +281,11 @@ button {
   color: #fff;
 }
 
+/* Row actions in the admin tables, prototype lines 834-835. */
+.proto-admin-action:hover {
+  text-decoration: underline;
+}
+
 /* Directory card, prototype line 253. */
 .proto-card:hover {
   border-color: #1f5fbf;

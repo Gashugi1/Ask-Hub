@@ -26,9 +26,25 @@ export default function FeaturedToggle({ id, isFeatured }: { id: string; isFeatu
           router.refresh();
         });
       }}
-      className={isFeatured ? 'text-primary' : 'text-muted-light'}
+      // Prototype line 833: a star, coloured when the resource is featured.
+      // The accessible name still comes from aria-label above, so the control
+      // is not reduced to an unlabelled glyph.
+      style={{
+        background: 'none',
+        border: 'none',
+        color: isFeatured ? 'var(--acc, #F06428)' : '#C9D3E8',
+        fontSize: 17,
+        cursor: 'pointer',
+        padding: 0,
+        lineHeight: 1,
+      }}
     >
-      {isFeatured ? t('admin.resources.actions.featuredOn') : t('admin.resources.actions.featuredOff')}
+      <span aria-hidden="true">★</span>
+      <span className="sr-only">
+        {isFeatured
+          ? t('admin.resources.actions.featuredOn')
+          : t('admin.resources.actions.featuredOff')}
+      </span>
     </button>
   );
 }
