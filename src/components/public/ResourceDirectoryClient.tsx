@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { t } from '@/lib/i18n';
-import ResourceGrid from './ResourceGrid';
+import ResourceGrid, { DIRECTORY_SECTION, DIRECTORY_HEADING } from './ResourceGrid';
 import FilterControls from './FilterControls';
 import ExportButton from './ExportButton';
 import {
@@ -77,13 +77,21 @@ export default function ResourceDirectoryClient({
   }
 
   return (
-    <section id="directory" className="mx-auto max-w-6xl px-4 py-12">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <h2 className="text-h2 font-extrabold text-navy">{t('directory.title')}</h2>
+    <section id="directory" style={DIRECTORY_SECTION}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          gap: 16,
+          flexWrap: 'wrap',
+        }}
+      >
+        <h2 style={DIRECTORY_HEADING}>{t('directory.title')}</h2>
         <ExportButton rows={visible} />
       </div>
 
-      <div className="mt-6">
+      <div style={{ marginTop: 24 }}>
         <FilterControls criteria={criteria} resultCount={visible.length} onChange={apply} />
       </div>
 

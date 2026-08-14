@@ -33,7 +33,22 @@ curl -fsS -o /dev/null "$BASE$ROUTE" || {
   exit 1
 }
 
-for size in "1440,2400:desktop" "390,1800:mobile"; do
+# WIDTH FLOOR -- READ BEFORE CHANGING THE NARROW VALUE.
+#
+# Chrome on macOS will not lay out below a 500px CSS viewport, whatever
+# --window-size asks for. Ask for 390 and it renders at 500 and then crops the
+# PNG to 390 -- which looks exactly like horizontal overflow and is not. That
+# artifact was mistaken for a real responsive defect once during this work,
+# and the narrow capture is pinned at 500 so it cannot happen twice.
+#
+# Verified by rendering a page that reports document.documentElement.clientWidth
+# and scrollWidth: both read 500 for requested widths of 320, 390 and 430, in
+# both --headless=new and the old headless mode.
+#
+# Genuine sub-500 verification needs a real device, or CDP
+# Emulation.setDeviceMetricsOverride, which would mean the browser-automation
+# dependency this harness exists to avoid.
+for size in "1440,2400:desktop" "500,1800:narrow"; do
   dims="${size%%:*}"; label="${size##*:}"
   "$CHROME" --headless=new --disable-gpu --hide-scrollbars \
     --virtual-time-budget=6000 \

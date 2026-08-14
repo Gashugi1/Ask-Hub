@@ -75,10 +75,20 @@ export default async function PublicHomePage() {
 
       {/* The prototype's storefront is two columns (reference lines 49-174):
           a sticky department menu on the left and a single scrolling column
-          on the right, inside a 1280px measure. `flex-wrap` is what collapses
-          it to one column on a narrow screen — the sidebar's 232px basis and
-          the main column's 300px minimum cannot both fit, so the sidebar
-          wraps above the content rather than needing a breakpoint. */}
+          on the right, inside a 1280px measure. `flex-wrap` collapses it to
+          one column on a narrow screen, with no breakpoint needed.
+
+          The main column is `flex: 1 1 300px`, not the prototype's `flex: 1`
+          with `min-width: 300px`. Those are not equivalent: `flex: 1` means
+          `flex-basis: 0`, and flex line-breaking decides what fits using the
+          basis — so the column claims to need no width, stays on the
+          sidebar's line, and only then does `min-width` force it past the
+          container's edge. The result is horizontal overflow where a wrap was
+          intended. Stating the 300px as the basis makes the line-breaking
+          arithmetic use the number that actually governs, and the column
+          drops below the menu as soon as the two cannot sit side by side.
+          The prototype carries the same latent bug; at its 1280px measure it
+          simply never bites. */}
       <div
         style={{
           maxWidth: 1280,
@@ -94,8 +104,7 @@ export default async function PublicHomePage() {
 
         <div
           style={{
-            flex: 1,
-            minWidth: 300,
+            flex: '1 1 300px',
             display: 'flex',
             flexDirection: 'column',
             gap: 22,
