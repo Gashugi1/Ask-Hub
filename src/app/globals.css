@@ -242,6 +242,29 @@ button {
   box-shadow: 0 6px 20px rgb(0 60 100 / 0.1);
 }
 
+/* Directory actions and filter chips, prototype lines 183-184, 194-196. */
+.proto-primary-button:hover:not(:disabled) {
+  background: #174a99;
+}
+
+.proto-outline-button:hover:not(:disabled) {
+  border-color: #1f5fbf;
+}
+
+.proto-primary-button:disabled,
+.proto-outline-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.proto-active-chip:hover {
+  border-color: #1f5fbf;
+}
+
+.proto-clear-all:hover {
+  color: #1a2332;
+}
+
 /* Directory card, prototype line 253. */
 .proto-card:hover {
   border-color: #1f5fbf;
