@@ -270,6 +270,17 @@ button {
   color: #1f5fbf;
 }
 
+/* Admin rail, prototype lines 677 and 684. The nav hover is a translucent
+   white so it reads the same over the dark rail whether or not the item is
+   the current one. */
+.proto-admin-nav:hover {
+  background: rgb(255 255 255 / 0.12);
+}
+
+.proto-admin-footer-link:hover {
+  color: #fff;
+}
+
 /* Directory card, prototype line 253. */
 .proto-card:hover {
   border-color: #1f5fbf;

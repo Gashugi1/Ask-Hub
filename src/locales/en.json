@@ -149,6 +149,7 @@
   "setPassword.toLogin": "Go to sign in",
   "impact.title": "Impact",
   "impact.empty": "Impact stories will appear here once they are published.",
+  "admin.nav.label": "Admin",
   "admin.nav.dashboard": "Dashboard",
   "admin.nav.resources": "Resources",
   "admin.nav.content": "Site Content",
