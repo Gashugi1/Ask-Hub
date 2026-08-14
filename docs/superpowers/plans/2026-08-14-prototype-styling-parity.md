@@ -15,6 +15,7 @@
 Every task's requirements implicitly include all of these.
 
 - **Styles are copied verbatim; text is not.** Every user-facing string goes to `src/locales/en.json` and is read with `t('key')`. Never inline a literal string in JSX.
+- **Accessibility outranks prototype fidelity (spec D9).** Two need-colours are deliberately darker than the prototype: `need-training` is `#0E7685` (not the prototype's `#0E7A8A`) and `need-funding` is `#9E5C1B` (not `#B4691F`). The prototype's values fail WCAG AA on badge text — 4.44:1, 3.74:1, and 4.22:1 against a 4.5:1 bar. Use the token, never the prototype's literal, for these two. `tests/unit/tokens.test.ts` enforces this and must never be relaxed to make a transcription match. This affects Task 8 most directly.
 - **No prototype content.** No metric, count, statistic, subscriber, or seed value from the prototype enters this codebase. The prototype's numbers are invented; `CLAUDE.md` calls a plausible fake number a launch-blocking defect.
 - **No new routes, pages, or features.** Style only what already exists.
 - **Attribution is always "co-led by MIMIT and UNDP"** — never "powered by" or "implemented by".

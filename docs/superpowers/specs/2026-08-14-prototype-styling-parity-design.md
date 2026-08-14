@@ -88,6 +88,7 @@ about 1.6× density, visibly soft on retina. The prototype's asset is the same m
 | D6 | Check the extracted markup into **`docs/prototype/`** | Reviewers can diff against the same source of truth, and future drift can be re-checked without re-deriving the bundle. |
 | D7 | Verify by **side-by-side screenshot per route**, at desktop and mobile | The task is defined visually, so acceptance must be visual. No route is complete until both captures have been compared. |
 | D8 | Base the work on **`worktree-styling-drift-fixes`** | It is two commits ahead and already modifies six of the files this work rewrites. Rebasing later would resolve the same conflicts twice. |
+| D9 | **Accessibility outranks prototype fidelity.** Keep `need-training` at `#0E7685` and `need-funding` at `#9E5C1B` rather than the prototype's `#0E7A8A` and `#B4691F` | Surfaced during Task 2. The prototype's own values fail WCAG AA on badge text: training 4.44:1 and funding 3.74:1 against their backgrounds, and funding 4.22:1 on white, all short of 4.5:1. This branch had already darkened both and written a contrast suite to hold them there. Ruled by the client after the measured ratios were presented. The deviation is two hues one step darker — visually near-identical, and the only place the port knowingly departs from the prototype's colour values. `tests/unit/tokens.test.ts` enforces it and must never be relaxed to make a transcription match. |
 
 ## Scope
 
