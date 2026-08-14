@@ -18,6 +18,19 @@ import { t } from '@/lib/i18n';
  * than a destination, it already exists, and it needs no new copy key. It is
  * therefore no longer repeated in the centre list.
  *
+ * **On the wordmark.** This renders `site.wordmark` ("AskHub"), the product's
+ * own name, matching the prototype and the welcome band's "Welcome to
+ * AskHub" — the header previously read "AI Hub", so the two disagreed on the
+ * same screen. The key is `site.wordmark` rather than the `site.shortName` it
+ * replaces because the distinction is load-bearing: AskHub is this directory,
+ * whereas the programme is the AI Hub for Sustainable Development, and
+ * CLAUDE.md requires that programme to be called "AI Hub" or "AI Hub for
+ * Sustainable Development" every time it is named. `site.name` and
+ * `site.attribution` still carry the programme's wording for the surfaces
+ * that refer to it; a key called "shortName" holding "AskHub" would have
+ * invited a future line like "co-led by {shortName}" to break that rule
+ * silently.
+ *
  * The mark is a local asset, so this uses next/image (which fingerprints and
  * sizes it) rather than the bare <img> PartnerRow needs for arbitrary remote
  * logo hosts. `alt=""` is deliberate: the wordmark text sits immediately
@@ -43,7 +56,7 @@ export default function SiteHeader() {
             className="h-9 w-9"
             priority
           />
-          <span className="text-lg font-extrabold text-navy">{t('site.shortName')}</span>
+          <span className="text-lg font-extrabold text-navy">{t('site.wordmark')}</span>
         </Link>
         <ul className="flex items-center gap-6 text-sm text-muted">
           <li>
