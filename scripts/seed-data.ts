@@ -734,13 +734,27 @@ export const RESOURCES: readonly SeedResource[] = [
 //      `partnerships` row -- "Leonardo GPU allocations under the Mattei
 //      Plan" -- needs no rewrite here because `partnerships` is out of this
 //      task's scope and is not seeded at all; it simply never lands.)
-//   2. `welcome_body` drops the prototype's "Curated and verified by the AI
-//      Hub team." sentence. The prototype states this curation claim in
+//   2. `welcome_body` dropped the prototype's "Curated and verified by the
+//      AI Hub team." sentence. The prototype states this curation claim in
 //      three different wordings across the app; content rule 10.8 wants it
 //      stated once. `identity_lead` already carries the brief's canonical
 //      wording verbatim ("Every resource is curated and verified by the AI
 //      Hub team.") unchanged, so it is kept as the single instance and the
-//      duplicate in `welcome_body` is removed rather than rephrased.
+//      duplicate in `welcome_body` was removed rather than rephrased.
+//
+//      That rewrite is now history rather than a live edit: `welcome_body`
+//      has since been rewritten again by an editor on the hosted project and
+//      this file transcribes that value, which carries no curation claim
+//      either. Rule 10.8 still holds, by the same argument and not by
+//      inheritance — it was re-checked against the live string.
+//
+// **These rows are not the source of truth.** `site_content` is editable
+// from /admin/content precisely so copy can change without a deploy, and the
+// upsert below is keyed on (key, locale), so a seed run overwrites whatever
+// an editor has since written. When the two disagree, the hosted value is
+// the one that has been reviewed and published; update this file to match it
+// rather than re-running the seed to overwrite it. Verified divergent once
+// already, on 2026-08-14, for exactly this key.
 export interface SeedSiteContent {
   key: string;
   locale: string;
@@ -765,10 +779,20 @@ export const SITE_CONTENT: readonly SeedSiteContent[] = [
   {
     key: 'welcome_body',
     locale: 'en',
-    // Rewritten: dropped the trailing "Curated and verified by the AI Hub
-    // team." sentence (see the rule-2 rewrite note above).
+    // Transcribed from the hosted project, where an editor rewrote this line
+    // through the Site Content screen; the seed's original wording ("The open
+    // directory for African AI — find the compute, funding, training,
+    // accelerators, and partners to move your idea forward.") is no longer
+    // what the site says, and the seed upserts on (key, locale), so leaving
+    // the two out of step meant any future `npm run seed` would silently
+    // revert a deliberate copy change.
+    //
+    // Still rule-compliant, checked against the live value rather than
+    // assumed: it names the programme in full, carries content rule 10.1's
+    // attribution verbatim, and makes no curation claim — so `identity_lead`
+    // remains the single place that states it (rule 10.8).
     value:
-      'The open directory for African AI — find the compute, funding, training, accelerators, and partners to move your idea forward.',
+      "The open directory for Africa's AI ecosystem — connecting innovators to the compute, funding, training, accelerators, and partnerships of the AI Hub for Sustainable Development, co-led by MIMIT and UNDP",
   },
   {
     key: 'welcome_cta',
