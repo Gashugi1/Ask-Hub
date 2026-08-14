@@ -2,6 +2,7 @@ import { t } from '@/lib/i18n';
 import type { AuditEntry } from '@/lib/admin/types';
 import type { AuditAction } from '@/lib/admin/audit-view';
 import EmptyState from './EmptyState';
+import { ADMIN_TH, ADMIN_TD, ADMIN_TABLE, ADMIN_TABLE_PANEL, ADMIN_THEAD_ROW, ADMIN_TR } from './chrome';
 
 /**
  * PRD 4.15's badge colours, mapped onto the existing design tokens rather
@@ -70,28 +71,28 @@ export default function AuditTable({ rows }: { rows: AuditEntry[] }) {
   }
 
   return (
-    <div className="overflow-x-auto rounded border border-hairline">
-      <table className="w-full min-w-[720px] text-left text-sm">
-        <thead className="bg-tint-1 text-muted">
+    <div style={ADMIN_TABLE_PANEL}>
+      <table style={ADMIN_TABLE}>
+        <thead style={ADMIN_THEAD_ROW}>
           <tr>
-            <th className="px-4 py-2 font-medium">{t('admin.audit.col.when')}</th>
-            <th className="px-4 py-2 font-medium">{t('admin.audit.col.user')}</th>
-            <th className="px-4 py-2 font-medium">{t('admin.audit.col.action')}</th>
-            <th className="px-4 py-2 font-medium">{t('admin.audit.col.item')}</th>
-            <th className="px-4 py-2 font-medium">{t('admin.audit.col.change')}</th>
+            <th style={ADMIN_TH}>{t('admin.audit.col.when')}</th>
+            <th style={ADMIN_TH}>{t('admin.audit.col.user')}</th>
+            <th style={ADMIN_TH}>{t('admin.audit.col.action')}</th>
+            <th style={ADMIN_TH}>{t('admin.audit.col.item')}</th>
+            <th style={ADMIN_TH}>{t('admin.audit.col.change')}</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.id} className="border-t border-hairline align-top">
-              <td className="whitespace-nowrap px-4 py-3 text-muted">
+            <tr key={row.id} style={ADMIN_TR}>
+              <td style={{ ...ADMIN_TD, color: "#5B6B8C", whiteSpace: "nowrap" }}>
                 {formatOccurredAt(row.occurredAt)}
               </td>
-              <td className="px-4 py-3 text-navy">{actorDisplayName(row.actorName)}</td>
-              <td className="px-4 py-3">
+              <td style={ADMIN_TD}>{actorDisplayName(row.actorName)}</td>
+              <td style={ADMIN_TD}>
                 <ActionBadge action={row.action} />
               </td>
-              <td className="px-4 py-3 text-navy">{row.entityLabel}</td>
+              <td style={ADMIN_TD}>{row.entityLabel}</td>
               {/*
                 change_summary is rendered verbatim, as data, never through
                 t(): it is composed in SQL at write time by
@@ -101,7 +102,7 @@ export default function AuditTable({ rows }: { rows: AuditEntry[] }) {
                 there and re-render history in whichever language the
                 reader's locale happened to be.
               */}
-              <td className="px-4 py-3 text-muted">{row.changeSummary}</td>
+              <td style={{ ...ADMIN_TD, color: "#5B6B8C" }}>{row.changeSummary}</td>
             </tr>
           ))}
         </tbody>

@@ -94,6 +94,15 @@ export default function FilterControls({
     onChange({ ...criteriaRef.current, query: queryText });
   }
 
+  // Named rather than inlined into the chip below: the chip list is built
+  // during render, and an inline closure reading debounceRef there reads a ref
+  // during render as far as the lint rule can tell.
+  function clearQuery() {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setQueryText('');
+    onChange({ ...criteriaRef.current, query: '' });
+  }
+
   function clearAll() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     setQueryText('');
@@ -115,7 +124,14 @@ export default function FilterControls({
     criteria.query !== '' ||
     criteria.sort !== DEFAULT_SORT;
 
-  /** The active facets, as the prototype's removable chip row. */
+  /**
+   * The active facets, as the prototype's removable chip row.
+   *
+   * The committed query gets a chip too. It is filter state like any other,
+   * and without one the only evidence of an active search would be the text
+   * in the box -- which a visitor arriving on a shared link may not connect
+   * to the results being narrower than they expect.
+   */
   const activeChips: { key: string; label: string; clear: () => void }[] = [];
   if (criteria.need) {
     activeChips.push({
@@ -194,7 +210,10 @@ export default function FilterControls({
         </button>
       </div>
 
-      {activeChips.length > 0 ? (
+      {/* Shown whenever anything is filtered, not merely when a facet chip
+          exists: a non-default sort produces no chip, and hiding "Clear
+          filters" in that state would leave no way back to the default view. */}
+      {isFiltered ? (
         <div
           style={{
             marginTop: 14,
@@ -204,25 +223,33 @@ export default function FilterControls({
             alignItems: 'center',
           }}
         >
+          {/* The committed query is a chip too -- it is filter state like any
+              other, and a visitor arriving on a shared link should see why the
+              results are narrower than they expect, not only find the text in
+              the box. Rendered here rather than pushed into `activeChips`
+              because its handler closes over the debounce ref, and a JSX event
+              handler is where React permits that; putting the same function
+              into an array during render is what `react-hooks/refs` forbids. */}
+          {criteria.query !== '' ? (
+            <button
+              type="button"
+              onClick={clearQuery}
+              className="proto-active-chip"
+              style={ACTIVE_CHIP}
+            >
+              {criteria.query}
+              <span aria-hidden="true" style={{ fontWeight: 800, opacity: 0.6 }}>
+                ×
+              </span>
+            </button>
+          ) : null}
           {activeChips.map((chip) => (
             <button
               key={chip.key}
               type="button"
               onClick={chip.clear}
               className="proto-active-chip"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 7,
-                background: '#EEF2FB',
-                color: '#1F5FBF',
-                border: '1px solid #C9D3E8',
-                borderRadius: 99,
-                padding: '6px 13px',
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
+              style={ACTIVE_CHIP}
             >
               {chip.label}
               <span aria-hidden="true" style={{ fontWeight: 800, opacity: 0.6 }}>
@@ -399,6 +426,21 @@ function ChipGroup({
     </div>
   );
 }
+
+/** A removable filter chip, prototype line 196. */
+const ACTIVE_CHIP = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 7,
+  background: '#EEF2FB',
+  color: '#1F5FBF',
+  border: '1px solid #C9D3E8',
+  borderRadius: 99,
+  padding: '6px 13px',
+  fontSize: 13,
+  fontWeight: 700,
+  cursor: 'pointer',
+} as const;
 
 const GROUP_LABEL = {
   fontSize: 11.5,

@@ -9,6 +9,7 @@ import type { Role } from '@/lib/auth';
 import { t } from '@/lib/i18n';
 import EmptyState from './EmptyState';
 import RoleBadge from './RoleBadge';
+import { ADMIN_FIELD, ADMIN_TH, ADMIN_TD, ADMIN_TABLE, ADMIN_TABLE_PANEL, ADMIN_THEAD_ROW, ADMIN_TR, ADMIN_HELP } from './chrome';
 
 /**
  * `last_sign_in_at` exactly as stored, and an explicit "not recorded" when it
@@ -45,15 +46,15 @@ function RowControls({ row, isSelf }: { row: AdminUser; isSelf: boolean }) {
 
   if (isSelf) {
     return (
-      <div className="flex flex-col gap-1">
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <RoleBadge role={row.role} />
-        <span className="text-xs text-muted">{t('admin.users.selfNote')}</span>
+        <span style={ADMIN_HELP}>{t('admin.users.selfNote')}</span>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-3">
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
       <select
         aria-label={t('admin.users.col.role')}
         defaultValue={row.role}
@@ -65,7 +66,7 @@ function RowControls({ row, isSelf }: { row: AdminUser; isSelf: boolean }) {
             router.refresh();
           });
         }}
-        className="rounded border border-hairline px-2 py-1 text-sm text-navy"
+        style={ADMIN_FIELD}
       >
         {ROLES.map((value) => (
           <option key={value} value={value}>
@@ -82,7 +83,7 @@ function RowControls({ row, isSelf }: { row: AdminUser; isSelf: boolean }) {
             router.refresh();
           });
         }}
-        className="rounded border border-hairline px-2 py-1 text-xs text-navy"
+        style={{ ...ADMIN_FIELD, fontSize: 12, padding: "7px 10px" }}
       >
         {row.isActive ? t('admin.users.action.deactivate') : t('admin.users.action.reactivate')}
       </button>
@@ -115,36 +116,36 @@ export default function UserTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded border border-hairline">
-      <table className="w-full min-w-[720px] text-left text-sm">
-        <thead className="bg-tint-1 text-muted">
+    <div style={ADMIN_TABLE_PANEL}>
+      <table style={ADMIN_TABLE}>
+        <thead style={ADMIN_THEAD_ROW}>
           <tr>
-            <th className="px-4 py-2 font-medium">{t('admin.users.col.user')}</th>
-            <th className="px-4 py-2 font-medium">{t('admin.users.col.displayLabel')}</th>
-            <th className="px-4 py-2 font-medium">{t('admin.users.col.status')}</th>
-            <th className="px-4 py-2 font-medium">{t('admin.users.col.lastSignIn')}</th>
-            <th className="px-4 py-2 font-medium">{t('admin.users.col.role')}</th>
+            <th style={ADMIN_TH}>{t('admin.users.col.user')}</th>
+            <th style={ADMIN_TH}>{t('admin.users.col.displayLabel')}</th>
+            <th style={ADMIN_TH}>{t('admin.users.col.status')}</th>
+            <th style={ADMIN_TH}>{t('admin.users.col.lastSignIn')}</th>
+            <th style={ADMIN_TH}>{t('admin.users.col.role')}</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.id} className="border-t border-hairline align-top">
-              <td className="px-4 py-3">
-                <p className="font-medium text-navy">
+            <tr key={row.id} style={ADMIN_TR}>
+              <td style={ADMIN_TD}>
+                <p style={{ fontSize: 14, fontWeight: 800 }}>
                   {row.fullName === '' ? row.email : row.fullName}
                 </p>
-                <p className="text-muted-light">{row.email}</p>
+                <p style={{ color: "#5B6B8C" }}>{row.email}</p>
               </td>
-              <td className="px-4 py-3 text-muted">{row.displayLabel}</td>
-              <td className="px-4 py-3 text-navy">
+              <td style={{ ...ADMIN_TD, color: "#5B6B8C" }}>{row.displayLabel}</td>
+              <td style={ADMIN_TD}>
                 {row.isActive
                   ? t('admin.users.status.active')
                   : t('admin.users.status.deactivated')}
               </td>
-              <td className="whitespace-nowrap px-4 py-3 text-muted">
+              <td style={{ ...ADMIN_TD, color: "#5B6B8C", whiteSpace: "nowrap" }}>
                 {lastSignIn(row.lastSignInAt)}
               </td>
-              <td className="px-4 py-3">
+              <td style={ADMIN_TD}>
                 <RowControls row={row} isSelf={row.id === currentProfileId} />
               </td>
             </tr>

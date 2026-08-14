@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { saveContentEntry } from '@/lib/actions/content';
 import type { ContentKey } from '@/lib/schemas/content';
 import { t } from '@/lib/i18n';
+import { ADMIN_FIELD_ROW, ADMIN_FIELD, ADMIN_PRIMARY, ADMIN_ERROR } from './chrome';
 
 /**
  * One `site_content` field: a label, a textarea and its own Save button.
@@ -40,26 +41,26 @@ export default function TextAreaField({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-1">
-      <label className="flex flex-col gap-1 text-sm text-navy" htmlFor={`content-${fieldKey}`}>
+    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <label style={ADMIN_FIELD_ROW} htmlFor={`content-${fieldKey}`}>
         {label}
         <textarea
           id={`content-${fieldKey}`}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           rows={label.length > 40 ? 4 : 2}
-          className="rounded border border-hairline px-2 py-1 text-sm text-navy"
+          style={ADMIN_FIELD}
         />
       </label>
-      <div className="flex items-center gap-2">
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <button
           type="submit"
           disabled={pending}
-          className="self-start rounded bg-primary px-3 py-1 text-xs text-surface"
+          className="proto-primary-button" style={{ ...ADMIN_PRIMARY, alignSelf: "flex-start" }}
         >
           {t('admin.content.save')}
         </button>
-        {error ? <span className="text-xs text-danger">{error}</span> : null}
+        {error ? <span style={ADMIN_ERROR}>{error}</span> : null}
       </div>
     </form>
   );

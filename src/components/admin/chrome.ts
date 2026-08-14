@@ -102,7 +102,97 @@ export const ADMIN_TH = {
 /** Table body cell, reference line 1276. */
 export const ADMIN_TD = {
   fontSize: 13,
-  padding: '11px 0',
-  borderTop: '1px solid #F1F4FA',
+  padding: '12px 20px',
   verticalAlign: 'top',
+} as const;
+
+/** The table itself, inside ADMIN_TABLE_PANEL. */
+export const ADMIN_TABLE = {
+  width: '100%',
+  minWidth: 720,
+  borderCollapse: 'collapse',
+  textAlign: 'left',
+} as const;
+
+/** The 13px-radius white panel a table sits in, reference line 803. */
+export const ADMIN_TABLE_PANEL = {
+  marginTop: 16,
+  background: '#fff',
+  border: '1px solid #DDE5EE',
+  borderRadius: 13,
+  overflowX: 'auto',
+} as const;
+
+/** The #F4F6F9 strip behind a table's column labels, reference line 804. */
+export const ADMIN_THEAD_ROW = {
+  background: '#F4F6F9',
+  borderBottom: '1px solid #DDE5EE',
+} as const;
+
+/** A body row's hairline rule, reference line 812. */
+export const ADMIN_TR = {
+  borderBottom: '1px solid #F1F4FA',
+} as const;
+
+/**
+ * A label stacked over its control. The control inherits this micro-type, so
+ * ADMIN_FIELD resets weight, case and tracking rather than trusting a browser
+ * default to undo them.
+ */
+export const ADMIN_FIELD_ROW = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 6,
+  fontSize: 11.5,
+  fontWeight: 800,
+  color: '#5B6B8C',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+} as const;
+
+/** Field-level error text. */
+export const ADMIN_ERROR = {
+  fontSize: 12,
+  fontWeight: 600,
+  color: '#C0392B',
+  textTransform: 'none',
+  letterSpacing: 'normal',
+} as const;
+
+/** Muted helper text under a control. */
+export const ADMIN_HELP = {
+  fontSize: 12,
+  color: '#5B6B8C',
+  fontWeight: 400,
+  textTransform: 'none',
+  letterSpacing: 'normal',
+  lineHeight: 1.5,
+} as const;
+
+/** A settings/content section: the panel, stacked. */
+export const ADMIN_PANEL_COL = {
+  background: '#fff',
+  border: '1px solid #DDE5EE',
+  borderRadius: 13,
+  padding: 22,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 14,
+} as const;
+
+/** A small inline action, reference line 834. */
+export const ADMIN_LINK_ACTION = {
+  background: 'none',
+  border: 'none',
+  color: '#1F5FBF',
+  fontSize: 12.5,
+  fontWeight: 800,
+  cursor: 'pointer',
+  padding: 0,
+} as const;
+
+/** The destructive twin of ADMIN_LINK_ACTION, reference line 835. */
+export const ADMIN_LINK_DANGER = {
+  ...ADMIN_LINK_ACTION,
+  color: '#C0392B',
 } as const;

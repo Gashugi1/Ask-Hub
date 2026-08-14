@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { t } from '@/lib/i18n';
+import { ADMIN_PANEL_COL, ADMIN_FIELD_ROW, ADMIN_FIELD, ADMIN_PRIMARY, ADMIN_LINK_ACTION } from './chrome';
 import {
   AUDIT_ACTIONS,
   isClearedFilters,
@@ -20,23 +21,23 @@ export default function AuditFilters({ filters }: { filters: AuditFiltersState }
     <form
       method="get"
       action="/admin/audit"
-      className="flex flex-wrap items-end gap-3 rounded border border-hairline p-3"
+      style={{ ...ADMIN_PANEL_COL, flexDirection: "row", flexWrap: "wrap", alignItems: "flex-end", gap: 12 }}
     >
-      <label className="flex flex-col gap-1 text-xs text-muted">
+      <label style={ADMIN_FIELD_ROW}>
         {t('admin.audit.filterActor')}
         <input
           type="text"
           name="actor"
           defaultValue={filters.actor === 'all' ? '' : filters.actor}
-          className="rounded border border-hairline px-2 py-1 text-sm text-navy"
+          style={ADMIN_FIELD}
         />
       </label>
-      <label className="flex flex-col gap-1 text-xs text-muted">
+      <label style={ADMIN_FIELD_ROW}>
         {t('admin.audit.filterAction')}
         <select
           name="action"
           defaultValue={filters.action}
-          className="rounded border border-hairline px-2 py-1 text-sm text-navy"
+          style={ADMIN_FIELD}
         >
           <option value="all">{t('admin.resources.filterAll')}</option>
           {AUDIT_ACTIONS.map((action) => (
@@ -46,29 +47,29 @@ export default function AuditFilters({ filters }: { filters: AuditFiltersState }
           ))}
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-xs text-muted">
+      <label style={ADMIN_FIELD_ROW}>
         {t('admin.audit.filterFrom')}
         <input
           type="date"
           name="from"
           defaultValue={filters.from ?? ''}
-          className="rounded border border-hairline px-2 py-1 text-sm text-navy"
+          style={ADMIN_FIELD}
         />
       </label>
-      <label className="flex flex-col gap-1 text-xs text-muted">
+      <label style={ADMIN_FIELD_ROW}>
         {t('admin.audit.filterTo')}
         <input
           type="date"
           name="to"
           defaultValue={filters.to ?? ''}
-          className="rounded border border-hairline px-2 py-1 text-sm text-navy"
+          style={ADMIN_FIELD}
         />
       </label>
-      <button type="submit" className="rounded bg-primary px-3 py-1.5 text-sm text-surface">
+      <button type="submit" className="proto-primary-button" style={ADMIN_PRIMARY}>
         {t('admin.resources.applyFilters')}
       </button>
       {!isClearedFilters(filters) ? (
-        <Link href="/admin/audit" className="text-sm text-muted underline">
+        <Link href="/admin/audit" style={{ ...ADMIN_LINK_ACTION, color: "#5B6B8C", textDecoration: "underline" }}>
           {t('filter.clear')}
         </Link>
       ) : null}
