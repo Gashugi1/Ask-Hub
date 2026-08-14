@@ -219,3 +219,9 @@ button {
   border-color: #f06428;
   color: #fff;
 }
+
+/* Welcome band CTA, prototype line 45: the accent button brightens on hover
+   rather than shifting hue, so the navy-on-orange contrast ratio holds. */
+.proto-accent-button:hover {
+  filter: brightness(1.06);
+}

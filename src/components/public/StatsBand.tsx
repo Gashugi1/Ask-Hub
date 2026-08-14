@@ -32,20 +32,38 @@ const HERO_LIMIT = 4;
  * An editor who ticks nothing now gets no strip, which is visible and is fixed
  * by ticking a box; the fallback's failure was invisible and disagreed with
  * the spec.
+ *
+ * **This band has no counterpart in the prototype.** The prototype's home page
+ * goes straight from the welcome band to the storefront column with no reach
+ * strip at all, so there are no lines to transcribe. It is kept because PRD
+ * 5.1 item 2 requires it and removing it would be deleting a feature, not
+ * restyling one -- and in practice it is invisible today, since no stat is
+ * ticked as hero. What is taken from the prototype is its vocabulary rather
+ * than a specific element: the 1280px measure the home page uses, the #F4F6F9
+ * panel, an 800-weight figure in the primary blue, and a 13px #5B6B8C label.
  */
 export default function StatsBand({ stats }: { stats: PublicStat[] }) {
   const shown = stats.filter((s) => s.isHero).slice(0, HERO_LIMIT);
   if (shown.length === 0) return null;
 
   return (
-    <section className="bg-tint-1">
-      <div className="mx-auto max-w-6xl px-4 py-10">
+    <section style={{ background: '#F4F6F9' }}>
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '22px 28px' }}>
         <h2 className="sr-only">{t('home.statsHeading')}</h2>
-        <dl className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <dl
+          style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(auto-fit, minmax(200px, 1fr))`,
+            gap: 14,
+            margin: 0,
+          }}
+        >
           {shown.map((s) => (
             <div key={s.id}>
-              <dt className="text-3xl font-semibold text-primary">{s.value}</dt>
-              <dd className="mt-1 text-sm text-muted">{s.label}</dd>
+              <dt style={{ fontSize: 26, fontWeight: 800, color: '#1F5FBF' }}>{s.value}</dt>
+              <dd style={{ margin: '4px 0 0 0', fontSize: 13, color: '#5B6B8C' }}>
+                {s.label}
+              </dd>
             </div>
           ))}
         </dl>
