@@ -236,6 +236,12 @@ button {
   box-shadow: 0 12px 36px rgb(0 60 100 / 0.18);
 }
 
+/* Recently-added rail card, prototype line 148. */
+.proto-rail-card:hover {
+  border-color: #1f5fbf;
+  box-shadow: 0 6px 20px rgb(0 60 100 / 0.1);
+}
+
 /*
  * Partner marquee, prototype lines 140-142. The track holds two copies of the
  * list and travels -50%, so the second copy lands exactly where the first
