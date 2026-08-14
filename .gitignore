@@ -50,3 +50,6 @@ next-env.d.ts
 
 # Local Claude Code session state and settings
 /.claude/
+
+# screenshot comparison output
+tmp/
