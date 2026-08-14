@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+/*
+ * Outfit is self-hosted (not next/font/google, not a Google Fonts <link>)
+ * to keep a third-party round trip off the critical rendering path — see
+ * PRD §11 and CLAUDE.md's font preload note. Both files are the variable
+ * font (weight axis 100-900) subset by Unicode range, mirroring how the
+ * prototype itself served Outfit.
+ */
+@font-face {
+  font-family: 'Outfit';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/outfit-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+    U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+    U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Outfit';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/outfit-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7,
+    U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+/*
+ * Design tokens. CLAUDE.md: no hardcoded colours or type values outside
+ * this block — everything downstream (Tailwind utilities, components)
+ * consumes these via `bg-primary`, `text-navy`, `shadow-card`, etc.
+ *
+ * tests/structure/app-structure.test.ts's colour guard is narrowed to
+ * allow colour literals only inside this @theme block; a colour anywhere
+ * else in the repo still fails that guard.
+ */
+@theme {
+  --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+
+  --color-primary: #1F5FBF;
+  --color-navy: #1A2332;
+  --color-deep-blue: #003D60;
+  --color-orange: #F06428;
+  --color-hairline: #DDE5EE;
+  /* PRD §11's "Surface" row — the body background, so the colour guard
+     (no hardcoded colour outside @theme) has a token to point at instead
+     of a raw hex in the `body` rule below. */
+  --color-surface: #FFFFFF;
+  --color-muted: #42506E;
+  --color-muted-light: #5B6B8C;
+  --color-tint-1: #EEF2FB;
+  --color-tint-2: #F1F4FA;
+  --color-tint-3: #C9D3E8;
+  --color-danger: #C0392B;
+  --color-danger-bg: #FBEAE8;
+
+  --color-need-compute: #1F5FBF;
+  --color-need-compute-bg: #EAEFFB;
+  --color-need-training: #0E7A8A;
+  --color-need-training-bg: #E6F3F5;
+  --color-need-funding: #B4691F;
+  --color-need-funding-bg: #F9F0E4;
+  --color-need-accelerator: #6C3FA8;
+  --color-need-accelerator-bg: #F1EAF9;
+  --color-need-partners: #0E7A54;
+  --color-need-partners-bg: #E7F4EE;
+
+  /* PRD §11: "#003C64 at 8%, x0 y2 blur 20". */
+  --shadow-card: 0 2px 20px rgb(0 60 100 / 0.08);
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-surface);
+  color: var(--color-navy);
+}
