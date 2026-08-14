@@ -164,6 +164,8 @@
   "admin.login.submit": "Sign in",
   "admin.login.failed": "That email address and password did not match an active account.",
   "admin.login.noSignup": "Accounts are created by an administrator. There is no sign-up.",
+  "admin.login.teamAdmin": "Team admin",
+  "admin.login.backToSite": "← Back to AskHub",
   "admin.dashboard.heading": "Dashboard",
   "admin.dashboard.resourcesLive": "Resources live",
   "admin.dashboard.resourcesPipeline": "In pipeline",
