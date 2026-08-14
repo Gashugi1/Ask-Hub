@@ -242,6 +242,20 @@ button {
   box-shadow: 0 6px 20px rgb(0 60 100 / 0.1);
 }
 
+/* Directory card, prototype line 253. */
+.proto-card:hover {
+  border-color: #1f5fbf;
+  box-shadow: 0 6px 20px rgb(0 60 100 / 0.1);
+}
+
+/* The prototype animates each card in with fadeUp. Honour a reduced-motion
+   request by showing them already settled rather than sliding. */
+@media (prefers-reduced-motion: reduce) {
+  .proto-card {
+    animation: none !important;
+  }
+}
+
 /*
  * Partner marquee, prototype lines 140-142. The track holds two copies of the
  * list and travels -50%, so the second copy lands exactly where the first
