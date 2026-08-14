@@ -230,3 +230,35 @@ button {
 .proto-dept-item:hover {
   background: #f1f4fa;
 }
+
+/* Featured card, prototype line 88: the shadow lifts on hover. */
+.proto-feature-card:hover {
+  box-shadow: 0 12px 36px rgb(0 60 100 / 0.18);
+}
+
+/*
+ * Partner marquee, prototype lines 140-142. The track holds two copies of the
+ * list and travels -50%, so the second copy lands exactly where the first
+ * began and the loop does not snap.
+ *
+ * Anyone who has asked for less motion gets a scrollable row instead of a
+ * moving one. The prototype animates unconditionally; a strip that never
+ * stops is precisely what prefers-reduced-motion exists to answer.
+ */
+.proto-marquee-track {
+  animation: marquee 28s linear infinite;
+}
+
+.proto-marquee-item:hover {
+  opacity: 0.75;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proto-marquee {
+    overflow-x: auto;
+  }
+
+  .proto-marquee-track {
+    animation: none;
+  }
+}

@@ -2,7 +2,27 @@ import { t } from '@/lib/i18n';
 import type { PublicPartner } from '@/lib/public/types';
 
 /**
- * PRD 5.1 item 6: each logo links to the partner's own official site.
+ * Transcribed from the approved prototype, docs/prototype/prototype.html
+ * lines 130-142: a cyan eyebrow and one line of explanation over a bordered
+ * white strip in which the partners scroll continuously.
+ *
+ * PRD 5.1 item 6: each logo links to the partner's own official site, and
+ * calls this a "scrolling partner logo row". The prototype implements that
+ * literally, with `@keyframes marquee` rather than `overflow-x: auto` -- the
+ * row moves on its own instead of waiting to be dragged.
+ *
+ * **The list is rendered twice.** `marquee` translates the track by -50%, so
+ * at the end of the animation the second copy sits exactly where the first
+ * began and the loop is seamless. With a single copy the row would visibly
+ * snap back. The duplicate is `aria-hidden` and its links are removed from
+ * the tab order: it is the same information twice, and a screen reader or a
+ * keyboard user should meet each partner once.
+ *
+ * **Motion is opt-out.** `prefers-reduced-motion` stops the animation and
+ * restores normal horizontal scrolling, so the band stays usable for anyone
+ * who has asked the system for less movement -- the prototype does not do
+ * this, and a continuously moving strip is exactly what that setting exists
+ * for.
  *
  * The rows reaching this band are the AI Hub's own partners, already
  * narrowed by `partners_public` (0019_ai_hub_partners.sql filters it on
@@ -19,48 +39,98 @@ import type { PublicPartner } from '@/lib/public/types';
 export default function PartnerRow({ partners }: { partners: PublicPartner[] }) {
   if (partners.length === 0) return null;
 
+  const track = (duplicate: boolean) =>
+    partners.map((partner) => {
+      const body = (
+        <>
+          {partner.logoUrl ? (
+            // Partner logos are arbitrary remote hosts, so next/image
+            // would need each one allow-listed in next.config.ts; SP4
+            // owns the image policy. The directive must sit on the
+            // line immediately above the <img>, not above this
+            // explanation, or it suppresses nothing and reports itself
+            // as unused.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img style={{ height: 26, width: 'auto' }} src={partner.logoUrl} alt="" />
+          ) : null}
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 800,
+              color: '#5B6B8C',
+              letterSpacing: '0.04em',
+            }}
+          >
+            {partner.name}
+          </span>
+        </>
+      );
+
+      return partner.websiteUrl ? (
+        <a
+          key={`${partner.name}-${duplicate}`}
+          href={partner.websiteUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          tabIndex={duplicate ? -1 : undefined}
+          className="proto-marquee-item"
+          style={MARQUEE_ITEM}
+        >
+          {body}
+        </a>
+      ) : (
+        <span key={`${partner.name}-${duplicate}`} style={MARQUEE_ITEM}>
+          {body}
+        </span>
+      );
+    });
+
   return (
-    <section className="border-y border-hairline bg-surface">
-      <div className="mx-auto max-w-6xl px-4 py-10">
-        <h2 className="text-eyebrow font-semibold uppercase text-eyebrow">
-          {t('home.partnersHeading')}
-        </h2>
-        {/* PRD 5.1 item 6 calls this a "scrolling partner logo row". It was
-            a `flex-wrap` block, which reflows onto a second line instead of
-            scrolling once the logos outrun the measure. `overflow-x-auto`
-            with `shrink-0` items is the scrolling row it asks for, and it
-            keeps the band one logo tall at every width rather than growing
-            downward on narrow screens. */}
-        <ul className="mt-6 flex items-center gap-8 overflow-x-auto pb-2">
-          {partners.map((partner) => (
-            <li key={partner.name} className="shrink-0">
-              {partner.websiteUrl ? (
-                <a
-                  href={partner.websiteUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center text-navy"
-                >
-                  {partner.logoUrl ? (
-                    // Partner logos are arbitrary remote hosts, so next/image
-                    // would need each one allow-listed in next.config.ts; SP4
-                    // owns the image policy. The directive must sit on the
-                    // line immediately above the <img>, not above this
-                    // explanation, or it suppresses nothing and reports itself
-                    // as unused.
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img className="h-8 w-auto" src={partner.logoUrl} alt={partner.name} />
-                  ) : (
-                    partner.name
-                  )}
-                </a>
-              ) : (
-                <span className="text-navy">{partner.name}</span>
-              )}
-            </li>
-          ))}
-        </ul>
+    <section>
+      <h2
+        style={{
+          margin: 0,
+          fontSize: 11,
+          fontWeight: 800,
+          color: '#2E9BD6',
+          textTransform: 'uppercase',
+          letterSpacing: '0.1em',
+        }}
+      >
+        {t('home.partnersHeading')}
+      </h2>
+      <div style={{ fontSize: 12, color: '#5B6B8C', marginTop: 3 }}>
+        {t('home.partnersSubtitle')}
+      </div>
+
+      <div
+        className="proto-marquee"
+        style={{
+          background: '#fff',
+          border: '1px solid #DDE5EE',
+          borderRadius: 12,
+          padding: '12px 0',
+          overflow: 'hidden',
+          marginTop: 12,
+        }}
+      >
+        <div className="proto-marquee-track" style={{ display: 'flex', width: 'max-content' }}>
+          {track(false)}
+          <span aria-hidden="true" style={{ display: 'contents' }}>
+            {track(true)}
+          </span>
+        </div>
       </div>
     </section>
   );
 }
+
+const MARQUEE_ITEM = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 9,
+  padding: '4px 26px',
+  borderRight: '1px solid #F1F4FA',
+  whiteSpace: 'nowrap',
+  textDecoration: 'none',
+} as const;

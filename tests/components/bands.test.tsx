@@ -131,8 +131,15 @@ describe('PartnerRow', () => {
   it('renders the partner name when no logo has been uploaded yet', () => {
     // Logos are a client deliverable. A name-only row is the correct state
     // until they arrive, not a gap to hide the whole band for.
+    //
+    // The name appears twice because the marquee travels -50% and needs a
+    // second copy of the list to land on, or the loop snaps back visibly.
+    // Asserting the count pins that: one copy would break the animation,
+    // three would be a bug. The duplicate must stay out of the accessibility
+    // tree, so a screen reader meets each partner once.
     render(<PartnerRow partners={[partner({ name: 'AfriLabs' })]} />);
-    expect(screen.getByText('AfriLabs')).toBeDefined();
+    expect(screen.getAllByText('AfriLabs')).toHaveLength(2);
+    expect(document.querySelectorAll('[aria-hidden="true"]').length).toBeGreaterThan(0);
   });
 
   it('renders the logo and links it to the partner site once both exist', () => {
@@ -205,10 +212,16 @@ describe('FeaturedCarousel', () => {
     expect(screen.getAllByRole('article')).toHaveLength(1);
   });
 
-  it('orders the rail by sort order rather than by arrival', () => {
-    // PRD 5.1 item 5's rail is curated: `sort_order` is what the admin screen
-    // sets to arrange it. Without the sortResources call the rail would render
-    // in whatever order the reader happened to return.
+  it('orders the band by sort order rather than by arrival', () => {
+    // PRD 5.1 item 5's band is curated: `sort_order` is what the admin screen
+    // sets to arrange it. Without the sortResources call it would render in
+    // whatever order the reader happened to return.
+    //
+    // The band now shows one card at a time behind dots, matching the
+    // prototype, so order shows up in two places rather than one: which card
+    // opens first, and the order of the dots that reach the rest. Both are
+    // asserted, because a component that sorted only the dots would still be
+    // wrong.
     render(
       <FeaturedCarousel
         resources={[
@@ -217,7 +230,8 @@ describe('FeaturedCarousel', () => {
         ]}
       />,
     );
-    const names = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
-    expect(names).toEqual(['First in the rail', 'Second in the rail']);
+    expect(screen.getByRole('heading', { level: 3 }).textContent).toBe('First in the rail');
+    const dots = screen.getAllByRole('button').map((b) => b.getAttribute('aria-label'));
+    expect(dots).toEqual(['First in the rail', 'Second in the rail']);
   });
 });
