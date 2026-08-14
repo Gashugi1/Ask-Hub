@@ -3,6 +3,23 @@ import { deadlineInfo, EXPIRING_SOON_DAYS } from '@/lib/deadline';
 
 const TODAY = new Date('2026-07-26T12:00:00Z');
 
+/**
+ * Scope of this file, stated so it is not miscounted as product coverage:
+ * these seven cases pin `deadlineInfo`'s arithmetic and its label lookup,
+ * with an injected clock. They prove nothing about any screen.
+ *
+ * The module is not dead code — src/lib/admin/resource-view.ts,
+ * src/lib/admin/readers.ts and src/components/admin/ResourceTable.tsx all
+ * call it — and the behaviour that reaches a user is covered where those
+ * consumers are: tests/unit/admin-resource-view.test.ts for the Expiring
+ * soon / Closed tabs, and tests/rls/admin-dashboard-counts.test.ts for the
+ * Dashboard's "Deadlines within 14 days" card. If this file is ever the only
+ * thing importing `@/lib/deadline` again, that is a finding, not a detail.
+ *
+ * Note that `'expiring'` is an admin-only state. The public surface does not
+ * have one: it reads `is_closed`/`days_left` from `resources_public` and
+ * formats them via src/lib/public/deadline-label.ts.
+ */
 describe('deadlineInfo', () => {
   it('treats a null deadline as rolling', () => {
     const r = deadlineInfo(null, TODAY);

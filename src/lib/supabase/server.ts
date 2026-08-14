@@ -2,6 +2,7 @@ import 'server-only';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import type { Database } from './database.types';
+import { supabaseUrlFromEnv } from './env';
 
 /**
  * Request-scoped client carrying the caller's session from httpOnly cookies
@@ -11,8 +12,7 @@ import type { Database } from './database.types';
  */
 export async function createServerSupabase() {
   // Named, not valued. Never interpolate a key into a thrown message.
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!url) throw new Error('NEXT_PUBLIC_SUPABASE_URL is not set');
+  const url = supabaseUrlFromEnv();
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!anonKey) throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set');
   const cookieStore = await cookies();

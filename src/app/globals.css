@@ -59,11 +59,53 @@
   --color-danger: #C0392B;
   --color-danger-bg: #FBEAE8;
 
+  /* PRD §11 typography: "Section eyebrow labels: bright cyan-blue, small,
+     uppercase, letter-spaced". The PRD names the hue but gives no value, in
+     the same way it leaves the primary blue as "exact value to confirm".
+     This is that placeholder: sampled from the prototype's eyebrow labels
+     and held here as a token so confirming it later is a one-line change
+     rather than a sweep. Contrast against --color-surface is 3.59:1: that
+     clears WCAG AA for large text (3:1) but NOT for normal body copy
+     (4.5:1), so this token is only ever an eyebrow/label colour. Sampling
+     the prototype's lighter cyan (#29A8DF) directly gave 2.71:1, which
+     fails even the large-text bar — hence the darkened value here. */
+  --color-eyebrow: #1B8FCC;
+
+  /* The same eyebrow role on the dark welcome band. It cannot be the token
+     above: the band is a navy -> deep-blue gradient, and the deep-blue end
+     is the lighter of the two, so it — not the navy — is the worst case for
+     a light foreground. --color-eyebrow lands at 3.18:1 there, under the
+     4.5:1 normal-text bar; this lighter cyan holds 6.01:1 against that same
+     worst case (8.29:1 against the navy end). */
+  --color-eyebrow-on-dark: #5CC8F5;
+
+  /* PRD 4.15's `digest_sent` audit badge is the one action with no colour
+     family of its own (published/approved green, edited/created blue,
+     deleted/rejected red and role_changed amber all reuse an existing
+     token below) — a plain grey with no blue or brand tint, so it reads as
+     "neutral" rather than borrowing a hue that means something else. */
+  --color-neutral: #5A6472;
+  --color-neutral-bg: #EEF0F3;
+
+  /* PRD §11 fixes the five hues (compute blue, training teal, funding amber,
+     accelerator purple, partners green) but leaves the exact values to be
+     derived here, and requires them to stay consistent between public cards
+     and admin charts.
+
+     `training` and `funding` are darkened from their first derivation
+     (#0E7A8A and #B4691F). Each is used as `text-need-<key>` on its own
+     `-bg` in NeedBadge, and at those two original values that pairing
+     measured 4.44:1 and 3.74:1 — both under the WCAG AA 4.5:1 bar for the
+     badge's normal-size text. The replacements hold the same hue and
+     saturation and only drop lightness, reaching 4.69:1 and 4.65:1. Both
+     also clear 4.5:1 against white, which is what lets ResourceCard use the
+     same tokens as a solid header behind white text; the other three
+     already did. */
   --color-need-compute: #1F5FBF;
   --color-need-compute-bg: #EAEFFB;
-  --color-need-training: #0E7A8A;
+  --color-need-training: #0E7685;
   --color-need-training-bg: #E6F3F5;
-  --color-need-funding: #B4691F;
+  --color-need-funding: #9E5C1B;
   --color-need-funding-bg: #F9F0E4;
   --color-need-accelerator: #6C3FA8;
   --color-need-accelerator-bg: #F1EAF9;
@@ -72,6 +114,27 @@
 
   /* PRD §11: "#003C64 at 8%, x0 y2 blur 20". */
   --shadow-card: 0 2px 20px rgb(0 60 100 / 0.08);
+
+  /* PRD §11 typography: "H2 approximately 37px, line-height approximately
+     1.15, letter-spacing 0". Held as tokens rather than reached for as
+     Tailwind's generic `text-xl`/`text-4xl` steps, because CLAUDE.md bars
+     hardcoded type values just as it bars hardcoded colours — the section
+     headings were rendering at text-xl (20px), a little over half the
+     specified size.
+
+     --text-h1 is not in the PRD. It is set one major-third step above h2
+     so the hero still outranks a section heading; if the client supplies a
+     real display size, this is the single line to change. */
+  --text-h1: 3.0625rem;
+  --text-h1--line-height: 1.1;
+  --text-h2: 2.3125rem;
+  --text-h2--line-height: 1.15;
+  --text-h2--letter-spacing: 0;
+
+  /* PRD §11: "Section eyebrow labels: ... small, uppercase, letter-spaced". */
+  --text-eyebrow: 0.8125rem;
+  --text-eyebrow--line-height: 1.2;
+  --text-eyebrow--letter-spacing: 0.08em;
 }
 
 body {

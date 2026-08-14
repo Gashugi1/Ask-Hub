@@ -77,6 +77,34 @@ describe('route structure', () => {
     expect(routes()['/(admin)/admin/login/page']).toBe('/admin/login');
   });
 
+  it('serves the admin resources table at /admin/resources', () => {
+    expect(routes()['/(admin)/admin/resources/page']).toBe('/admin/resources');
+  });
+
+  it('serves the new-resource form at /admin/resources/new', () => {
+    expect(routes()['/(admin)/admin/resources/new/page']).toBe('/admin/resources/new');
+  });
+
+  it('serves the site content screen at /admin/content', () => {
+    expect(routes()['/(admin)/admin/content/page']).toBe('/admin/content');
+  });
+
+  it('serves the admin-only settings screen at /admin/settings', () => {
+    expect(routes()['/(admin)/admin/settings/page']).toBe('/admin/settings');
+  });
+
+  it('serves the edit-resource form at /admin/resources/[id]', () => {
+    expect(routes()['/(admin)/admin/resources/[id]/page']).toBe('/admin/resources/[id]');
+  });
+
+  it('serves the admin-only users screen at /admin/users', () => {
+    expect(routes()['/(admin)/admin/users/page']).toBe('/admin/users');
+  });
+
+  it('serves the admin audit log at /admin/audit', () => {
+    expect(routes()['/(admin)/admin/audit/page']).toBe('/admin/audit');
+  });
+
   it('exposes the health route handler at /api/health', () => {
     expect(routes()['/api/health/route']).toBe('/api/health');
   });
@@ -87,37 +115,75 @@ describe('route structure', () => {
     }
   });
 
-  it('builds no public page beyond the placeholder home', () => {
-    // PRD 5 lists directory, resource detail, about, contact, privacy,
-    // terms and impact. All are SP2. If one appears here, scope has crept.
+  it('serves about, privacy and terms from the (public) group', () => {
+    expect(routes()['/(public)/about/page']).toBe('/about');
+    expect(routes()['/(public)/privacy/page']).toBe('/privacy');
+    expect(routes()['/(public)/terms/page']).toBe('/terms');
+  });
+
+  it('builds /impact even though it returns 404 at runtime', () => {
+    // PRD 5.7: the page is built and gated behind feature_public_impact_page,
+    // which is off at launch. The gate lives in the page (it calls notFound()
+    // when the flag is false), not in the route table — so its presence here
+    // is correct, and its absence would mean the page had been deleted rather
+    // than gated. tests/components/impact-gate.test.ts covers the 404 itself.
+    expect(routes()['/(public)/impact/page']).toBe('/impact');
+  });
+
+  it('serves resource detail from the (public) group at /resources/[id]', () => {
+    expect(routes()['/(public)/resources/[id]/page']).toBe('/resources/[id]');
+  });
+
+  it('keeps resource detail resolvable for rows published after the build', () => {
+    // generateStaticParams pre-renders the resources that were live at build
+    // time, but a resource published from the admin portal afterwards must
+    // still resolve without a rebuild. That depends on dynamicParams staying
+    // at its default of true, which shows up as the segment appearing in
+    // prerender-manifest.json's dynamicRoutes. Setting dynamicParams = false
+    // would leave the pre-rendered ids working and 404 every later one — a
+    // failure that is invisible until the client publishes something.
+    const manifest = JSON.parse(
+      readFileSync('.next/prerender-manifest.json', 'utf8'),
+    ) as { dynamicRoutes?: Record<string, unknown> };
+    expect(Object.keys(manifest.dynamicRoutes ?? {})).toContain('/resources/[id]');
+  });
+
+  it('builds only the public pages SP2a owns', () => {
+    // PRD 5's full public surface. Anything else appearing here means scope
+    // has crept — the alerts and suggest-a-resource modals are SP2b, and there
+    // is deliberately no /directory route because PRD 5.1 item 8 puts the
+    // directory on the home page, where the query string is the shareable
+    // filter state.
+    //
+    // /contact is PRD 9.1's contact form (name, email, message), added on the
+    // client's request that the public surface match the prototype, which has
+    // a Contact view of its own. Only the storage half exists: §9.1 also
+    // requires the message be delivered to the mailbox with reply-to set,
+    // rate limited and spam protected, and §9.4 makes delivery wait on a
+    // transactional email provider that has not been chosen. The row lands in
+    // contact_messages with delivered_at null, which is what marks it
+    // undelivered rather than silently claiming it was sent.
     const publicUrls = Object.entries(routes())
       .filter(([source]) => source.startsWith('/(public)/'))
       .map(([, url]) => url);
-    expect(publicUrls.sort()).toEqual(['/']);
+    expect(publicUrls.sort()).toEqual([
+      '/',
+      '/about',
+      '/contact',
+      '/impact',
+      '/privacy',
+      '/resources/[id]',
+      '/terms',
+    ]);
   });
 });
 
-describe('placeholder pages', () => {
-  const PLACEHOLDERS = [
-    'src/app/(public)/page.tsx',
-    'src/app/(admin)/admin/page.tsx',
-    'src/app/(admin)/admin/login/page.tsx',
-  ];
-
-  for (const file of PLACEHOLDERS) {
-    it(`${file} renders no text`, () => {
-      const code = readFileSync(file, 'utf8')
-        .replace(/\/\*[\s\S]*?\*\//g, '')
-        .replace(/\/\/.*$/gm, '');
-      // A self-closing element structurally cannot contain a text node, so
-      // these two assertions together are exact rather than heuristic: the
-      // only JSX is <main data-route="..." />, and nothing has children.
-      // Any text node here would be an unlocalised user-facing string.
-      expect(code).toMatch(/<main data-route="[^"]+" \/>/);
-      expect(code, 'placeholder renders an element with children').not.toMatch(/<\/[a-zA-Z]/);
-    });
-  }
-});
+// Both admin placeholders became real screens in SP3 Task 2. Nothing under
+// src/app is a placeholder any more, so the former `describe('placeholder
+// pages', ...)` block — which looped over a PLACEHOLDERS array to build its
+// `it`s — is removed rather than kept with an empty array: Vitest treats a
+// `describe` that registers zero tests as a failure ("No test found in
+// suite"), so an inert loop is not actually harmless here.
 
 describe('route handler and server action placement', () => {
   it('keeps server actions out of the route tree', () => {
@@ -134,14 +200,81 @@ describe('route handler and server action placement', () => {
     ).toEqual([]);
   });
 
-  it('documents why server actions live outside the route tree', () => {
-    expect(existsSync('src/lib/actions/README.md')).toBe(true);
+  it('documents why server actions live outside the route tree, and the rules that apply there', () => {
+    // This used to be `expect(existsSync(...)).toBe(true)`, which truncating
+    // the file to zero bytes passed — the exact shape the test above declines
+    // to use, sitting ten lines below it.
+    //
+    // A doc cannot guard an invariant, so this does not pretend to. What it
+    // guards is that the written contract for src/lib/actions still states
+    // every rule a *machine* guard enforces elsewhere, because each of those
+    // guards fails with a message that assumes the reader can go and find out
+    // why the rule exists. Delete the paragraph and the guard survives with
+    // its reason gone; that is what this catches.
+    const readme = readFileSync('src/lib/actions/README.md', 'utf8');
+
+    // The placement reason, which is the thing the file is named for.
+    for (const reason of ['src/app/api', 'route.ts']) {
+      expect(readme, `the README no longer explains the placement in terms of ${reason}`).toContain(
+        reason,
+      );
+    }
+
+    // One entry per rule that a test in tests/structure asserts against the
+    // action modules themselves. The comment names the enforcing guard so a
+    // failure here is traceable to what it leaves unexplained.
+    const enforcedRules: [rule: string, enforcedBy: string][] = [
+      ['requireRole', 'tests/structure/action-role-checks.test.ts'],
+      ['revalidateTag', 'tests/structure/revalidation-contract.test.ts'],
+      ['createAdminSupabase', 'tests/structure/service-role-containment.test.ts'],
+      ['audit_log', 'the append-only policies in tests/rls'],
+      ['Zod', 'the schema suites in tests/unit'],
+    ];
+    for (const [rule, enforcedBy] of enforcedRules) {
+      expect(
+        readme,
+        `${rule} is enforced by ${enforcedBy} but is no longer explained in ` +
+          `src/lib/actions/README.md`,
+      ).toContain(rule);
+    }
   });
 
-  it('documents which sub-project adds each api endpoint', () => {
+  it('documents every api endpoint that exists, and names the sub-project adding each planned one', () => {
     const readme = readFileSync('src/app/api/README.md', 'utf8');
+
+    // The half that guards rather than describes: every route handler the
+    // build actually produced must be documented. A `toContain('events')`
+    // check is satisfied by the word appearing anywhere in prose, and says
+    // nothing at all about the endpoints that exist.
+    const live = Object.values(routes()).filter((url) => url.startsWith('/api/'));
+    expect(live.length, 'no /api route in the manifest — this assertion would be vacuous').
+      toBeGreaterThan(0);
+    for (const url of live) {
+      expect(readme, `${url} is built but undocumented in src/app/api/README.md`).toContain(url);
+    }
+
+    // The planned ones, each of which must appear as a real table row whose
+    // third column names the sub-project that adds it. Read as cells rather
+    // than as a regex over the whole line: the notes column mentions SP5 for
+    // the contact endpoint's email delivery, so a line-wide `.*SP\d` is
+    // satisfied by a row whose sub-project cell has been emptied — which is
+    // precisely the "matched something, guarded nothing" failure this file is
+    // being cleaned of.
+    const cellsOf = (endpoint: string): string[] => {
+      const line = readme
+        .split('\n')
+        .find((row) => row.includes(`\`POST /api/${endpoint}\``));
+      return line ? line.split('|').map((cell) => cell.trim()) : [];
+    };
     for (const endpoint of ['events', 'contact', 'submissions', 'subscribers']) {
-      expect(readme, `README does not mention ${endpoint}`).toContain(endpoint);
+      const cells = cellsOf(endpoint);
+      expect(cells[1], `/api/${endpoint} has no row in the endpoint table`).toBe(
+        `\`POST /api/${endpoint}\``,
+      );
+      expect(
+        cells[3],
+        `/api/${endpoint} does not name the sub-project that adds it`,
+      ).toMatch(/^SP\d$/);
     }
   });
 });

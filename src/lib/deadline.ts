@@ -1,5 +1,27 @@
 import { t } from '@/lib/i18n';
 
+/**
+ * Deadline display state for the **admin** surface.
+ *
+ * Who consumes this, so nobody has to grep for it again:
+ *   - src/lib/admin/resource-view.ts — the Expiring soon / Closed tabs on
+ *     /admin/resources;
+ *   - src/lib/admin/readers.ts — the Dashboard's "Deadlines within 14 days"
+ *     card;
+ *   - src/components/admin/ResourceTable.tsx — the Deadline cell.
+ *
+ * The public surface does NOT use this module. It reads `is_closed` and
+ * `days_left` off `resources_public`, where Postgres owns the rule, and
+ * formats them with src/lib/public/deadline-label.ts. `expiring` has no
+ * public meaning: the directory shows Open, Closed or Rolling, and the
+ * 14-day flag is an internal curation signal only.
+ *
+ * Tests: tests/unit/deadline.test.ts covers the arithmetic in isolation;
+ * the behaviour that reaches a screen is covered through the consumers, in
+ * tests/unit/admin-resource-view.test.ts and
+ * tests/rls/admin-dashboard-counts.test.ts.
+ */
+
 export const EXPIRING_SOON_DAYS = 14;
 
 export type DeadlineState = 'rolling' | 'open' | 'expiring' | 'closed';
