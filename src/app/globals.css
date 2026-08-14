@@ -31,13 +31,14 @@
 }
 
 /*
- * Design tokens. CLAUDE.md: no hardcoded colours or type values outside
- * this block — everything downstream (Tailwind utilities, components)
- * consumes these via `bg-primary`, `text-navy`, `shadow-card`, etc.
+ * Design tokens. Downstream code consumes these via `bg-primary`,
+ * `text-navy`, `shadow-card`, etc.
  *
- * tests/structure/app-structure.test.ts's colour guard is narrowed to
- * allow colour literals only inside this @theme block; a colour anywhere
- * else in the repo still fails that guard.
+ * The colour guard that once made this block the only legal home for a
+ * colour literal is gone (spec D2): the approved prototype styles every
+ * element with inline styles, and those are now transcribed verbatim. These
+ * tokens remain the source for anything the prototype does not cover, and
+ * for the two colours where accessibility overrides it (D9, below).
  */
 @theme {
   --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
@@ -141,4 +142,54 @@ body {
   font-family: var(--font-sans);
   background: var(--color-surface);
   color: var(--color-navy);
+}
+
+/*
+ * Transcribed from the approved prototype's own global stylesheet
+ * (docs/prototype/prototype.html). `fadeUp` is its entrance animation,
+ * `marquee` drives the partner scroll, and `.askhub-wordmark` hides the
+ * header wordmark on narrow screens so the logo and search pill still fit
+ * on one row.
+ *
+ * `box-sizing` and the font-family inheritance for form controls are
+ * likewise the prototype's. Tailwind's preflight already sets both; they
+ * are kept here so this block is a faithful record of the prototype's
+ * globals rather than a partial one, and so the page does not silently
+ * depend on preflight for behaviour the prototype stated outright.
+ */
+* {
+  box-sizing: border-box;
+}
+
+input,
+select,
+textarea,
+button {
+  font-family: inherit;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (max-width: 640px) {
+  .askhub-wordmark {
+    display: none;
+  }
 }
