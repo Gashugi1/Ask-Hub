@@ -225,3 +225,8 @@ button {
 .proto-accent-button:hover {
   filter: brightness(1.06);
 }
+
+/* Storefront department menu, prototype lines 55-62. */
+.proto-dept-item:hover {
+  background: #f1f4fa;
+}

@@ -1,7 +1,6 @@
 import { Suspense } from 'react';
 import WelcomeBand from '@/components/public/WelcomeBand';
 import StatsBand from '@/components/public/StatsBand';
-import HeroSearch from '@/components/public/HeroSearch';
 import BrowseByNeed from '@/components/public/BrowseByNeed';
 import FeaturedCarousel from '@/components/public/FeaturedCarousel';
 import PartnerRow from '@/components/public/PartnerRow';
@@ -48,10 +47,17 @@ import {
  * filtered view.
  *
  * The boundary is drawn here, around the smallest subtree that needs it, so
- * the seven bands above the directory still prerender as static HTML.
- * `HeroSearch` is a client component too, but it calls only `useRouter`, not
+ * the bands above the directory still prerender as static HTML. `SearchPill`
+ * in the header is a client component too, but it calls only `useRouter`, not
  * `useSearchParams`, so it prerenders in place and needs no boundary of its
  * own.
+ *
+ * **The separate hero search is gone.** It was a second search box on a page
+ * whose header now carries the prototype's pill, and the prototype has one
+ * search above the fold, not two. PRD 5.1 item 3 asks for prominent search
+ * above the fold; the sticky header satisfies it on every route rather than
+ * only this one. The directory keeps its own field, exactly as the prototype
+ * does.
  */
 export default async function PublicHomePage() {
   const [resources, needCounts, partners, stats, content] = await Promise.all([
@@ -66,11 +72,42 @@ export default async function PublicHomePage() {
     <>
       <WelcomeBand content={content} />
       <StatsBand stats={stats} />
-      <HeroSearch />
-      <BrowseByNeed counts={needCounts} />
-      <FeaturedCarousel resources={resources} />
-      <PartnerRow partners={partners} />
-      <RecentlyAddedRail resources={resources} />
+
+      {/* The prototype's storefront is two columns (reference lines 49-174):
+          a sticky department menu on the left and a single scrolling column
+          on the right, inside a 1280px measure. `flex-wrap` is what collapses
+          it to one column on a narrow screen — the sidebar's 232px basis and
+          the main column's 300px minimum cannot both fit, so the sidebar
+          wraps above the content rather than needing a breakpoint. */}
+      <div
+        style={{
+          maxWidth: 1280,
+          margin: '0 auto',
+          padding: '22px 28px 0 28px',
+          display: 'flex',
+          gap: 28,
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+        }}
+      >
+        <BrowseByNeed counts={needCounts} />
+
+        <div
+          style={{
+            flex: 1,
+            minWidth: 300,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 22,
+            minInlineSize: 0,
+          }}
+        >
+          <FeaturedCarousel resources={resources} />
+          <PartnerRow partners={partners} />
+          <RecentlyAddedRail resources={resources} />
+        </div>
+      </div>
+
       {/* Only this subtree calls useSearchParams(), so only this subtree
           needs the boundary — everything above still prerenders. */}
       <Suspense fallback={<ResourceDirectoryStatic resources={resources} />}>
