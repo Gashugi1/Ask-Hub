@@ -22,12 +22,18 @@ export default function PartnerRow({ partners }: { partners: PublicPartner[] }) 
   return (
     <section className="border-y border-hairline bg-surface">
       <div className="mx-auto max-w-6xl px-4 py-10">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-muted-light">
+        <h2 className="text-eyebrow font-semibold uppercase text-eyebrow">
           {t('home.partnersHeading')}
         </h2>
-        <ul className="mt-6 flex flex-wrap items-center gap-8">
+        {/* PRD 5.1 item 6 calls this a "scrolling partner logo row". It was
+            a `flex-wrap` block, which reflows onto a second line instead of
+            scrolling once the logos outrun the measure. `overflow-x-auto`
+            with `shrink-0` items is the scrolling row it asks for, and it
+            keeps the band one logo tall at every width rather than growing
+            downward on narrow screens. */}
+        <ul className="mt-6 flex items-center gap-8 overflow-x-auto pb-2">
           {partners.map((partner) => (
-            <li key={partner.name}>
+            <li key={partner.name} className="shrink-0">
               {partner.websiteUrl ? (
                 <a
                   href={partner.websiteUrl}

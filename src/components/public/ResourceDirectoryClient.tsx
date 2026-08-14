@@ -79,7 +79,7 @@ export default function ResourceDirectoryClient({
   return (
     <section id="directory" className="mx-auto max-w-6xl px-4 py-12">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <h2 className="text-2xl font-semibold text-navy">{t('directory.title')}</h2>
+        <h2 className="text-h2 font-extrabold text-navy">{t('directory.title')}</h2>
         <ExportButton rows={visible} />
       </div>
 

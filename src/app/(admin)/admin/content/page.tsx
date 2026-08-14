@@ -123,6 +123,7 @@ export default async function AdminContentPage() {
         content={content}
         fields={[
           { key: 'welcome_title', label: t('admin.content.field.welcomeTitle') },
+          { key: 'welcome_tagline', label: t('admin.content.field.welcomeTagline') },
           { key: 'welcome_body', label: t('admin.content.field.welcomeBody') },
           { key: 'welcome_cta', label: t('admin.content.field.welcomeCta') },
         ]}

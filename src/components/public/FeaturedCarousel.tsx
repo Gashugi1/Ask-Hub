@@ -17,7 +17,7 @@ export default function FeaturedCarousel({ resources }: { resources: PublicResou
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-10">
-      <h2 className="text-xl font-semibold text-navy">{t('home.featuredHeading')}</h2>
+      <h2 className="text-h2 font-extrabold text-navy">{t('home.featuredHeading')}</h2>
       <ul className="mt-6 flex snap-x gap-6 overflow-x-auto pb-4">
         {featured.map((resource) => (
           <li key={resource.id} className="w-80 shrink-0 snap-start">

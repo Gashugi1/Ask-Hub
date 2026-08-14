@@ -754,6 +754,15 @@ export const SITE_CONTENT: readonly SeedSiteContent[] = [
     value: 'Welcome to AskHub',
   },
   {
+    key: 'welcome_tagline',
+    locale: 'en',
+    // Taken verbatim from the prototype's welcome band, which sets this line
+    // between the title and the body copy. It carries no curation claim and
+    // no attribution, so neither content rule 10.8 nor 10.1 applies to it —
+    // unlike `welcome_body`, it needed no rewrite to land here.
+    value: "Building Africa's AI future together",
+  },
+  {
     key: 'welcome_body',
     locale: 'en',
     // Rewritten: dropped the trailing "Curated and verified by the AI Hub

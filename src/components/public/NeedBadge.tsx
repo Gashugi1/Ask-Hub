@@ -16,6 +16,21 @@ const NEED_CLASSES: Record<NeedKey, string> = {
   partners: 'bg-need-partners-bg text-need-partners',
 };
 
+/**
+ * The same five needs as solid fills, for ResourceCard's header strip. Kept
+ * beside NEED_CLASSES so the two maps cannot drift apart, and static for the
+ * same reason that one is: Tailwind cannot see a class name assembled at
+ * runtime. Every one of these five is AA-safe behind white text — see the
+ * derivation note on the --color-need-* block in globals.css.
+ */
+export const NEED_HEADER_CLASSES: Record<NeedKey, string> = {
+  compute: 'bg-need-compute',
+  training: 'bg-need-training',
+  funding: 'bg-need-funding',
+  accelerator: 'bg-need-accelerator',
+  partners: 'bg-need-partners',
+};
+
 export default function NeedBadge({ need }: { need: NeedKey }) {
   return (
     <span
