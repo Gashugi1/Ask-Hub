@@ -70,6 +70,36 @@ describe('the /admin gate', () => {
     expect(response.headers.get('location')).toBeNull();
   });
 
+  it('does not redirect /admin/set-password for a visitor with no session', async () => {
+    // The regression this pins is the whole invitation flow.
+    //
+    // Supabase's invite email verifies its token and redirects the invitee to
+    // /admin/set-password#access_token=..., putting the session in the URL
+    // *fragment*. A fragment is never sent to a server, so this middleware
+    // sees no cookie and resolves no user — exactly like a stranger. Redirect
+    // them and the fragment goes with the redirect, taking the only copy of
+    // the session with it: the invited operator can never set a password, and
+    // no error is shown, because from the browser's point of view the login
+    // page simply loaded.
+    //
+    // Signed out is therefore the case that matters here, not signed in.
+    signedOut();
+    const response = await proxy(request('/admin/set-password'));
+
+    expect(response.status).not.toBe(307);
+    expect(response.headers.get('location')).toBeNull();
+  });
+
+  it('still redirects a nested admin route that merely starts like set-password', async () => {
+    // The exemption is an exact-path match, not a prefix. A future
+    // /admin/set-password-policy screen must not inherit it by accident.
+    signedOut();
+    const response = await proxy(request('/admin/set-password-policy'));
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe('https://askhub.example/admin/login');
+  });
+
   it('does not redirect an authenticated /admin request', async () => {
     signedIn();
     const response = await proxy(request('/admin', { cookie: AUTH_COOKIE }));
