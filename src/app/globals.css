@@ -208,3 +208,14 @@ button {
 .proto-nav-action:hover {
   background: #eef2fb;
 }
+
+/* Footer, prototype lines 595-631: links warm to the accent, the outlined
+   partner badges take an accent border and full-white text. */
+.proto-footer-link:hover {
+  color: #f06428;
+}
+
+.proto-footer-badge:hover {
+  border-color: #f06428;
+  color: #fff;
+}
