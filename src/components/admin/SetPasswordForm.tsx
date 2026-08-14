@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createBrowserSupabase } from '@/lib/supabase/browser';
 import { t } from '@/lib/i18n';
+import { FIELD, FIELD_LABEL, CARD_BUTTON } from './AuthCard';
 
 /**
  * Where an invited operator finishes setting up their account, and where a
@@ -103,18 +104,22 @@ export default function SetPasswordForm() {
   }
 
   if (phase === 'checking') {
-    return <p className="text-sm text-muted">{t('setPassword.checking')}</p>;
+    return (
+      <p style={{ marginTop: 18, fontSize: 13, color: '#5B6B8C' }}>
+        {t('setPassword.checking')}
+      </p>
+    );
   }
 
   // No session and no fragment: either a stale link, one already used, or
   // someone who navigated here directly while signed out.
   if (phase === 'nosession') {
     return (
-      <div className="flex flex-col gap-3">
-        <p role="alert" className="text-sm text-danger">
+      <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <p role="alert" style={{ margin: 0, fontSize: 13, color: '#C0392B', fontWeight: 600 }}>
           {t('setPassword.noSession')}
         </p>
-        <Link className="text-sm text-primary underline" href="/admin/login">
+        <Link href="/admin/login" style={{ fontSize: 13, fontWeight: 700, color: '#1F5FBF' }}>
           {t('setPassword.toLogin')}
         </Link>
       </div>
@@ -123,11 +128,11 @@ export default function SetPasswordForm() {
 
   if (phase === 'done') {
     return (
-      <div className="flex flex-col gap-3">
-        <p role="status" className="text-sm text-navy">
+      <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <p role="status" style={{ margin: 0, fontSize: 13.5, color: '#1A2332' }}>
           {t('setPassword.success')}
         </p>
-        <Link className="text-sm text-primary underline" href="/admin">
+        <Link href="/admin" style={{ fontSize: 13, fontWeight: 700, color: '#1F5FBF' }}>
           {t('setPassword.continue')}
         </Link>
       </div>
@@ -135,46 +140,60 @@ export default function SetPasswordForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-3">
-      <label className="flex flex-col gap-1 text-sm">
-        {t('setPassword.password')}
-        <input
-          name="password"
-          type="password"
-          required
-          minLength={12}
-          autoComplete="new-password"
-          className="rounded border border-hairline px-3 py-2"
-        />
-      </label>
+    <form onSubmit={onSubmit}>
+      <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 11 }}>
+        <div>
+          <label htmlFor="new-password" style={FIELD_LABEL}>
+            {t('setPassword.password')}
+          </label>
+          <input
+            id="new-password"
+            name="password"
+            type="password"
+            required
+            minLength={12}
+            autoComplete="new-password"
+            style={FIELD}
+          />
+        </div>
 
-      <label className="flex flex-col gap-1 text-sm">
-        {t('setPassword.confirm')}
-        <input
-          name="confirm"
-          type="password"
-          required
-          minLength={12}
-          autoComplete="new-password"
-          className="rounded border border-hairline px-3 py-2"
-        />
-      </label>
+        <div>
+          <label htmlFor="confirm-password" style={FIELD_LABEL}>
+            {t('setPassword.confirm')}
+          </label>
+          <input
+            id="confirm-password"
+            name="confirm"
+            type="password"
+            required
+            minLength={12}
+            autoComplete="new-password"
+            style={FIELD}
+          />
+        </div>
+      </div>
 
-      <p className="text-xs text-muted">{t('setPassword.policy')}</p>
+      <p style={{ margin: '10px 0 0 0', fontSize: 12, color: '#5B6B8C', lineHeight: 1.5 }}>
+        {t('setPassword.policy')}
+      </p>
+
+      {error ? (
+        <p
+          role="alert"
+          style={{ margin: '10px 0 0 0', fontSize: 13, color: '#C0392B', fontWeight: 600 }}
+        >
+          {error}
+        </p>
+      ) : null}
 
       <button
         type="submit"
         disabled={pending}
-        className="self-start rounded bg-primary px-4 py-2 text-sm text-white disabled:opacity-60"
+        className="proto-primary-button"
+        style={CARD_BUTTON}
       >
         {t('setPassword.submit')}
       </button>
-
-      {error ? (
-        <p role="alert" className="text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
     </form>
   );
 }
