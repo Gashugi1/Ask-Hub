@@ -30,15 +30,34 @@ export default function ContactForm() {
 
   if (state?.ok) {
     return (
-      <p role="status" className="mt-6 rounded border border-hairline bg-tint-2 px-4 py-3 text-sm text-navy">
+      <p
+        role="status"
+        style={{
+          marginTop: 18,
+          background: '#F1F4FA',
+          border: '1px solid #DDE5EE',
+          borderRadius: 8,
+          padding: '12px 14px',
+          fontSize: 14,
+          color: '#1A2332',
+        }}
+      >
         {t('contact.success')}
       </p>
     );
   }
 
   return (
-    <form action={action} className="mt-6 flex flex-col gap-4">
-      <label className="flex flex-col gap-1 text-sm text-navy">
+    <form
+      action={action}
+      style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 14 }}
+    >
+      {/* The prototype uses placeholders where these use visible labels
+          (reference lines 433-435). The labels stay: a placeholder disappears
+          the moment someone types, so it cannot serve as the field's name for
+          a screen reader or for anyone checking what they filled in. The
+          field styling is the prototype's. */}
+      <label style={LABEL}>
         {t('contact.name')}
         <input
           name="name"
@@ -46,11 +65,11 @@ export default function ContactForm() {
           required
           maxLength={120}
           autoComplete="name"
-          className="rounded border border-hairline px-3 py-2 text-navy"
+          style={FIELD}
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm text-navy">
+      <label style={LABEL}>
         {t('contact.email')}
         <input
           name="email"
@@ -58,34 +77,64 @@ export default function ContactForm() {
           required
           maxLength={254}
           autoComplete="email"
-          className="rounded border border-hairline px-3 py-2 text-navy"
+          style={FIELD}
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm text-navy">
+      <label style={LABEL}>
         {t('contact.message')}
         <textarea
           name="message"
           required
-          rows={6}
+          rows={5}
           maxLength={4000}
-          className="rounded border border-hairline px-3 py-2 text-navy"
+          style={{ ...FIELD, resize: 'vertical' }}
         />
       </label>
 
       <button
         type="submit"
         disabled={pending}
-        className="self-start rounded bg-primary px-5 py-2 text-sm font-medium text-white disabled:opacity-60"
+        className="proto-primary-button"
+        style={{
+          alignSelf: 'flex-start',
+          background: '#1F5FBF',
+          color: '#fff',
+          border: 'none',
+          borderRadius: 9,
+          padding: '12px 24px',
+          fontSize: 14,
+          fontWeight: 700,
+          cursor: 'pointer',
+        }}
       >
         {t('contact.submit')}
       </button>
 
       {state && !state.ok ? (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" style={{ fontSize: 13.5, color: '#C0392B', margin: 0 }}>
           {state.error}
         </p>
       ) : null}
     </form>
   );
 }
+
+const LABEL = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 5,
+  fontSize: 13,
+  fontWeight: 600,
+  color: '#5B6B8C',
+} as const;
+
+/** Prototype line 433: 11px/14px on a 1px #C9D3E8 hairline, 8px radius. */
+const FIELD = {
+  padding: '11px 14px',
+  border: '1px solid #C9D3E8',
+  borderRadius: 8,
+  fontSize: 14,
+  color: '#1A2332',
+  outline: 'none',
+} as const;

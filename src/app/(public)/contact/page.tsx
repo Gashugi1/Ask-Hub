@@ -26,22 +26,39 @@ export const metadata: Metadata = {
 
 export default function ContactPage() {
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12">
-      <h1 className="text-3xl font-semibold text-navy">{t('contact.title')}</h1>
+    <div style={{ maxWidth: 820, margin: '0 auto', padding: '56px 32px 80px 32px' }}>
+      <h1 style={{ margin: 0, fontSize: 34, fontWeight: 800, letterSpacing: '-0.02em' }}>
+        {t('contact.title')}
+      </h1>
 
-      <p className="mt-6 text-muted">
+      <p style={{ margin: '16px 0 0 0', fontSize: 16, lineHeight: 1.7, color: '#2B3A5C' }}>
         {t('contact.writeToUs')}{' '}
-        <a className="text-primary underline" href={`mailto:${t('site.contactEmail')}`}>
+        <a
+          href={`mailto:${t('site.contactEmail')}`}
+          style={{ color: '#1F5FBF', fontWeight: 700 }}
+        >
           {t('site.contactEmail')}
         </a>
       </p>
 
-      <section className="mt-10">
-        <h2 className="text-xl font-semibold text-navy">{t('contact.formHeading')}</h2>
+      {/* The prototype's bordered "Send us a message" panel, 560px wide inside
+          the 820px page (reference lines 430-438). */}
+      <section
+        style={{
+          marginTop: 32,
+          border: '1px solid #DDE5EE',
+          borderRadius: 14,
+          padding: 28,
+          maxWidth: 560,
+        }}
+      >
+        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>
+          {t('contact.formHeading')}
+        </h2>
         <ContactForm />
       </section>
 
-      <p className="mt-12 text-sm text-muted-light">{t('site.footer')}</p>
+      <p style={{ marginTop: 36, fontSize: 13, color: '#5B6B8C' }}>{t('site.footer')}</p>
     </div>
   );
 }

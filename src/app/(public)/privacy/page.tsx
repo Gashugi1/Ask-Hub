@@ -14,13 +14,26 @@ import { getSiteContent } from '@/lib/public/readers';
 export default async function PrivacyPage() {
   const content = await getSiteContent();
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12">
-      <h1 className="text-3xl font-semibold text-navy">{t('privacy.title')}</h1>
-      <p className="mt-6 whitespace-pre-line text-muted">
+    // The prototype gives the legal pages a narrower 720px measure than the
+    // 820px it uses for About, and more bottom padding (reference line 584).
+    <div style={{ maxWidth: 720, margin: '0 auto', padding: '56px 32px 90px 32px' }}>
+      <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800 }}>{t('privacy.title')}</h1>
+      <p
+        style={{
+          margin: '18px 0 0 0',
+          fontSize: 15.5,
+          lineHeight: 1.7,
+          color: '#2B3A5C',
+          whiteSpace: 'pre-line',
+        }}
+      >
         {content.privacy_body ?? t('privacy.pending')}
       </p>
-      <p className="mt-6">
-        <a className="text-primary underline" href={`mailto:${t('site.contactEmail')}`}>
+      <p style={{ margin: '18px 0 0 0', fontSize: 15.5, lineHeight: 1.7 }}>
+        <a
+          href={`mailto:${t('site.contactEmail')}`}
+          style={{ color: '#1F5FBF', fontWeight: 700 }}
+        >
           {t('site.contactEmail')}
         </a>
       </p>
