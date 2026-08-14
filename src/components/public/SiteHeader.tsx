@@ -1,74 +1,182 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { t } from '@/lib/i18n';
+import SearchPill from './SearchPill';
 
 /**
- * PRD 5.8: no login link and no admin reference anywhere in public
- * navigation. The route-group split keeps the admin subtree unreachable from
- * here structurally; this component must not reintroduce a link to it.
+ * Transcribed from the approved prototype, docs/prototype/prototype.html
+ * lines 3-28: a sticky white rail with a 1px hairline, 1180px wide, 68px
+ * tall, carrying the roundel and wordmark on the left, the search pill in the
+ * middle, and the navigation and a single outlined action on the right.
  *
- * **On the "primary action" slot.** PRD §11 specifies the navigation as
- * "logo left, links centre, primary action right", which is why the layout
- * below is a three-column grid rather than a `justify-between` pair — with
- * two flex children the middle group sits wherever the side widths leave it,
- * not on the page's centre line. The prototype fills that right-hand slot
- * with an ADMIN button. It cannot be used: PRD 5.8 forbids exactly that, and
- * tests/structure/routes.test.ts asserts it. Contact is promoted into the
- * slot instead — it is the only other public route that is an action rather
- * than a destination, it already exists, and it needs no new copy key. It is
- * therefore no longer repeated in the centre list.
+ * **The one thing not transcribed: the ADMIN button.** The prototype fills
+ * the right-hand slot with an outlined ADMIN button linking to the portal.
+ * PRD 5.8 forbids it in as many words -- "No login link or admin reference
+ * anywhere in public navigation" -- and putting an admin entry point in front
+ * of every anonymous visitor is not a styling decision. Raised with the
+ * client, who ruled that PRD 5.8 governs (spec D11). Contact keeps the slot,
+ * wearing the prototype's outlined-button treatment exactly: 1.5px primary
+ * border, 12.5px/600, 0.06em uppercase, 9px 16px, 8px radius. So the slot
+ * looks like the prototype's and leads somewhere the PRD permits.
  *
- * **On the wordmark.** This renders `site.wordmark` ("AskHub"), the product's
- * own name, matching the prototype and the welcome band's "Welcome to
- * AskHub" — the header previously read "AI Hub", so the two disagreed on the
- * same screen. The key is `site.wordmark` rather than the `site.shortName` it
- * replaces because the distinction is load-bearing: AskHub is this directory,
- * whereas the programme is the AI Hub for Sustainable Development, and
- * CLAUDE.md requires that programme to be called "AI Hub" or "AI Hub for
- * Sustainable Development" every time it is named. `site.name` and
- * `site.attribution` still carry the programme's wording for the surfaces
- * that refer to it; a key called "shortName" holding "AskHub" would have
- * invited a future line like "co-led by {shortName}" to break that rule
- * silently.
+ * **On the wordmark.** `site.wordmark` is "AskHub", the product's own name,
+ * as against the programme -- the AI Hub for Sustainable Development -- which
+ * CLAUDE.md requires be named in full wherever it appears. The prototype
+ * hides this word below 640px so the roundel and pill still fit on one row;
+ * `.askhub-wordmark` in globals.css is that rule, transcribed with it.
  *
  * The mark is a local asset, so this uses next/image (which fingerprints and
  * sizes it) rather than the bare <img> PartnerRow needs for arbitrary remote
  * logo hosts. `alt=""` is deliberate: the wordmark text sits immediately
  * beside it in the same link, so announcing the image too would make screen
  * readers read the brand name twice for one control.
+ *
+ * Hover states arrive in the prototype as `style-hover` attributes, which are
+ * not real HTML. This is a server component and converting it to a client one
+ * for a background colour would be a poor trade, so they are the two global
+ * classes `.proto-nav-item` and `.proto-nav-action`.
  */
 export default function SiteHeader() {
   return (
-    <header className="border-b border-hairline bg-surface">
+    <header
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        background: '#FFFFFF',
+        borderBottom: '1px solid #DDE5EE',
+      }}
+    >
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:p-4 focus:text-primary"
       >
         {t('nav.skipToContent')}
       </a>
-      <nav className="mx-auto grid h-17 max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-6 px-4">
-        <Link href="/" className="flex items-center gap-2 justify-self-start">
+      <nav
+        style={{
+          maxWidth: 1180,
+          margin: '0 auto',
+          padding: '10px 24px',
+          minHeight: 68,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+          flexWrap: 'wrap',
+        }}
+      >
+        <Link
+          href="/"
+          style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}
+        >
           <Image
             src="/partners/askhub-wordmark.png"
             alt=""
-            width={63}
-            height={63}
-            className="h-9 w-9"
+            width={165}
+            height={165}
+            style={{ height: 40, width: 40, objectFit: 'contain', display: 'block' }}
             priority
           />
-          <span className="text-lg font-extrabold text-navy">{t('site.wordmark')}</span>
+          <span
+            className="askhub-wordmark"
+            style={{
+              fontSize: 22,
+              fontWeight: 800,
+              color: '#1A2332',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            {t('site.wordmark')}
+          </span>
         </Link>
-        <ul className="flex items-center gap-6 text-sm text-muted">
+
+        <div
+          style={{
+            flex: '1 1 220px',
+            display: 'flex',
+            justifyContent: 'center',
+            minWidth: 0,
+          }}
+        >
+          <SearchPill />
+        </div>
+
+        <ul
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            flexWrap: 'wrap',
+            listStyle: 'none',
+            margin: 0,
+            padding: 0,
+          }}
+        >
           <li>
-            <Link href="/#directory">{t('nav.directory')}</Link>
+            <Link
+              href="/"
+              className="proto-nav-item"
+              style={{
+                display: 'inline-block',
+                fontSize: 14,
+                fontWeight: 600,
+                color: '#1A2332',
+                padding: '8px 12px',
+                borderRadius: 6,
+              }}
+            >
+              {t('nav.home')}
+            </Link>
           </li>
           <li>
-            <Link href="/about">{t('nav.about')}</Link>
+            <Link
+              href="/#directory"
+              className="proto-nav-item"
+              style={{
+                display: 'inline-block',
+                fontSize: 14,
+                fontWeight: 600,
+                color: '#1A2332',
+                padding: '8px 12px',
+                borderRadius: 6,
+              }}
+            >
+              {t('nav.directory')}
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/about"
+              className="proto-nav-item"
+              style={{
+                display: 'inline-block',
+                fontSize: 14,
+                fontWeight: 600,
+                color: '#1A2332',
+                padding: '8px 12px',
+                borderRadius: 6,
+              }}
+            >
+              {t('nav.about')}
+            </Link>
           </li>
         </ul>
+
         <Link
           href="/contact"
-          className="justify-self-end rounded-lg border border-primary px-4 py-2 text-sm font-semibold text-primary"
+          className="proto-nav-action"
+          style={{
+            border: '1.5px solid #1F5FBF',
+            color: '#1F5FBF',
+            background: '#fff',
+            fontSize: 12.5,
+            fontWeight: 600,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            padding: '9px 16px',
+            borderRadius: 8,
+            flexShrink: 0,
+          }}
         >
           {t('nav.contact')}
         </Link>

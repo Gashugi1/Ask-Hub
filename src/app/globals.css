@@ -193,3 +193,18 @@ button {
     display: none;
   }
 }
+
+/*
+ * The prototype expresses hover as a `style-hover` attribute, which is not
+ * real HTML. These two carry it for server components, where the alternative
+ * would be converting a component to a client one purely for a background
+ * colour. Values are the prototype's own: #F1F4FA behind a nav item,
+ * #EEF2FB behind the outlined action.
+ */
+.proto-nav-item:hover {
+  background: #f1f4fa;
+}
+
+.proto-nav-action:hover {
+  background: #eef2fb;
+}
