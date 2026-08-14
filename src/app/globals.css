@@ -265,6 +265,11 @@ button {
   color: #1a2332;
 }
 
+/* Detail page back link, prototype line 293. */
+.proto-back-link:hover {
+  color: #1f5fbf;
+}
+
 /* Directory card, prototype line 253. */
 .proto-card:hover {
   border-color: #1f5fbf;
