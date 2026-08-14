@@ -101,7 +101,7 @@ function toggle(list: string[], value: string): string[] {
 /** A JSX-safe way to render a single required-field marker with no letters in it. */
 function Required() {
   return (
-    <span aria-hidden="true" className="text-danger">
+    <span aria-hidden="true" style={{ color: "#C0392B" }}>
       {' *'}
     </span>
   );
@@ -216,9 +216,9 @@ export default function ResourceForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm text-navy">
+    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={FORM_GRID}>
+        <label style={FIELD_ROW}>
           {t('column.name')}
           <Required />
           <input
@@ -226,19 +226,19 @@ export default function ResourceForm({
             value={raw.name}
             onChange={(e) => set('name', e.target.value)}
             required
-            className="rounded border border-hairline px-2 py-1"
+            style={FORM_FIELD}
           />
-          {fieldErrors.name ? <span className="text-xs text-danger">{fieldErrors.name}</span> : null}
+          {fieldErrors.name ? <span style={FIELD_ERROR}>{fieldErrors.name}</span> : null}
         </label>
 
-        <label className="flex flex-col gap-1 text-sm text-navy">
+        <label style={FIELD_ROW}>
           {t('column.partnerName')}
           <Required />
           <select
             value={raw.partner}
             onChange={(e) => set('partner', e.target.value)}
             required
-            className="rounded border border-hairline px-2 py-1"
+            style={FORM_FIELD}
           >
             <option value="" disabled>
               {t('admin.resources.form.selectPlaceholder')}
@@ -252,18 +252,18 @@ export default function ResourceForm({
             ))}
           </select>
           {fieldErrors.partner ? (
-            <span className="text-xs text-danger">{fieldErrors.partner}</span>
+            <span style={FIELD_ERROR}>{fieldErrors.partner}</span>
           ) : null}
         </label>
 
-        <label className="flex flex-col gap-1 text-sm text-navy">
+        <label style={FIELD_ROW}>
           {t('admin.resources.form.partnerTier')}
           <Required />
           <select
             value={raw.partnerTier}
             onChange={(e) => set('partnerTier', e.target.value)}
             required
-            className="rounded border border-hairline px-2 py-1"
+            style={FORM_FIELD}
           >
             <option value="" disabled>
               {t('admin.resources.form.selectPlaceholder')}
@@ -275,11 +275,11 @@ export default function ResourceForm({
             ))}
           </select>
           {fieldErrors.partnerTier ? (
-            <span className="text-xs text-danger">{fieldErrors.partnerTier}</span>
+            <span style={FIELD_ERROR}>{fieldErrors.partnerTier}</span>
           ) : null}
         </label>
 
-        <label className="flex flex-col gap-1 text-sm text-navy">
+        <label style={FIELD_ROW}>
           {t('column.resourceType')}
           <Required />
           <input
@@ -287,21 +287,21 @@ export default function ResourceForm({
             value={raw.resourceType}
             onChange={(e) => set('resourceType', e.target.value)}
             required
-            className="rounded border border-hairline px-2 py-1"
+            style={FORM_FIELD}
           />
           {fieldErrors.resourceType ? (
-            <span className="text-xs text-danger">{fieldErrors.resourceType}</span>
+            <span style={FIELD_ERROR}>{fieldErrors.resourceType}</span>
           ) : null}
         </label>
 
-        <label className="flex flex-col gap-1 text-sm text-navy">
+        <label style={FIELD_ROW}>
           {t('column.needPrimary')}
           <Required />
           <select
             value={raw.needPrimary}
             onChange={(e) => set('needPrimary', e.target.value)}
             required
-            className="rounded border border-hairline px-2 py-1"
+            style={FORM_FIELD}
           >
             <option value="" disabled>
               {t('admin.resources.form.selectPlaceholder')}
@@ -313,16 +313,16 @@ export default function ResourceForm({
             ))}
           </select>
           {fieldErrors.needPrimary ? (
-            <span className="text-xs text-danger">{fieldErrors.needPrimary}</span>
+            <span style={FIELD_ERROR}>{fieldErrors.needPrimary}</span>
           ) : null}
         </label>
 
-        <label className="flex flex-col gap-1 text-sm text-navy">
+        <label style={FIELD_ROW}>
           {t('column.needSecondary')}
           <select
             value={raw.needSecondary}
             onChange={(e) => set('needSecondary', e.target.value)}
-            className="rounded border border-hairline px-2 py-1"
+            style={FORM_FIELD}
           >
             <option value="">{t('admin.resources.form.none')}</option>
             {NEED_KEYS.map((need) => (
@@ -333,17 +333,17 @@ export default function ResourceForm({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-sm text-navy">
+        <label style={FIELD_ROW}>
           {t('column.subCategory')}
           <input
             type="text"
             value={raw.subCategory}
             onChange={(e) => set('subCategory', e.target.value)}
-            className="rounded border border-hairline px-2 py-1"
+            style={FORM_FIELD}
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-sm text-navy">
+        <label style={FIELD_ROW}>
           {t('admin.resources.form.actionLabel')}
           <Required />
           <input
@@ -351,14 +351,14 @@ export default function ResourceForm({
             value={raw.actionLabel}
             onChange={(e) => set('actionLabel', e.target.value)}
             required
-            className="rounded border border-hairline px-2 py-1"
+            style={FORM_FIELD}
           />
           {fieldErrors.actionLabel ? (
-            <span className="text-xs text-danger">{fieldErrors.actionLabel}</span>
+            <span style={FIELD_ERROR}>{fieldErrors.actionLabel}</span>
           ) : null}
         </label>
 
-        <label className="flex flex-col gap-1 text-sm text-navy">
+        <label style={FIELD_ROW}>
           {t('column.externalUrl')}
           <Required />
           <input
@@ -367,33 +367,33 @@ export default function ResourceForm({
             onChange={(e) => set('externalUrl', e.target.value)}
             required
             placeholder="https://"
-            className="rounded border border-hairline px-2 py-1"
+            style={FORM_FIELD}
           />
           {fieldErrors.externalUrl ? (
-            <span className="text-xs text-danger">{fieldErrors.externalUrl}</span>
+            <span style={FIELD_ERROR}>{fieldErrors.externalUrl}</span>
           ) : null}
         </label>
 
-        <label className="flex flex-col gap-1 text-sm text-navy">
+        <label style={FIELD_ROW}>
           {t('admin.resources.form.bannerImageUrl')}
           <input
             type="text"
             value={raw.bannerImageUrl}
             onChange={(e) => set('bannerImageUrl', e.target.value)}
             placeholder="https://"
-            className="rounded border border-hairline px-2 py-1"
+            style={FORM_FIELD}
           />
           {fieldErrors.bannerImageUrl ? (
-            <span className="text-xs text-danger">{fieldErrors.bannerImageUrl}</span>
+            <span style={FIELD_ERROR}>{fieldErrors.bannerImageUrl}</span>
           ) : null}
         </label>
 
-        <label className="flex flex-col gap-1 text-sm text-navy">
+        <label style={FIELD_ROW}>
           {t('column.geoScope')}
           <select
             value={raw.geoScope}
             onChange={(e) => set('geoScope', e.target.value)}
-            className="rounded border border-hairline px-2 py-1"
+            style={FORM_FIELD}
           >
             {GEO_SCOPES.map((scope) => (
               <option key={scope} value={scope}>
@@ -403,22 +403,22 @@ export default function ResourceForm({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-sm text-navy">
+        <label style={FIELD_ROW}>
           {t('column.deadline')}
           <input
             type="date"
             value={raw.deadline}
             onChange={(e) => set('deadline', e.target.value)}
-            className="rounded border border-hairline px-2 py-1"
+            style={FORM_FIELD}
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-sm text-navy">
+        <label style={FIELD_ROW}>
           {t('admin.resources.col.status')}
           <select
             value={raw.status}
             onChange={(e) => set('status', e.target.value)}
-            className="rounded border border-hairline px-2 py-1"
+            style={FORM_FIELD}
           >
             {STATUSES.map((value) => (
               <option key={value} value={value}>
@@ -428,12 +428,12 @@ export default function ResourceForm({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-sm text-navy">
+        <label style={FIELD_ROW}>
           {t('admin.resources.form.exclusivity')}
           <select
             value={raw.exclusivity}
             onChange={(e) => set('exclusivity', e.target.value)}
-            className="rounded border border-hairline px-2 py-1"
+            style={FORM_FIELD}
           >
             <option value="">{t('admin.resources.form.none')}</option>
             {EXCLUSIVITY_VALUES.map((value) => (
@@ -444,21 +444,21 @@ export default function ResourceForm({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-sm text-navy">
+        <label style={FIELD_ROW}>
           {t('admin.resources.form.sortOrder')}
           <input
             type="number"
             min={0}
             value={raw.sortOrder}
             onChange={(e) => set('sortOrder', e.target.value)}
-            className="rounded border border-hairline px-2 py-1"
+            style={FORM_FIELD}
           />
           {fieldErrors.sortOrder ? (
-            <span className="text-xs text-danger">{fieldErrors.sortOrder}</span>
+            <span style={FIELD_ERROR}>{fieldErrors.sortOrder}</span>
           ) : null}
         </label>
 
-        <label className="flex items-center gap-2 text-sm text-navy">
+        <label style={CHECK_ROW}>
           <input
             type="checkbox"
             checked={raw.isFeatured}
@@ -468,7 +468,7 @@ export default function ResourceForm({
         </label>
       </div>
 
-      <label className="flex flex-col gap-1 text-sm text-navy">
+      <label style={FIELD_ROW}>
         {t('column.description')}
         <Required />
         <textarea
@@ -476,18 +476,18 @@ export default function ResourceForm({
           onChange={(e) => set('description', e.target.value)}
           required
           rows={4}
-          className="rounded border border-hairline px-2 py-1"
+          style={FORM_FIELD}
         />
         {fieldErrors.description ? (
-          <span className="text-xs text-danger">{fieldErrors.description}</span>
+          <span style={FIELD_ERROR}>{fieldErrors.description}</span>
         ) : null}
       </label>
 
-      <fieldset className="rounded border border-hairline p-3">
-        <legend className="px-1 text-sm text-muted">{t('column.countriesEligible')}</legend>
-        <div className="flex flex-wrap gap-3">
+      <fieldset style={FIELDSET}>
+        <legend style={LEGEND}>{t('column.countriesEligible')}</legend>
+        <div style={CHECK_GRID}>
           {COUNTRIES.map((country) => (
-            <label key={country} className="flex items-center gap-1 text-sm text-navy">
+            <label key={country} style={CHECK_ROW}>
               <input
                 type="checkbox"
                 checked={raw.countriesEligible.includes(country)}
@@ -499,11 +499,11 @@ export default function ResourceForm({
         </div>
       </fieldset>
 
-      <fieldset className="rounded border border-hairline p-3">
-        <legend className="px-1 text-sm text-muted">{t('column.sectorsEligible')}</legend>
-        <div className="flex flex-wrap gap-3">
+      <fieldset style={FIELDSET}>
+        <legend style={LEGEND}>{t('column.sectorsEligible')}</legend>
+        <div style={CHECK_GRID}>
           {SECTORS.map((sector) => (
-            <label key={sector} className="flex items-center gap-1 text-sm text-navy">
+            <label key={sector} style={CHECK_ROW}>
               <input
                 type="checkbox"
                 checked={raw.sectorsEligible.includes(sector)}
@@ -515,11 +515,11 @@ export default function ResourceForm({
         </div>
       </fieldset>
 
-      <fieldset className="rounded border border-hairline p-3">
-        <legend className="px-1 text-sm text-muted">{t('column.stagesEligible')}</legend>
-        <div className="flex flex-wrap gap-3">
+      <fieldset style={FIELDSET}>
+        <legend style={LEGEND}>{t('column.stagesEligible')}</legend>
+        <div style={CHECK_GRID}>
           {STAGES.map((stage) => (
-            <label key={stage} className="flex items-center gap-1 text-sm text-navy">
+            <label key={stage} style={CHECK_ROW}>
               <input
                 type="checkbox"
                 checked={raw.stagesEligible.includes(stage)}
@@ -532,23 +532,23 @@ export default function ResourceForm({
       </fieldset>
 
       {formError ? (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" style={{ fontSize: 13, color: "#C0392B" }}>
           {formError}
         </p>
       ) : null}
 
-      <div className="flex items-center gap-3">
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <button
           type="submit"
           disabled={pending}
-          className="rounded bg-primary px-4 py-2 text-sm text-surface"
+          className="proto-primary-button" style={SUBMIT_BUTTON}
         >
           {initial ? t('admin.resources.form.submitUpdate') : t('admin.resources.form.submitCreate')}
         </button>
         <button
           type="button"
           onClick={() => router.push('/admin/resources')}
-          className="text-sm text-muted underline"
+          style={{ fontSize: 13, color: "#5B6B8C", textDecoration: "underline" }}
         >
           {t('admin.resources.form.cancel')}
         </button>
@@ -557,7 +557,7 @@ export default function ResourceForm({
           <button
             type="button"
             onClick={() => dialogRef.current?.showModal()}
-            className="ml-auto rounded border border-danger px-3 py-1.5 text-sm text-danger"
+            style={DANGER_OUTLINE}
           >
             {t('admin.resources.form.delete')}
           </button>
@@ -565,14 +565,14 @@ export default function ResourceForm({
       </div>
 
       {initial ? (
-        <dialog ref={dialogRef} className="rounded border border-hairline p-4">
-          <p className="font-medium text-navy">{t('admin.resources.form.deleteConfirmHeading')}</p>
-          <p className="mt-1 text-sm text-muted">{t('admin.resources.form.deleteConfirmBody')}</p>
-          <div className="mt-4 flex justify-end gap-3">
+        <dialog ref={dialogRef} style={CONFIRM_PANEL}>
+          <p style={{ fontSize: 14, fontWeight: 800 }}>{t('admin.resources.form.deleteConfirmHeading')}</p>
+          <p style={{ marginTop: 6, fontSize: 13, color: "#5B6B8C" }}>{t('admin.resources.form.deleteConfirmBody')}</p>
+          <div style={{ marginTop: 20, display: "flex", justifyContent: "flex-end", gap: 12 }}>
             <button
               type="button"
               onClick={() => dialogRef.current?.close()}
-              className="text-sm text-muted underline"
+              style={{ fontSize: 13, color: "#5B6B8C", textDecoration: "underline" }}
             >
               {t('admin.resources.form.deleteCancel')}
             </button>
@@ -583,7 +583,7 @@ export default function ResourceForm({
                 dialogRef.current?.close();
                 handleDelete();
               }}
-              className="rounded bg-danger px-3 py-1.5 text-sm text-surface"
+              style={DANGER_SOLID}
             >
               {t('admin.resources.form.deleteConfirmAction')}
             </button>
@@ -593,3 +593,136 @@ export default function ResourceForm({
     </form>
   );
 }
+
+/*
+ * Transcribed from the approved prototype's resource form
+ * (docs/prototype/prototype.html lines 1484-1639).
+ *
+ * The prototype renders this as a modal over the table; here it is a page,
+ * and it stays one. The plan's rule holds -- port the appearance, not the
+ * architecture -- and a page has a URL, survives a refresh, and can be linked
+ * from the table's Edit action, none of which a modal does. What is taken is
+ * the field treatment: a two-column grid, uppercase micro-labels, 8px-radius
+ * hairline inputs at 14px.
+ *
+ * The label element wraps its input, which is what associates the two without
+ * an id/for pair. That means the input would inherit the label's uppercase
+ * micro-type, so FORM_FIELD resets weight, case and tracking explicitly rather
+ * than relying on a browser default to do it.
+ */
+
+/** Label + control, prototype line 1493. */
+const FIELD_ROW = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 6,
+  fontSize: 11.5,
+  fontWeight: 800,
+  color: '#5B6B8C',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+} as const;
+
+/** Text input and select, prototype line 1494. */
+const FORM_FIELD = {
+  width: '100%',
+  padding: '10px 13px',
+  border: '1px solid #C9D3E8',
+  borderRadius: 8,
+  fontSize: 14,
+  color: '#1A2332',
+  background: '#fff',
+  outline: 'none',
+  // Undo the label's micro-type, which this control would otherwise inherit.
+  fontWeight: 400,
+  textTransform: 'none',
+  letterSpacing: 'normal',
+} as const;
+
+const FIELD_ERROR = {
+  fontSize: 12,
+  fontWeight: 600,
+  color: '#C0392B',
+  textTransform: 'none',
+  letterSpacing: 'normal',
+} as const;
+
+/** Prototype line 1492: the form's two-column grid. */
+const FORM_GRID = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+  gap: 16,
+} as const;
+
+/** The eligibility checkbox groups. */
+const FIELDSET = {
+  border: '1px solid #DDE5EE',
+  borderRadius: 10,
+  padding: '14px 16px',
+  background: '#fff',
+} as const;
+
+const LEGEND = {
+  fontSize: 11.5,
+  fontWeight: 800,
+  color: '#5B6B8C',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  padding: '0 4px',
+} as const;
+
+const CHECK_GRID = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: 12,
+  marginTop: 10,
+} as const;
+
+const CHECK_ROW = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  fontSize: 13,
+  color: '#1A2332',
+} as const;
+
+const SUBMIT_BUTTON = {
+  background: '#1F5FBF',
+  color: '#fff',
+  border: 'none',
+  borderRadius: 9,
+  padding: '11px 22px',
+  fontSize: 14,
+  fontWeight: 700,
+  cursor: 'pointer',
+} as const;
+
+const DANGER_OUTLINE = {
+  marginRight: 'auto',
+  border: '1.5px solid #C0392B',
+  color: '#C0392B',
+  background: '#fff',
+  borderRadius: 9,
+  padding: '10px 16px',
+  fontSize: 13.5,
+  fontWeight: 700,
+  cursor: 'pointer',
+} as const;
+
+const DANGER_SOLID = {
+  background: '#C0392B',
+  color: '#fff',
+  border: 'none',
+  borderRadius: 9,
+  padding: '10px 16px',
+  fontSize: 13.5,
+  fontWeight: 700,
+  cursor: 'pointer',
+} as const;
+
+const CONFIRM_PANEL = {
+  border: '1px solid #DDE5EE',
+  borderRadius: 12,
+  padding: 20,
+  background: '#fff',
+} as const;
