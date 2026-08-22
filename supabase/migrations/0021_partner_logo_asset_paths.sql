@@ -5,23 +5,35 @@
 -- own note explains the intent: the client's logos arrive as image files,
 -- and "a repo-relative path cannot satisfy it", so the files were to be
 -- uploaded to a public Supabase Storage bucket and referenced by their
--- https URL. That plan does not survive contact with this repository:
+-- https URL. That happened, and it works -- but only in one place:
 --
---   * The upload was never committed. There is no bucket migration, no
---     upload script, and no seeded logo_url -- `select logo_url from
---     partners` returns null for all 19 rows. Whatever was uploaded lived
---     in one developer's local stack and went away with it.
---   * It cannot be redone locally even by hand. Both .env.local and
---     .env.test point NEXT_PUBLIC_SUPABASE_URL at http://127.0.0.1:54321,
---     so a Storage public URL on this stack is http:// and this very
---     constraint rejects it. The only way to satisfy the constraint was to
---     write a hosted project's URL into a database that is not that
---     project -- a row pointing at an asset the running app cannot serve.
+--   * The deployed project has it. The hosted Supabase behind Vercel
+--     serves partner-logos/{aws,cineca,microsoft}.png and the three
+--     partners carry those https URLs. Production renders them today and
+--     is untouched by this migration: those values satisfied the old rule
+--     and satisfy the new one unchanged.
+--   * Nothing in this repository reproduces it. There is no bucket
+--     migration, no upload script and no seeded logo_url, so every other
+--     environment starts with none -- a fresh `db:reset` gives 19 partners
+--     with a null logo, which is what a local checkout has been rendering.
+--   * A local stack cannot be brought up to match, even by hand. Both
+--     .env.local and .env.test point NEXT_PUBLIC_SUPABASE_URL at
+--     http://127.0.0.1:54321, so a Storage public URL on that stack is
+--     http:// and this very constraint rejects it. The only value that
+--     satisfied the constraint was the hosted project's URL, written into
+--     a database that is not that project -- a row pointing at an asset
+--     the local app does not serve.
 --
 -- So the constraint is widened, deliberately and narrowly, to also accept a
--- site-root-relative path. The client's asset pack already sits in
--- public/partners as PNG; 0022 wires three of those files to the partners
--- they belong to, and Next serves them from the same origin as the page.
+-- site-root-relative path, and the asset pack that already sits in
+-- public/partners as PNG becomes a logo source any environment can use with
+-- no bucket at all. scripts/seed-data.ts's PARTNER_ASSETS wires three of
+-- those files to the partners they belong to; the seed writes them only
+-- where no logo is recorded, so this never disturbs the hosted rows above.
+-- The result is two logo sources by environment -- Storage on the deployed
+-- project, `public/` everywhere else -- which is deliberate: the deployment
+-- keeps what it has, and a checkout stops depending on a bucket nobody can
+-- recreate from this repository.
 --
 -- **This is not a loosening of the security posture, and the shape of the
 -- pattern is what makes that true.** What 0014's https rule buys is two

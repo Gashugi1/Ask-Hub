@@ -129,16 +129,27 @@ export const PARTNERS: readonly string[] = [
  * The partners whose logo and official site the client's asset pack covers.
  *
  * The files are `public/partners/*.png`, committed in 744108a ("the client's
- * asset pack, PNG (the schema rejects SVG)"). That commit uploaded them to a
- * Supabase Storage bucket by hand and wired three partners to the resulting
- * https URLs, because `partners_logo_https` accepted nothing else. None of
- * that was reproducible -- no bucket migration, no upload script, no seeded
- * URL -- so the logos went away with the local stack they lived in, and every
- * `logo_url` in the database was null again.
+ * asset pack, PNG (the schema rejects SVG)"). That commit also uploaded them
+ * to a Supabase Storage bucket by hand and wired three partners to the
+ * resulting https URLs, because `partners_logo_https` accepted nothing else.
+ * That upload is still live on the hosted project behind Vercel and still
+ * renders in production -- what was never committed is anything that
+ * *reproduces* it: no bucket migration, no upload script, no seeded URL. So
+ * every other environment starts with 19 null logos, and a local stack cannot
+ * be brought up to match, since its Supabase URL is http and the constraint
+ * refused it.
+ *
  * supabase/migrations/0021_partner_logo_asset_paths.sql widens that
  * constraint to also accept a site-root-relative path, which is what these
- * are: Next serves them from `public/`, on the page's own origin, and they
- * survive a `db:reset` because they are declared here rather than uploaded.
+ * are: Next serves them from `public/`, on the page's own origin, with no
+ * bucket involved, and they survive a `db:reset` because they are declared
+ * here rather than uploaded.
+ *
+ * **These do not disturb the hosted rows.** The seed writes them only where
+ * `logo_url` is null (see scripts/seed.ts), so running it against the
+ * deployed project leaves its Storage URLs exactly as they are. The two
+ * sources coexist on purpose: the deployment keeps what it has, and a
+ * checkout stops depending on a bucket this repository cannot recreate.
  *
  * **Three partners, not five.** The pack also contains `cisco.png` and
  * `domyn.png`, and both stay unwired for the reason 744108a gave and this
