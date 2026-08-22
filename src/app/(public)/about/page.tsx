@@ -1,5 +1,7 @@
 import { t } from '@/lib/i18n';
 import { getSiteContent, listHeadlineStats } from '@/lib/public/readers';
+import { COUNTRIES, NEED_KEYS } from '@/lib/reference';
+import AboutSectors from '@/components/public/AboutSectors';
 
 /**
  * PRD 5.6: editable identity copy plus all headline stats, and the single
@@ -70,6 +72,74 @@ export default async function AboutPage() {
           </dl>
         </section>
       ) : null}
+
+      {/* "What you can find here", prototype lines 393-404. The five need
+          definitions are the same strings the storefront's department menu
+          shows, read from the same keys rather than restated, so the two can
+          never drift apart. Every need appears here whatever the live counts
+          are: this is a definition list explaining what the directory holds,
+          not a filter, and a need with nothing live today still describes
+          what the AI Hub offers. */}
+      <h2 style={SECTION_HEADING}>{t('about.findHeading')}</h2>
+      <ul
+        style={{
+          marginTop: 14,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+          gap: 12,
+          listStyle: 'none',
+          padding: 0,
+        }}
+      >
+        {NEED_KEYS.map((need) => (
+          <li
+            key={need}
+            style={{
+              border: '1px solid #DDE5EE',
+              borderRadius: 12,
+              padding: '16px 18px',
+              background: '#fff',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 9,
+                  height: 9,
+                  borderRadius: 3,
+                  background: `var(--color-need-${need})`,
+                  flexShrink: 0,
+                }}
+              />
+              <span style={{ fontSize: 15, fontWeight: 800 }}>{t(`need.${need}`)}</span>
+            </div>
+            <div
+              style={{ fontSize: 13, lineHeight: 1.55, color: '#42506E', marginTop: 7 }}
+            >
+              {t(`need.${need}.def`)}
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {/* "Six priority sectors", prototype lines 406-416. */}
+      <h2 style={SECTION_HEADING}>{t('about.sectorsHeading')}</h2>
+      <AboutSectors />
+
+      {/* "Open to anyone", prototype lines 417-420. The country list is
+          `COUNTRIES` from src/lib/reference.ts — the same eighteen the
+          directory filters on, joined here rather than restated, so the page
+          cannot claim a different set from the one a visitor can select.
+          "Democratic Republic of the Congo" is spelled in full there, which
+          is what keeps this line compliant with the content rule. */}
+      <h2 style={{ ...SECTION_HEADING, margin: '36px 0 0 0' }}>{t('about.openHeading')}</h2>
+      <p style={{ margin: '12px 0 0 0', fontSize: 15.5, lineHeight: 1.7, color: '#2B3A5C' }}>
+        {t('about.openBody')}
+      </p>
+      <p style={{ margin: '12px 0 0 0', fontSize: 15, lineHeight: 1.8, color: '#2B3A5C' }}>
+        {t('about.countriesLine', { countries: COUNTRIES.join(' · ') })}
+      </p>
 
       <h2 style={SECTION_HEADING}>{t('about.contactHeading')}</h2>
       <p style={{ ...BODY, margin: '12px 0 0 0' }}>
