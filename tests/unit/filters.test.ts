@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   parseFilters,
   toSearchParams,
+  directoryHref,
   filterResources,
   sortResources,
   EMPTY_CRITERIA,
@@ -79,6 +80,37 @@ describe('parseFilters', () => {
 
   it('trims the free-text query', () => {
     expect(parseFilters(new URLSearchParams('q=%20%20grants%20%20')).query).toBe('grants');
+  });
+});
+
+describe('directoryHref', () => {
+  it('drops the query string entirely when nothing is filtered', () => {
+    // Not '/?#directory'. A visitor copies whatever is in the address bar,
+    // and a bare '?' propagates through every subsequent share of that link.
+    expect(directoryHref(EMPTY_CRITERIA)).toBe('/#directory');
+  });
+
+  it('always carries the directory fragment, so a filter click lands on the band', () => {
+    // The directory is a section of the home page, not a route. Without the
+    // fragment a browse-menu link navigates to the top of the page and the
+    // filtered results are somewhere below the fold, unannounced.
+    expect(directoryHref(criteria({ need: 'compute' }))).toBe('/?need=compute#directory');
+  });
+
+  it('serialises a need and a sub-category search as the pair the chips use', () => {
+    // This exact string is what a browse-menu sub-item links to, and it must
+    // parse back to the same selection a visitor could have reached by
+    // choosing the need chip and typing the phrase into the search box.
+    const href = directoryHref(criteria({ need: 'training', query: 'Cloud credits' }));
+    expect(href).toBe('/?need=training&q=Cloud+credits#directory');
+    expect(parseFilters(new URLSearchParams(href.slice(2, href.indexOf('#'))))).toEqual(
+      criteria({ need: 'training', query: 'Cloud credits' }),
+    );
+  });
+
+  it('preserves unrelated parameters from the base it is given', () => {
+    const base = new URLSearchParams('utm_source=newsletter');
+    expect(directoryHref(criteria({ need: 'funding' }), base)).toContain('utm_source=newsletter');
   });
 });
 

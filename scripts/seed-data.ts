@@ -67,12 +67,13 @@ export type Exclusivity = 'exclusive' | 'early_access';
 // Partners — 19 rows, names only.
 // ============================================================================
 //
-// `logo_url` and `website_url` are both null for every row: the prototype
-// carries no partner URLs at all (its favicon-domain trick even misattributes
-// Stanford to coursera.org — see 0013_reconcile_partners.sql), and the client
-// has not supplied real ones. supabase/migrations/0014_partner_logos.sql
-// keeps both columns nullable for exactly this reason: a partner row can
-// exist before its asset pair (logo + site) arrives, and
+// `logo_url` and `website_url` are null for every row except the three in
+// `PARTNER_ASSETS` below. The prototype carries no partner URLs at all (its
+// favicon-domain trick even misattributes Stanford to coursera.org — see
+// 0013_reconcile_partners.sql), so every logo here comes from the client's
+// asset pack instead. supabase/migrations/0014_partner_logos.sql keeps both
+// columns nullable precisely so the rest can wait: a partner row can exist
+// before its asset pair (logo + site) arrives, and
 // `partners_logo_requires_site` only refuses a logo with no link, which a
 // name-only row never triggers.
 //
@@ -122,6 +123,56 @@ export const PARTNERS: readonly string[] = [
   'Safaricom',
   'Stanford / Coursera',
   'Zindi',
+];
+
+/**
+ * The partners whose logo and official site the client's asset pack covers.
+ *
+ * The files are `public/partners/*.png`, committed in 744108a ("the client's
+ * asset pack, PNG (the schema rejects SVG)"). That commit uploaded them to a
+ * Supabase Storage bucket by hand and wired three partners to the resulting
+ * https URLs, because `partners_logo_https` accepted nothing else. None of
+ * that was reproducible -- no bucket migration, no upload script, no seeded
+ * URL -- so the logos went away with the local stack they lived in, and every
+ * `logo_url` in the database was null again.
+ * supabase/migrations/0021_partner_logo_asset_paths.sql widens that
+ * constraint to also accept a site-root-relative path, which is what these
+ * are: Next serves them from `public/`, on the page's own origin, and they
+ * survive a `db:reset` because they are declared here rather than uploaded.
+ *
+ * **Three partners, not five.** The pack also contains `cisco.png` and
+ * `domyn.png`, and both stay unwired for the reason 744108a gave and this
+ * seed's own header repeats. There is no Domyn partner row at all, and Cisco
+ * exists only inside the combined name "Cyber 4.0 and Cisco" -- putting the
+ * Cisco mark on a row that names two organisations would state something
+ * about a UN programme's partnerships that nobody has confirmed. Adding a row
+ * for either is a client decision, not a seeding one.
+ *
+ * Each site is the organisation's own, which is content rule 10.10 ("each
+ * logo must link to its own official site") and is also the only reason the
+ * pair is declared together: `partners_logo_requires_site` refuses to store a
+ * logo whose partner has no link.
+ */
+export const PARTNER_ASSETS: readonly {
+  name: string;
+  logoUrl: string;
+  websiteUrl: string;
+}[] = [
+  {
+    name: 'Amazon Web Services',
+    logoUrl: '/partners/aws.png',
+    websiteUrl: 'https://aws.amazon.com/',
+  },
+  {
+    name: 'CINECA',
+    logoUrl: '/partners/cineca.png',
+    websiteUrl: 'https://www.cineca.it/',
+  },
+  {
+    name: 'Microsoft',
+    logoUrl: '/partners/microsoft.png',
+    websiteUrl: 'https://www.microsoft.com/',
+  },
 ];
 
 /**

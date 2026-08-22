@@ -90,6 +90,26 @@ export function toSearchParams(
 }
 
 /**
+ * The URL a filter selection navigates to.
+ *
+ * The directory is a band on the home page, not a route, so every filtered
+ * view is `/` plus a query string plus the `#directory` fragment. Both
+ * consumers -- `ResourceDirectoryClient`'s own controls and the browse
+ * menu's links -- go through here, so a link in the sidebar and a chip in
+ * the directory cannot serialise the same selection two different ways.
+ *
+ * The empty query string is dropped rather than serialised as `/?`, which a
+ * visitor would otherwise copy out of the address bar and share.
+ */
+export function directoryHref(
+  criteria: FilterCriteria,
+  base?: URLSearchParams,
+): string {
+  const query = toSearchParams(criteria, base).toString();
+  return query === '' ? '/#directory' : `/?${query}#directory`;
+}
+
+/**
  * An empty eligibility array means "no restriction", not "eligible for
  * nothing". The seed maps the prototype's `sectors: 'All'` sentinel to `[]`,
  * so reading an empty array as a filter miss would hide every

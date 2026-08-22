@@ -68,6 +68,7 @@ import { config as loadEnv } from 'dotenv';
 import type { Database } from '../src/lib/supabase/database.types';
 import {
   AI_HUB_PARTNERS,
+  PARTNER_ASSETS,
   PARTNERS,
   RESOURCES,
   SITE_CONTENT,
@@ -194,6 +195,33 @@ export async function seed(): Promise<SeedSummary> {
     .from('partners')
     .upsert(partnerRows, { onConflict: 'name' });
   if (partnersError) throw new Error(`partners upsert failed: ${partnersError.message}`);
+  // 1b. partner assets — the logo/site pair, written only where no logo is
+  // recorded yet. The `is('logo_url', null)` filter is what reconciles two
+  // rules that would otherwise contradict each other: a fresh database must
+  // come up with the client's logos on it (so the seed has to write them),
+  // and an admin-uploaded logo must survive every re-run (so the seed must
+  // not overwrite one). Filtering on the null makes the write a backfill
+  // rather than an assignment -- it can only ever turn "no logo" into "the
+  // pack's logo", never replace a decision somebody made in the admin.
+  //
+  // Separate from the upsert above rather than folded into it, because
+  // PostgREST's ON CONFLICT DO UPDATE has no per-row WHERE: including these
+  // columns in that payload would rewrite them unconditionally, which is
+  // exactly what the comment above explains must not happen.
+  //
+  // Both columns are set in one statement because
+  // `partners_logo_requires_site` refuses a logo with no site to link to
+  // (content rule 10.10) -- they cannot land separately even if we wanted
+  // them to.
+  for (const asset of PARTNER_ASSETS) {
+    const { error } = await client
+      .from('partners')
+      .update({ logo_url: asset.logoUrl, website_url: asset.websiteUrl })
+      .eq('name', asset.name)
+      .is('logo_url', null);
+    if (error) throw new Error(`partner asset update failed for ${asset.name}: ${error.message}`);
+  }
+
   const { count: partnersCount, error: partnersCountError } = await client
     .from('partners')
     .select('name', { count: 'exact', head: true })
@@ -288,7 +316,10 @@ if (isMain) {
   seed()
     .then((summary) => {
       console.log('Seed complete:');
-      console.log(`  partners:     ${summary.partners} (logo_url/website_url on existing rows untouched)`);
+      console.log(
+        `  partners:     ${summary.partners} ` +
+          '(asset pack backfilled where no logo was recorded; an existing logo_url/website_url is left alone)',
+      );
       console.log(`  resources:    ${summary.resources} (status/is_featured/deadline/exclusivity on existing rows untouched; content refreshed)`);
       console.log(`  site_content: ${summary.site_content} (full refresh — no curation workflow on this table)`);
     })

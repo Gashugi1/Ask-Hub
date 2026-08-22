@@ -196,17 +196,19 @@ button {
 
 /*
  * The prototype expresses hover as a `style-hover` attribute, which is not
- * real HTML. These two carry it for server components, where the alternative
+ * real HTML. This carries it for server components, where the alternative
  * would be converting a component to a client one purely for a background
- * colour. Values are the prototype's own: #F1F4FA behind a nav item,
- * #EEF2FB behind the outlined action.
+ * colour. The value is the prototype's own: #F1F4FA behind a nav item.
+ *
+ * `.proto-nav-action` used to sit here for an outlined pill in the header's
+ * right-hand slot. The prototype fills that slot with ADMIN, which PRD 5.8
+ * forbids in public navigation, and Contact -- which had been standing in it
+ * -- is a plain nav item in the prototype (reference line 21). With nothing
+ * outlined left in the header the rule had no consumer, so it is gone rather
+ * than kept as a class nothing applies.
  */
 .proto-nav-item:hover {
   background: #f1f4fa;
-}
-
-.proto-nav-action:hover {
-  background: #eef2fb;
 }
 
 /* Footer, prototype lines 595-631: links warm to the accent, the outlined
@@ -229,6 +231,17 @@ button {
 /* Storefront department menu, prototype lines 55-62. */
 .proto-dept-item:hover {
   background: #f1f4fa;
+}
+
+/* The expanded category's sub-items, prototype lines 66-71: each warms to the
+   nav tint and the primary blue, and the trailing "More" underlines. */
+.proto-dept-sub:hover {
+  background: #f1f4fa;
+  color: #1f5fbf;
+}
+
+.proto-dept-more:hover {
+  text-decoration: underline;
 }
 
 /* Featured card, prototype line 88: the shadow lifts on hover. */
@@ -325,4 +338,12 @@ button {
   .proto-marquee-track {
     animation: none;
   }
+}
+
+/* About page sector pill, prototype line 409. Same hover as the directory's
+   filter chips, but a class of its own: the two controls are unrelated, and
+   sharing `.proto-active-chip` would tie a future change to one of them to
+   the other. */
+.proto-sector-pill:hover {
+  border-color: #1f5fbf;
 }

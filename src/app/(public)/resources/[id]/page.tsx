@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { t } from '@/lib/i18n';
 import NeedBadge from '@/components/public/NeedBadge';
 import ShareModal from '@/components/public/ShareModal';
+import PartnerLogo, { LOGO_ON_DETAIL } from '@/components/public/PartnerLogo';
 import { deadlineLabel } from '@/lib/public/deadline-label';
 import { geoEligibilityLabel } from '@/lib/public/geo';
 import { resourceJsonLd, serialiseJsonLd } from '@/lib/public/jsonld';
@@ -82,7 +83,17 @@ export default async function ResourceDetailPage({
       {/* The prototype's 170px hero band (reference lines 294-309). A partner
           banner image, when one exists, sits in the same place at the same
           size rather than being appended above it -- two banners stacked was
-          never the design. */}
+          never the design.
+
+          The prototype opens this band with the same decorative three-dot
+          marker the welcome band carries (reference line 296, at 7px against
+          the home page's 8px). It is removed here on the client's
+          instruction, together with the home one -- see WelcomeBand, which
+          holds the note for both. Nothing is lost: the marker was
+          `aria-hidden` and carried no information. That was also this file's
+          last reference to `var(--acc)`, a custom property the prototype sets
+          on its own root from a settings value and that nothing in this app
+          defines, so it had been resolving to its literal fallback. */}
       <div
         style={{
           marginTop: 18,
@@ -110,6 +121,10 @@ export default async function ResourceDetailPage({
             }}
           />
         ) : null}
+        {/* Prototype line 297 (`bnLogoL`), the largest of the four tiles.
+            Outside the flex column below it, because it is pinned to the
+            band's top-right corner rather than stacked with the copy. */}
+        <PartnerLogo logoUrl={resource.partnerLogoUrl} style={LOGO_ON_DETAIL} />
         <div
           style={{
             position: 'absolute',
@@ -120,19 +135,6 @@ export default async function ResourceDetailPage({
             padding: '24px 30px',
           }}
         >
-          <span
-            aria-hidden="true"
-            style={{ display: 'flex', gap: 5, marginBottom: 10 }}
-          >
-            {['var(--acc, #F06428)', 'rgba(255,255,255,0.55)', 'rgba(255,255,255,0.30)'].map(
-              (colour) => (
-                <span
-                  key={colour}
-                  style={{ width: 7, height: 7, borderRadius: 99, background: colour }}
-                />
-              ),
-            )}
-          </span>
           <div
             style={{
               fontSize: 13,

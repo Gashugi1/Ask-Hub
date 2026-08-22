@@ -1,8 +1,22 @@
 /**
  * Transcribed from the approved prototype, docs/prototype/prototype.html
- * lines 29-49: a 120deg navy -> deep-blue gradient, 1280px wide, with three
- * accent dots above a 25px/800 title, a 13px tagline, a 14.5px body and a
- * nowrap accent button on the right.
+ * lines 29-49: a 120deg navy -> deep-blue gradient, 1280px wide, carrying a
+ * 25px/800 title, a 13px tagline, a 14.5px body and a nowrap accent button on
+ * the right.
+ *
+ * **The prototype's three-dot marker is not here, and this note covers every
+ * place it appeared.** Lines 34-40 open this band with three 8px beads in the
+ * accent orange and the roundel's teal and coral; line 296 opens the resource
+ * detail banner with the same device at 7px; line 34's featured-card row
+ * carries a third; and line 596 sets a single bead beside the footer
+ * wordmark. All four are removed at the client's instruction, not by
+ * transcription error -- so a later fidelity pass that finds them in the
+ * reference should leave them out rather than restore them, on any surface.
+ * The device is gone from this application entirely; there is no remaining
+ * instance to be consistent with. Nothing is lost by their absence: every one
+ * was decorative and `aria-hidden`, carrying no information any reader could
+ * miss. `--color-accent-teal` and `--color-accent-coral` went with them,
+ * having existed only to hold the second and third beads.
  *
  * PRD 5.1 item 1. The copy is editable from admin, so it comes from
  * `site_content` rather than `en.json` -- these are the keys the seed writes
@@ -28,6 +42,10 @@
  * white-on-orange and that navy was a deliberate departure. That was wrong:
  * the prototype's own button is `color:#1A2332` on the accent (line 45), so
  * verbatim transcription and the accessible choice are the same thing here.
+ * Its background reads `--color-orange` rather than the prototype's own
+ * `var(--acc, #F06428)`: `--acc` is an accent custom property the prototype
+ * sets on its root from a settings value, and nothing in this app defines
+ * it, so that reference resolved to its literal fallback every time.
  *
  * The band is full-bleed: the outer element paints the gradient edge to edge
  * and an inner wrapper holds the 1280px measure.
@@ -67,18 +85,6 @@ export default function WelcomeBand({ content }: { content: Record<string, strin
             gap: 6,
           }}
         >
-          <span
-            aria-hidden="true"
-            style={{ display: 'flex', gap: 5, marginBottom: 2 }}
-          >
-            {['var(--acc, #F06428)', '#4FB0AE', '#E2564A'].map((colour) => (
-              <span
-                key={colour}
-                style={{ width: 8, height: 8, borderRadius: 99, background: colour }}
-              />
-            ))}
-          </span>
-
           {title ? (
             <h1
               style={{
@@ -128,7 +134,7 @@ export default function WelcomeBand({ content }: { content: Record<string, strin
             href="#directory"
             className="proto-accent-button"
             style={{
-              background: 'var(--acc, #F06428)',
+              background: 'var(--color-orange)',
               color: '#1A2332',
               border: 'none',
               borderRadius: 10,

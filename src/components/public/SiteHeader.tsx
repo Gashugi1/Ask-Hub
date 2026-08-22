@@ -7,17 +7,32 @@ import SearchPill from './SearchPill';
  * Transcribed from the approved prototype, docs/prototype/prototype.html
  * lines 3-28: a sticky white rail with a 1px hairline, 1180px wide, 68px
  * tall, carrying the roundel and wordmark on the left, the search pill in the
- * middle, and the navigation and a single outlined action on the right.
+ * middle, and the navigation on the right.
  *
- * **The one thing not transcribed: the ADMIN button.** The prototype fills
- * the right-hand slot with an outlined ADMIN button linking to the portal.
- * PRD 5.8 forbids it in as many words -- "No login link or admin reference
- * anywhere in public navigation" -- and putting an admin entry point in front
- * of every anonymous visitor is not a styling decision. Raised with the
- * client, who ruled that PRD 5.8 governs (spec D11). Contact keeps the slot,
- * wearing the prototype's outlined-button treatment exactly: 1.5px primary
- * border, 12.5px/600, 0.06em uppercase, 9px 16px, 8px radius. So the slot
- * looks like the prototype's and leads somewhere the PRD permits.
+ * **The one thing not transcribed: the ADMIN button.** The prototype ends the
+ * rail with an outlined ADMIN button linking to the portal. PRD 5.8 forbids
+ * it in as many words -- "No login link or admin reference anywhere in public
+ * navigation" -- and putting an admin entry point in front of every anonymous
+ * visitor is not a styling decision. Raised with the client, who ruled that
+ * PRD 5.8 governs (spec D11). The portal is reachable at /admin/login and is
+ * advertised nowhere, which is the whole point; nothing stands in the slot.
+ *
+ * **Contact is a plain nav item, not an outlined pill.** It had been wearing
+ * the ADMIN button's treatment on the reasoning that the slot should keep its
+ * shape. That was a guess dressed as a transcription: the prototype styles
+ * Contact at line 21, in the nav row beside Home, Browse and About, with the
+ * same 14px/600 navy on a 6px radius and the same #F1F4FA hover -- identical
+ * to its siblings. An outlined uppercase pill gave a Contact link the visual
+ * weight of a sign-in, which is exactly the emphasis PRD 5.8 wants absent.
+ *
+ * **Browse is gone from the nav.** The prototype's Browse item switches to a
+ * directory screen. Here the directory is a band on the home page (PRD 5.1
+ * item 8), so the item was an in-page jump to #directory sitting one slot
+ * away from Home, which scrolls to the top of the same page -- two nav items
+ * for one document. The directory is reached from the browse menu, the search
+ * pill, the welcome CTA and the footer, all of which target it directly.
+ * `nav.directory` stays in en.json because the footer still labels a link
+ * with it.
  *
  * **On the wordmark.** `site.wordmark` is "AskHub", the product's own name,
  * as against the programme -- the AI Hub for Sustainable Development -- which
@@ -33,8 +48,8 @@ import SearchPill from './SearchPill';
  *
  * Hover states arrive in the prototype as `style-hover` attributes, which are
  * not real HTML. This is a server component and converting it to a client one
- * for a background colour would be a poor trade, so they are the two global
- * classes `.proto-nav-item` and `.proto-nav-action`.
+ * for a background colour would be a poor trade, so the nav item's hover is
+ * the global class `.proto-nav-item`.
  */
 export default function SiteHeader() {
   return (
@@ -130,22 +145,6 @@ export default function SiteHeader() {
           </li>
           <li>
             <Link
-              href="/#directory"
-              className="proto-nav-item"
-              style={{
-                display: 'inline-block',
-                fontSize: 14,
-                fontWeight: 600,
-                color: '#1A2332',
-                padding: '8px 12px',
-                borderRadius: 6,
-              }}
-            >
-              {t('nav.directory')}
-            </Link>
-          </li>
-          <li>
-            <Link
               href="/about"
               className="proto-nav-item"
               style={{
@@ -160,26 +159,23 @@ export default function SiteHeader() {
               {t('nav.about')}
             </Link>
           </li>
+          <li>
+            <Link
+              href="/contact"
+              className="proto-nav-item"
+              style={{
+                display: 'inline-block',
+                fontSize: 14,
+                fontWeight: 600,
+                color: '#1A2332',
+                padding: '8px 12px',
+                borderRadius: 6,
+              }}
+            >
+              {t('nav.contact')}
+            </Link>
+          </li>
         </ul>
-
-        <Link
-          href="/contact"
-          className="proto-nav-action"
-          style={{
-            border: '1.5px solid #1F5FBF',
-            color: '#1F5FBF',
-            background: '#fff',
-            fontSize: 12.5,
-            fontWeight: 600,
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-            padding: '9px 16px',
-            borderRadius: 8,
-            flexShrink: 0,
-          }}
-        >
-          {t('nav.contact')}
-        </Link>
       </nav>
     </header>
   );

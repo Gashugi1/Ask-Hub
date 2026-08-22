@@ -72,19 +72,18 @@ export default function SiteFooter() {
         }}
       >
         <div style={{ flex: 2, minWidth: 280 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <span style={{ fontSize: 19, fontWeight: 800, letterSpacing: '-0.02em' }}>
-              {t('site.wordmark')}
-            </span>
-            <span
-              aria-hidden="true"
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: 99,
-                background: 'var(--acc, #F06428)',
-              }}
-            />
+          {/* The prototype sets a 7px accent bead beside the wordmark here
+              (reference line 596). It is removed with the rest of the dot
+              device -- see WelcomeBand, which holds the note for every
+              surface that carried one. The flex row goes with it: with the
+              bead gone it wrapped a single span and aligned nothing.
+
+              That bead was also this component's last `var(--acc)`
+              reference, a custom property the prototype sets on its own root
+              from a settings value and that nothing in this app defines, so
+              it had been resolving to its literal fallback. */}
+          <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: '-0.02em' }}>
+            {t('site.wordmark')}
           </div>
 
           <div

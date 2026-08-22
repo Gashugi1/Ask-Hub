@@ -8,7 +8,7 @@ import FilterControls from './FilterControls';
 import ExportButton from './ExportButton';
 import {
   parseFilters,
-  toSearchParams,
+  directoryHref,
   filterResources,
   sortResources,
   type FilterCriteria,
@@ -71,9 +71,10 @@ export default function ResourceDirectoryClient({
   );
 
   function apply(next: FilterCriteria) {
-    const params = toSearchParams(next, new URLSearchParams(searchParams.toString()));
-    const query = params.toString();
-    router.replace(query === '' ? '/#directory' : `/?${query}#directory`, { scroll: false });
+    // Same serialiser as the browse menu's links, so a chip and a sidebar
+    // entry expressing the same selection produce the same URL.
+    const href = directoryHref(next, new URLSearchParams(searchParams.toString()));
+    router.replace(href, { scroll: false });
   }
 
   return (

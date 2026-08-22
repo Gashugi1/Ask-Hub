@@ -2,11 +2,13 @@ import { Suspense } from 'react';
 import WelcomeBand from '@/components/public/WelcomeBand';
 import StatsBand from '@/components/public/StatsBand';
 import BrowseByNeed from '@/components/public/BrowseByNeed';
+import BrowseByNeedClient from '@/components/public/BrowseByNeedClient';
 import FeaturedCarousel from '@/components/public/FeaturedCarousel';
 import PartnerRow from '@/components/public/PartnerRow';
 import RecentlyAddedRail from '@/components/public/RecentlyAddedRail';
 import ResourceDirectoryStatic from '@/components/public/ResourceDirectoryStatic';
 import ResourceDirectoryClient from '@/components/public/ResourceDirectoryClient';
+import { buildNeedMenu } from '@/lib/public/need-menu';
 import {
   listPublicResources,
   listNeedCounts,
@@ -68,6 +70,8 @@ export default async function PublicHomePage() {
     getSiteContent(),
   ]);
 
+  const needMenu = buildNeedMenu(needCounts, resources);
+
   return (
     <>
       <WelcomeBand content={content} />
@@ -100,7 +104,18 @@ export default async function PublicHomePage() {
           flexWrap: 'wrap',
         }}
       >
-        <BrowseByNeed counts={needCounts} />
+        {/* The menu's entries are derived here, on the server, from the
+            counts and the same resource list the directory renders, and
+            passed to both renderings below so they cannot list different
+            things. `BrowseByNeedClient` reads the active need from the URL;
+            the fallback is the same menu with nothing active, which is real
+            markup rather than a placeholder — every category, count and
+            category link is in the static HTML and works without JavaScript.
+            Only the sub-items of an already-applied filter wait for
+            hydration. Same boundary, same reasoning, as the directory below. */}
+        <Suspense fallback={<BrowseByNeed entries={needMenu} activeNeed={null} />}>
+          <BrowseByNeedClient entries={needMenu} />
+        </Suspense>
 
         <div
           style={{
