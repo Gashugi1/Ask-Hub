@@ -39,10 +39,6 @@ export const ACTION_ROLE_EXEMPT: Record<string, Exception> = {
     approvedIn: 'SP3-T9',
     why: 'Destroys a session and is safe for any caller including one with none; refusing it for a role would strand a signed-in user who may no longer sign out.',
   },
-  'contact.ts#submitContactMessage': {
-    approvedIn: 'SP2a-T9',
-    why: 'The public contact form, which PRD 5 puts behind no account at all, so there is no caller role to re-check. Its authorisation is instead structural and lives in the database: the action holds only the anon key, contact_messages has no anon grant or insert policy, and the sole write path is public.submit_contact_message (0020), a security definer function that can set three columns and read nothing back.',
-  },
 };
 
 // Pages under src/app/(admin)/admin that legitimately do NOT call requireRole
@@ -62,5 +58,5 @@ export const PAGE_ROLE_EXEMPT: Record<string, Exception> = {
   },
 };
 
-export const EXPECTED_ACTION_ROLE_EXEMPT = 3;
+export const EXPECTED_ACTION_ROLE_EXEMPT = 2;
 export const EXPECTED_PAGE_ROLE_EXEMPT = 2;

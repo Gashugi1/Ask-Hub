@@ -12,7 +12,6 @@ Turnstile, a honeypot field, and per-IP plus per-session rate limiting
 | Endpoint | Adds | Sub-project | Notes |
 | --- | --- | --- | --- |
 | `POST /api/events` | First-party engagement event write | SP2 | PRD 8.3. Fire-and-forget from the client, must never block or degrade rendering. Bot user agents flagged `is_bot = true`. No IP addresses stored. |
-| `POST /api/contact` | Contact form | SP2 | PRD 9.1. Persists to `contact_messages`; delivery to `aihubfordevelopment@undp.org` is SP5, blocked on SPF/DKIM. |
 | `POST /api/submissions` | Suggest a resource, suggest an update | SP2 | PRD 5.5, 5.3. Lands in `submissions` as `pending`. |
 | `POST /api/subscribers` | Alerts subscribe | SP2 | PRD 5.4, 9.2. Writes an unconfirmed row with `consent_text_version`; the confirmation email is SP5. |
 
