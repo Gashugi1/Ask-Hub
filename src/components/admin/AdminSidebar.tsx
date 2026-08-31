@@ -31,15 +31,13 @@ export default function AdminSidebar({
 }) {
   return (
     <nav
+      className="admin-rail"
       style={{
         background: '#1A2332',
         color: '#fff',
         padding: '22px 16px',
         display: 'flex',
         flexDirection: 'column',
-        position: 'sticky',
-        top: 0,
-        height: '100vh',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px' }}>

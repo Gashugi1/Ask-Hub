@@ -38,19 +38,17 @@ export default async function AdminLayout({
   if (!user) return <div className="min-h-full">{children}</div>;
 
   // The prototype's admin shell (reference line 668): a fixed 232px rail
-  // beside the content, on a #F4F6F9 field. A grid rather than flex because
-  // the rail's width is stated once here instead of on the rail itself.
+  // beside the content, on a #F4F6F9 field.
+  //
+  // The grid and the rail's own sticky full-height behaviour live in
+  // globals.css rather than here, because both have to change below 900px and
+  // an inline style cannot carry a media query. Left as inline values, the
+  // 232px column and a 100vh rail simply persisted onto a phone: a third of
+  // the screen given to navigation, and content squeezed into what was left.
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '232px 1fr',
-        minHeight: '100vh',
-        background: '#F4F6F9',
-      }}
-    >
+    <div className="admin-shell" style={{ minHeight: '100vh', background: '#F4F6F9' }}>
       <AdminSidebar role={user.role} user={user} />
-      <div style={{ padding: '30px 34px 60px 34px', minWidth: 0 }}>{children}</div>
+      <div className="admin-content">{children}</div>
     </div>
   );
 }

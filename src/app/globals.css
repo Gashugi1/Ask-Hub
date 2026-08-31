@@ -353,3 +353,47 @@ button {
   border-color: #1f5fbf;
   color: #1f5fbf;
 }
+
+/*
+ * Admin shell.
+ *
+ * Wide: the prototype's fixed 232px rail beside the content, the rail sticky
+ * for the viewport's height so the screen list stays reachable down a long
+ * table.
+ *
+ * Narrow: one column, and the rail stops being sticky and full-height. Kept
+ * inline, a 232px column and a 100vh rail persisted onto a phone -- a third of
+ * the screen spent on navigation, and a 100vh rail pinning the viewport before
+ * a single row of content appeared. 900px is where the rail plus a readable
+ * table stop fitting side by side, not a device width.
+ */
+.admin-shell {
+  display: grid;
+  grid-template-columns: 232px 1fr;
+}
+
+.admin-rail {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.admin-content {
+  padding: 30px 34px 60px 34px;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-rail {
+    position: static;
+    height: auto;
+  }
+
+  .admin-content {
+    padding: 22px 18px 48px 18px;
+  }
+}
