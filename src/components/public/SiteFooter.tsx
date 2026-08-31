@@ -52,9 +52,17 @@ const BADGE = {
   textDecoration: 'none',
 } as const;
 
+/**
+ * The three marks, linked as the AI Hub website links them
+ * (aihubfordevelopment.org, mimit.gov.it/en/, undp.org).
+ *
+ * They stay text badges rather than logo images. This release removes partner
+ * and programme logos throughout, and adding three logo files to the footer
+ * while stripping them from every card would contradict that.
+ */
 const PARTNER_LINKS = [
   { href: 'https://aihubfordevelopment.org', key: 'footer.linkAiHub' },
-  { href: 'https://www.mimit.gov.it', key: 'footer.linkMimit' },
+  { href: 'https://www.mimit.gov.it/en/', key: 'footer.linkMimit' },
   { href: 'https://www.undp.org', key: 'footer.linkUndp' },
 ] as const;
 
@@ -95,6 +103,19 @@ export default function SiteFooter() {
               maxWidth: 380,
             }}
           >
+            {/* The AI Hub website's own tagline, with its final clause
+                dropped. That clause names an Italy-Africa plan whose name a
+                CLAUDE.md content rule keeps out of this product, and which
+                tests/unit/i18n.test.ts and tests/seed.test.ts both assert
+                against across the whole corpus -- comments included, which is
+                how this very note first failed the suite. Carrying the clause
+                would mean deleting two assertions to import the one phrase
+                those assertions exist to exclude.
+
+                `site.footer` beneath it is pinned to an exact string by
+                tests/unit/i18n.test.ts and carries the full co-led
+                attribution, which is what keeps rule 10.1 satisfied while the
+                tagline uses the site's shorter "MIMIT-UNDP co-led" phrasing. */}
             {t('footer.tagline')}
             <br />
             {t('site.footer')}
