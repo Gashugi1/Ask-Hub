@@ -126,19 +126,6 @@ export default function SiteFooter() {
           </div>
         </div>
 
-        <div style={{ flex: 1, minWidth: 160 }}>
-          <div style={COLUMN_LABEL}>{t('footer.explore')}</div>
-          <div
-            style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 9 }}
-          >
-            <Link href="/#directory" className="proto-footer-link" style={COLUMN_LINK}>
-              {t('nav.directory')}
-            </Link>
-            <Link href="/about" className="proto-footer-link" style={COLUMN_LINK}>
-              {t('nav.about')}
-            </Link>
-          </div>
-        </div>
 
         <div style={{ flex: 1, minWidth: 160 }}>
           <div style={COLUMN_LABEL}>{t('nav.contact')}</div>

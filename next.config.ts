@@ -1,6 +1,23 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  /**
+   * `/about` is gone: this release points people at the AI Hub website for
+   * anything broader than the directory. A permanent redirect rather than a
+   * 404 because the route was live and linked from the header and footer, so
+   * shared links and any search index still land somewhere useful instead of
+   * dead-ending.
+   */
+  async redirects() {
+    return [
+      {
+        source: '/about',
+        destination: 'https://aihubfordevelopment.org',
+        permanent: true,
+      },
+    ];
+  },
+
   async headers() {
     return [
       {

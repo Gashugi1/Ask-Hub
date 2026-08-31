@@ -20,7 +20,7 @@
  *
  * PRD 5.1 item 1. The copy is editable from admin, so it comes from
  * `site_content` rather than `en.json` -- these are the keys the seed writes
- * (`welcome_title`, `welcome_tagline`, `welcome_body`, `welcome_cta`) and the
+ * (`welcome_title`, `welcome_tagline`, `welcome_body`) and the
  * keys the Site Content editor writes. An editor's change must appear without
  * a rebuild, which is what the `site-content` cache tag is for.
  *
@@ -47,6 +47,13 @@
  * sets on its root from a settings value, and nothing in this app defines
  * it, so that reference resolved to its literal fallback every time.
  *
+ * **The "Start exploring" action is gone.** It scrolled to the directory,
+ * which now sits immediately below the band on the same page -- an anchor to
+ * something already in view. `welcome_cta` stays in the content schema and the
+ * seed because it is editor-owned data, but nothing renders it, so it is also
+ * removed from the Site Content editor rather than offered as a field with no
+ * effect.
+ *
  * The band is full-bleed: the outer element paints the gradient edge to edge
  * and an inner wrapper holds the 1280px measure.
  */
@@ -54,7 +61,6 @@ export default function WelcomeBand({ content }: { content: Record<string, strin
   const title = content.welcome_title;
   const tagline = content.welcome_tagline;
   const body = content.welcome_body;
-  const cta = content.welcome_cta;
   if (!title && !body) return null;
 
   return (
@@ -129,24 +135,6 @@ export default function WelcomeBand({ content }: { content: Record<string, strin
           ) : null}
         </div>
 
-        {cta ? (
-          <a
-            href="#directory"
-            className="proto-accent-button"
-            style={{
-              background: 'var(--color-orange)',
-              color: '#1A2332',
-              border: 'none',
-              borderRadius: 10,
-              padding: '13px 26px',
-              fontSize: 14,
-              fontWeight: 800,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {cta}
-          </a>
-        ) : null}
       </div>
     </section>
   );

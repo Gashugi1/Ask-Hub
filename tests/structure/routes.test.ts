@@ -115,8 +115,7 @@ describe('route structure', () => {
     }
   });
 
-  it('serves about, privacy and terms from the (public) group', () => {
-    expect(routes()['/(public)/about/page']).toBe('/about');
+  it('serves privacy and terms from the (public) group', () => {
     expect(routes()['/(public)/privacy/page']).toBe('/privacy');
     expect(routes()['/(public)/terms/page']).toBe('/terms');
   });
@@ -168,7 +167,6 @@ describe('route structure', () => {
       .map(([, url]) => url);
     expect(publicUrls.sort()).toEqual([
       '/',
-      '/about',
       '/contact',
       '/impact',
       '/privacy',

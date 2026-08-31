@@ -145,22 +145,6 @@ export default function SiteHeader() {
           </li>
           <li>
             <Link
-              href="/about"
-              className="proto-nav-item"
-              style={{
-                display: 'inline-block',
-                fontSize: 14,
-                fontWeight: 600,
-                color: '#1A2332',
-                padding: '8px 12px',
-                borderRadius: 6,
-              }}
-            >
-              {t('nav.about')}
-            </Link>
-          </li>
-          <li>
-            <Link
               href="/contact"
               className="proto-nav-item"
               style={{

@@ -40,7 +40,7 @@ describe('the public header', () => {
     expect(screen.getByRole('navigation').textContent).not.toMatch(/admin/i);
   });
 
-  it('offers Home, About and Contact, and no second route to the same page', () => {
+  it('offers Home and Contact, and no second route to the same page', () => {
     // "Browse resources" pointed at /#directory, one slot away from Home,
     // which scrolls to the top of that same page: two nav items for one
     // document. The exact-array assertion is the point -- a "does not contain
@@ -49,20 +49,23 @@ describe('the public header', () => {
     // it is the wordmark, not a nav item; that a logo goes home is not a
     // second route on offer.
     render(<SiteHeader />);
-    expect(navItems()).toEqual(['/', '/about', '/contact']);
+    expect(navItems()).toEqual(['/', '/contact']);
   });
 
   it('styles Contact as a nav item, not as an outlined action', () => {
-    // Prototype line 21 styles Contact exactly as Home, Browse and About:
+    // Prototype line 21 styles Contact exactly as the other nav items:
     // 14px/600 navy, 8px 12px, 6px radius, #F1F4FA on hover. It had been
     // wearing the ADMIN button's outlined uppercase pill, which gave a
     // Contact link the visual weight of a sign-in -- the one emphasis PRD
     // 5.8 wants absent from this bar.
     render(<SiteHeader />);
+    // Compared against Home rather than About, which this release removes.
+    // Home is the only other nav item left, and the assertion is unchanged in
+    // substance: Contact must be styled as a peer, not as an outlined action.
     const contact = screen.getByRole('link', { name: 'Contact' });
-    const about = screen.getByRole('link', { name: 'About' });
-    expect(contact.className).toBe(about.className);
-    expect(contact.getAttribute('style')).toBe(about.getAttribute('style'));
+    const home = screen.getByRole('link', { name: 'Home' });
+    expect(contact.className).toBe(home.className);
+    expect(contact.getAttribute('style')).toBe(home.getAttribute('style'));
     expect(contact.getAttribute('style')).not.toMatch(/uppercase|border:/);
   });
 });
