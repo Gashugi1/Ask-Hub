@@ -4,8 +4,7 @@ import { render, cleanup } from '@testing-library/react';
 import ResourceCard from '@/components/public/ResourceCard';
 import RecentlyAddedRail from '@/components/public/RecentlyAddedRail';
 import FeaturedCarousel from '@/components/public/FeaturedCarousel';
-import PartnerRow from '@/components/public/PartnerRow';
-import type { PublicResource, PublicPartner } from '@/lib/public/types';
+import type { PublicResource } from '@/lib/public/types';
 
 afterEach(cleanup);
 
@@ -53,13 +52,6 @@ const resource = (over: Partial<PublicResource> = {}): PublicResource => ({
   ...over,
 });
 
-const partner = (over: Partial<PublicPartner> = {}): PublicPartner => ({
-  name: 'Amazon Web Services',
-  logoUrl: '/partners/aws.png',
-  websiteUrl: 'https://aws.amazon.com/',
-  sortOrder: 0,
-  ...over,
-});
 
 const images = (container: HTMLElement) => [...container.querySelectorAll('img')];
 
@@ -83,10 +75,4 @@ describe('no partner or programme logos are rendered', () => {
     expect(container.textContent).toContain('Amazon Web Services');
   });
 
-  it('scrolls partner names rather than logos, and still links out', () => {
-    const { container } = render(<PartnerRow partners={[partner()]} />);
-    expect(images(container)).toHaveLength(0);
-    const link = container.querySelector('a[href="https://aws.amazon.com/"]');
-    expect(link?.textContent).toContain('Amazon Web Services');
-  });
 });

@@ -2,10 +2,9 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import StatsBand from '@/components/public/StatsBand';
-import PartnerRow from '@/components/public/PartnerRow';
 import BrowseByNeed from '@/components/public/BrowseByNeed';
 import FeaturedCarousel from '@/components/public/FeaturedCarousel';
-import type { PublicStat, PublicPartner, PublicResource } from '@/lib/public/types';
+import type { PublicStat, PublicResource } from '@/lib/public/types';
 import type { NeedMenuEntry } from '@/lib/public/need-menu';
 
 afterEach(cleanup);
@@ -29,13 +28,6 @@ const stat = (over: Partial<PublicStat> & Pick<PublicStat, 'isHero'>): PublicSta
   ...over,
 });
 
-const partner = (over: Partial<PublicPartner> = {}): PublicPartner => ({
-  name: 'Zindi',
-  logoUrl: null,
-  websiteUrl: null,
-  sortOrder: 0,
-  ...over,
-});
 
 describe('StatsBand', () => {
   it('renders nothing at all when no figure has been attested', () => {
@@ -120,42 +112,6 @@ describe('StatsBand', () => {
       />,
     );
     expect(container.firstChild).toBeNull();
-  });
-});
-
-describe('PartnerRow', () => {
-  it('renders nothing when there are no partners', () => {
-    const { container } = render(<PartnerRow partners={[]} />);
-    expect(container.firstChild).toBeNull();
-  });
-
-  it('renders the partner name when no logo has been uploaded yet', () => {
-    // Logos are a client deliverable. A name-only row is the correct state
-    // until they arrive, not a gap to hide the whole band for.
-    //
-    // The name appears twice because the marquee travels -50% and needs a
-    // second copy of the list to land on, or the loop snaps back visibly.
-    // Asserting the count pins that: one copy would break the animation,
-    // three would be a bug. The duplicate must stay out of the accessibility
-    // tree, so a screen reader meets each partner once.
-    render(<PartnerRow partners={[partner({ name: 'AfriLabs' })]} />);
-    expect(screen.getAllByText('AfriLabs')).toHaveLength(2);
-    expect(document.querySelectorAll('[aria-hidden="true"]').length).toBeGreaterThan(0);
-  });
-
-  it('renders the logo and links it to the partner site once both exist', () => {
-    // Content rule 10.10, which the database enforces as a CHECK: a logo may
-    // not exist without a website to link it to.
-    render(
-      <PartnerRow
-        partners={[
-          partner({ name: 'Zindi', logoUrl: 'https://cdn.test/z.png', websiteUrl: 'https://zindi.africa' }),
-        ]}
-      />,
-    );
-    const link = screen.getByRole('link', { name: 'Zindi' });
-    expect(link.getAttribute('href')).toBe('https://zindi.africa');
-    expect(link.getAttribute('rel')).toContain('noopener');
   });
 });
 

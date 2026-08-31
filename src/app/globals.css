@@ -146,10 +146,12 @@ body {
 
 /*
  * Transcribed from the approved prototype's own global stylesheet
- * (docs/prototype/prototype.html). `fadeUp` is its entrance animation,
- * `marquee` drives the partner scroll, and `.askhub-wordmark` hides the
- * header wordmark on narrow screens so the logo and search pill still fit
- * on one row.
+ * (docs/prototype/prototype.html). `fadeUp` is its entrance animation, and
+ * `.askhub-wordmark` hides the header wordmark on narrow screens so the logo
+ * and search pill still fit on one row.
+ *
+ * The prototype's `marquee` keyframes went with the partner carousel this
+ * release removes; nothing else animated on translation.
  *
  * `box-sizing` and the font-family inheritance for form controls are
  * likewise the prototype's. Tailwind's preflight already sets both; they
@@ -176,15 +178,6 @@ button {
   to {
     opacity: 1;
     transform: none;
-  }
-}
-
-@keyframes marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
   }
 }
 
@@ -313,40 +306,6 @@ button {
   }
 }
 
-/*
- * Partner marquee, prototype lines 140-142. The track holds two copies of the
- * list and travels -50%, so the second copy lands exactly where the first
- * began and the loop does not snap.
- *
- * Anyone who has asked for less motion gets a scrollable row instead of a
- * moving one. The prototype animates unconditionally; a strip that never
- * stops is precisely what prefers-reduced-motion exists to answer.
- */
-.proto-marquee-track {
-  animation: marquee 28s linear infinite;
-}
-
-.proto-marquee-item:hover {
-  opacity: 0.75;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .proto-marquee {
-    overflow-x: auto;
-  }
-
-  .proto-marquee-track {
-    animation: none;
-  }
-}
-
-/* About page sector pill, prototype line 409. Same hover as the directory's
-   filter chips, but a class of its own: the two controls are unrelated, and
-   sharing `.proto-active-chip` would tie a future change to one of them to
-   the other. */
-.proto-sector-pill:hover {
-  border-color: #1f5fbf;
-}
 
 /* Directory pager. The current page is a solid primary and needs no hover. */
 .proto-page-link:hover {

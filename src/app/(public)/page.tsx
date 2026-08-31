@@ -4,7 +4,6 @@ import StatsBand from '@/components/public/StatsBand';
 import BrowseByNeed from '@/components/public/BrowseByNeed';
 import BrowseByNeedClient from '@/components/public/BrowseByNeedClient';
 import FeaturedCarousel from '@/components/public/FeaturedCarousel';
-import PartnerRow from '@/components/public/PartnerRow';
 import RecentlyAddedRail from '@/components/public/RecentlyAddedRail';
 import ResourceDirectoryStatic from '@/components/public/ResourceDirectoryStatic';
 import ResourceDirectoryClient from '@/components/public/ResourceDirectoryClient';
@@ -12,14 +11,13 @@ import { buildNeedMenu } from '@/lib/public/need-menu';
 import {
   listPublicResources,
   listNeedCounts,
-  listPublicPartners,
   listHeadlineStats,
   getSiteContent,
 } from '@/lib/public/readers';
 
 /**
  * The storefront home, PRD 5.1 in order: welcome, reach strip, search,
- * browse by need, featured, partners, recently added, then the full
+ * browse by need, featured, recently added, then the full
  * directory on the same page (PRD 5.1 item 8 puts it here rather than on a
  * route of its own).
  *
@@ -62,10 +60,9 @@ import {
  * does.
  */
 export default async function PublicHomePage() {
-  const [resources, needCounts, partners, stats, content] = await Promise.all([
+  const [resources, needCounts, stats, content] = await Promise.all([
     listPublicResources(),
     listNeedCounts(),
-    listPublicPartners(),
     listHeadlineStats(),
     getSiteContent(),
   ]);
@@ -127,7 +124,6 @@ export default async function PublicHomePage() {
           }}
         >
           <FeaturedCarousel resources={resources} />
-          <PartnerRow partners={partners} />
           <RecentlyAddedRail resources={resources} />
         </div>
       </div>
