@@ -6,8 +6,11 @@ import type { PublicPartner } from '@/lib/public/types';
  * lines 130-142: a cyan eyebrow and one line of explanation over a bordered
  * white strip in which the partners scroll continuously.
  *
- * PRD 5.1 item 6: each logo links to the partner's own official site, and
- * calls this a "scrolling partner logo row". The prototype implements that
+ * PRD 5.1 item 6 calls this a "scrolling partner logo row" and asks that each
+ * entry link to the partner's own official site. **This release carries no
+ * logos** -- partner and programme marks are removed throughout -- so the row
+ * scrolls the organisations' names instead, each still linking out. The
+ * prototype implements the scrolling
  * literally, with `@keyframes marquee` rather than `overflow-x: auto` -- the
  * row moves on its own instead of waiting to be dragged.
  *
@@ -30,11 +33,10 @@ import type { PublicPartner } from '@/lib/public/types';
  * the provider registry behind `resources.partner`. This component applies
  * no filter of its own and renders exactly what it is given.
  *
- * Content rule 10.10 is enforced in the database as a CHECK
- * (`logo_url is null or website_url is not null`), so a logo without a site
- * to link to cannot exist. Logos and URLs are a client deliverable; until
- * they arrive a partner renders as its name, which is a complete row rather
- * than a gap -- the band only disappears when there are no partners at all.
+ * The `logo_url` column, its CHECK against a logo with no site to link to,
+ * and the seeded asset paths are all left in place. Only the rendering is
+ * gone, so restoring logos later is a render change rather than a migration.
+ * The band disappears only when there are no partners at all.
  */
 export default function PartnerRow({ partners }: { partners: PublicPartner[] }) {
   if (partners.length === 0) return null;
@@ -42,28 +44,16 @@ export default function PartnerRow({ partners }: { partners: PublicPartner[] }) 
   const track = (duplicate: boolean) =>
     partners.map((partner) => {
       const body = (
-        <>
-          {partner.logoUrl ? (
-            // Partner logos are arbitrary remote hosts, so next/image
-            // would need each one allow-listed in next.config.ts; SP4
-            // owns the image policy. The directive must sit on the
-            // line immediately above the <img>, not above this
-            // explanation, or it suppresses nothing and reports itself
-            // as unused.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img style={{ height: 26, width: 'auto' }} src={partner.logoUrl} alt="" />
-          ) : null}
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 800,
-              color: '#5B6B8C',
-              letterSpacing: '0.04em',
-            }}
-          >
-            {partner.name}
-          </span>
-        </>
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 800,
+            color: '#5B6B8C',
+            letterSpacing: '0.04em',
+          }}
+        >
+          {partner.name}
+        </span>
       );
 
       return partner.websiteUrl ? (

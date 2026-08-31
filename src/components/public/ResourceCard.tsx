@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { t } from '@/lib/i18n';
 import { deadlineLabel } from '@/lib/public/deadline-label';
-import PartnerLogo, { LOGO_ON_CARD } from './PartnerLogo';
 import type { PublicResource } from '@/lib/public/types';
 
 /**
@@ -24,10 +23,12 @@ import type { PublicResource } from '@/lib/public/types';
  * rather than a change in how it looks. It wears the same treatment as the
  * learn-more line beside it.
  *
- * The providing organisation's mark sits in the banner's top-right corner
- * when `partners.logo_url` has one, exactly as the prototype's `bnLogoDir`
- * does. Most partners have none, and the slot simply renders nothing --
- * see PartnerLogo for why there is no placeholder in its place.
+ * **No partner logo.** The banner carried the providing organisation's mark
+ * where one existed; this release removes partner and programme logos
+ * everywhere, so the banner names the organisation in text alone. The
+ * `partner_logo_url` column and its data are untouched -- only the rendering
+ * is gone -- so reinstating the mark later is a render change, not a
+ * migration.
  *
  * **The banner colour is the need's, not the organisation's.** The prototype
  * paints it per card; this database holds no brand colour per partner, and
@@ -69,7 +70,6 @@ export default function ResourceCard({ resource }: { resource: PublicResource })
           flexShrink: 0,
         }}
       >
-        <PartnerLogo logoUrl={resource.partnerLogoUrl} style={LOGO_ON_CARD} />
         <div
           style={{
             position: 'absolute',

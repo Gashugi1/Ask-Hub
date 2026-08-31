@@ -3,7 +3,6 @@ import { t } from '@/lib/i18n';
 import { sortResources } from '@/lib/public/filters';
 import { deadlineLabel } from '@/lib/public/deadline-label';
 import type { PublicResource } from '@/lib/public/types';
-import PartnerLogo, { LOGO_ON_RAIL } from './PartnerLogo';
 
 const RECENT_LIMIT = 6;
 
@@ -80,7 +79,6 @@ export default function RecentlyAddedRail({ resources }: { resources: PublicReso
                   flexShrink: 0,
                 }}
               >
-                <PartnerLogo logoUrl={resource.partnerLogoUrl} style={LOGO_ON_RAIL} />
                 <div
                   style={{
                     position: 'absolute',
