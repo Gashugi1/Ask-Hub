@@ -4,10 +4,13 @@ import { useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { t } from '@/lib/i18n';
 import ResourceGrid, { DIRECTORY_SECTION, DIRECTORY_HEADING } from './ResourceGrid';
+import Pagination from './Pagination';
 import FilterControls from './FilterControls';
 import ExportButton from './ExportButton';
 import {
   parseFilters,
+  paginate,
+  resetPageOnFilterChange,
   directoryHref,
   filterResources,
   sortResources,
@@ -70,10 +73,18 @@ export default function ResourceDirectoryClient({
     ],
   );
 
+  const shown = paginate(visible, criteria.page);
+
   function apply(next: FilterCriteria) {
+    // Changing a facet returns to the first page. Narrowing the results while
+    // reading page five would otherwise land on page five of a two-page
+    // result: an empty grid that reads as "no matches" for a filter that
+    // matched. The rule lives in filters.ts so it is testable without
+    // rendering, and it deliberately leaves a page change alone.
+    const reset = resetPageOnFilterChange(next, criteria);
     // Same serialiser as the browse menu's links, so a chip and a sidebar
     // entry expressing the same selection produce the same URL.
-    const href = directoryHref(next, new URLSearchParams(searchParams.toString()));
+    const href = directoryHref(reset, new URLSearchParams(searchParams.toString()));
     router.replace(href, { scroll: false });
   }
 
@@ -96,7 +107,8 @@ export default function ResourceDirectoryClient({
         <FilterControls criteria={criteria} resultCount={visible.length} onChange={apply} />
       </div>
 
-      <ResourceGrid resources={visible} allCount={resources.length} />
+      <ResourceGrid resources={shown.rows} allCount={resources.length} />
+      <Pagination criteria={criteria} page={shown.page} pageCount={shown.pageCount} />
     </section>
   );
 }

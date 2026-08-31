@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { t } from '@/lib/i18n';
 import { COUNTRIES, SECTORS, STAGES, NEED_KEYS } from '@/lib/reference';
-import { DEFAULT_SORT, type FilterCriteria, type SortMode } from '@/lib/public/filters';
+import { DEFAULT_SORT, EMPTY_CRITERIA, type FilterCriteria, type SortMode } from '@/lib/public/filters';
 
 /** Idle typing time before the search box commits `query` to the URL. */
 const SEARCH_DEBOUNCE_MS = 300;
@@ -106,7 +106,11 @@ export default function FilterControls({
   function clearAll() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     setQueryText('');
+    // EMPTY_CRITERIA rather than a hand-written literal: a field added to
+    // FilterCriteria should reset here by default, not be forgotten until the
+    // compiler notices -- which is exactly how `page` arrived.
     onChange({
+      ...EMPTY_CRITERIA,
       need: null,
       sector: null,
       country: null,

@@ -1,6 +1,6 @@
 import { t } from '@/lib/i18n';
 import ResourceGrid, { DIRECTORY_SECTION, DIRECTORY_HEADING } from './ResourceGrid';
-import { DEFAULT_SORT, sortResources } from '@/lib/public/filters';
+import { DEFAULT_SORT, paginate, sortResources } from '@/lib/public/filters';
 import type { PublicResource } from '@/lib/public/types';
 
 /**
@@ -50,7 +50,12 @@ export default function ResourceDirectoryStatic({
         {t('site.curationStatement')}
       </p>
 
-      <ResourceGrid resources={sorted} allCount={sorted.length} />
+      {/* The first page, sliced by the same function the hydrated directory
+          uses, so the two cannot disagree about what a page holds. This
+          renderer reads no search params by design, so it always shows page
+          one; the client swaps in the requested page on hydration, exactly as
+          it already does for a filtered URL. */}
+      <ResourceGrid resources={paginate(sorted, 1).rows} allCount={sorted.length} />
     </section>
   );
 }

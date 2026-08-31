@@ -347,3 +347,9 @@ button {
 .proto-sector-pill:hover {
   border-color: #1f5fbf;
 }
+
+/* Directory pager. The current page is a solid primary and needs no hover. */
+.proto-page-link:hover {
+  border-color: #1f5fbf;
+  color: #1f5fbf;
+}
