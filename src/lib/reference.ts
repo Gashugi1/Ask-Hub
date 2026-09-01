@@ -40,7 +40,7 @@ export type NeedKey = (typeof NEED_KEYS)[number];
  * step with that file so the two do not disagree; if this array ever gains a
  * consumer, that consumer is the bug.
  */
-export const NEEDS = ['Compute', 'Training', 'Funding', 'Accelerators', 'Partners'] as const;
+export const NEEDS = ['Compute', 'Courses', 'Funding', 'Accelerators', 'Partners'] as const;
 
 /**
  * PRD content rule 10.6: the country filter has no catch-all

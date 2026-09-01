@@ -45,6 +45,7 @@ describe('the browse menu reading the URL', () => {
     params.current = new URLSearchParams('need=mentorship');
     render(<BrowseByNeedClient entries={entries} />);
     expect(screen.queryByRole('link', { name: /Curriculum/ })).toBeNull();
-    expect(screen.getAllByRole('link', { name: /Training/ })).toHaveLength(1);
+    // 'Courses' since this release renamed the training category.
+    expect(screen.getAllByRole('link', { name: /Courses/ })).toHaveLength(1);
   });
 });
