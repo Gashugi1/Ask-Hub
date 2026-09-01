@@ -98,17 +98,18 @@ export default function BrowseByNeed({
   if (entries.length === 0) return null;
 
   return (
+    // The 232px basis and the sticky behaviour live in globals.css, because
+    // both have to change on a narrow screen and an inline style cannot carry
+    // a media query. Left inline, the rail stayed a sticky 232px column on a
+    // phone and floated over the cards as the page scrolled past it.
     <nav
       aria-label={t('home.browseHeading')}
+      className="proto-browse-rail"
       style={{
-        flex: '0 0 232px',
-        minWidth: 232,
         background: '#fff',
         border: '1px solid #DDE5EE',
         borderRadius: 14,
         padding: '16px 12px',
-        position: 'sticky',
-        top: 80,
       }}
     >
       <div

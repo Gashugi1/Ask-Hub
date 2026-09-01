@@ -63,6 +63,7 @@ export default function RecentlyAddedRail({ resources }: { resources: PublicReso
             <article
               className="proto-rail-card"
               style={{
+                position: 'relative',
                 border: '1px solid #DDE5EE',
                 borderRadius: 14,
                 overflow: 'hidden',
@@ -140,7 +141,18 @@ export default function RecentlyAddedRail({ resources }: { resources: PublicReso
                     margin: 0,
                   }}
                 >
-                  <Link href={`/resources/${resource.id}`} style={{ color: '#1A2332' }}>
+                  {/* Stretched link: the anchor covers the whole card via
+                      .proto-rail-card a::after, so the banner, pills and
+                      deadline are all clickable -- the prototype opens the
+                      resource from anywhere on the card. Kept as one anchor
+                      rather than wrapping the card, so the accessibility tree
+                      still has a single link with the resource's name, not a
+                      link containing every scrap of text on the card. */}
+                  <Link
+                    href={`/resources/${resource.id}`}
+                    className="proto-rail-open"
+                    style={{ color: '#1A2332' }}
+                  >
                     {resource.name}
                   </Link>
                 </h3>

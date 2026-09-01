@@ -356,3 +356,42 @@ button {
     padding: 22px 18px 48px 18px;
   }
 }
+
+/*
+ * Storefront browse rail.
+ *
+ * Wide: a fixed 232px column that sticks below the sticky header, so the
+ * category list stays reachable while the resource column scrolls.
+ *
+ * Narrow: full width, in flow, not sticky. Left as an inline sticky 232px
+ * column it kept those properties on a phone -- so the rail floated over the
+ * resource cards as the page scrolled past it, which is the overlap the
+ * client reported. 900px is where a 232px rail plus a readable card column
+ * stop fitting side by side.
+ */
+.proto-browse-rail {
+  flex: 0 0 232px;
+  min-width: 232px;
+  position: sticky;
+  top: 80px;
+}
+
+@media (max-width: 900px) {
+  .proto-browse-rail {
+    flex: 1 1 100%;
+    min-width: 0;
+    position: static;
+  }
+}
+
+/*
+ * Stretched link on a recently-added card: the anchor covers the card, so the
+ * banner, pills and deadline all open the resource. The card is the
+ * positioning context; everything that must stay clickable in its own right
+ * would need a z-index above this, and on these cards nothing does.
+ */
+.proto-rail-card .proto-rail-open::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}

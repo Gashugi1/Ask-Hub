@@ -217,12 +217,6 @@ export default function SiteFooter() {
             <Link href="/contact" className="proto-footer-link" style={COLUMN_LINK}>
               {t('footer.contactHub')}
             </Link>
-            <Link href="/privacy" className="proto-footer-link" style={COLUMN_LINK}>
-              {t('footer.privacy')}
-            </Link>
-            <Link href="/terms" className="proto-footer-link" style={COLUMN_LINK}>
-              {t('footer.terms')}
-            </Link>
           </div>
 
         </div>
