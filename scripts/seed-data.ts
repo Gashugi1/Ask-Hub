@@ -199,6 +199,21 @@ export const PARTNER_ASSETS: readonly {
     logoUrl: '/partners/african-development-bank.png',
     websiteUrl: 'https://www.afdb.org/',
   },
+  {
+    name: 'AfriLabs',
+    logoUrl: '/partners/afrilabs.png',
+    websiteUrl: 'https://www.afrilabs.com/',
+  },
+  {
+    name: 'Zindi',
+    logoUrl: '/partners/zindi.png',
+    websiteUrl: 'https://zindi.africa/',
+  },
+  {
+    name: 'Stanford / Coursera',
+    logoUrl: '/partners/coursera.png',
+    websiteUrl: 'https://www.coursera.org/',
+  },
 ];
 
 /**
