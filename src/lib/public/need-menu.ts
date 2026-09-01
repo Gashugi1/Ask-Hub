@@ -76,17 +76,42 @@ function inNeed(row: PublicResource, need: NeedKey): boolean {
  * Entry order is `counts`' order, which `listNeedCounts` has already fixed to
  * the `need_type` enum's declaration order. Nothing is re-sorted here.
  */
+/**
+ * The categories the browse menu offers, in the order it offers them.
+ *
+ * Fixed rather than derived. Ordering by live count would reproduce the
+ * client's mockup today -- its 8, 3, 1, 1 happens to be descending -- but the
+ * menu would then rearrange itself whenever a resource is published, moving a
+ * category out from under a returning visitor's cursor. A stated order stays
+ * put.
+ *
+ * **Partners is absent, deliberately.** The client positioned this release
+ * around four categories. It is hidden from this menu only: `partners` remains
+ * a valid need everywhere else -- the directory's filter chips, the pill on a
+ * card, exports, and the admin form -- so the resources under it keep their
+ * category and stay findable by filtering. Nothing is stranded, and nothing
+ * had to be re-categorised to make the menu shorter.
+ */
+const BROWSE_ORDER: readonly NeedKey[] = ['training', 'compute', 'funding', 'accelerator'];
+
 export function buildNeedMenu(
   counts: readonly NeedCount[],
   resources: readonly PublicResource[],
 ): NeedMenuEntry[] {
-  return counts
-    .filter((count) => count.liveCount > 0)
-    .map((count) => ({
-      need: count.need,
-      liveCount: count.liveCount,
-      subCategories: subCategoriesFor(resources, count.need),
-    }));
+  const byNeed = new Map(counts.map((count) => [count.need, count]));
+  return BROWSE_ORDER.flatMap((need) => {
+    const count = byNeed.get(need);
+    // A category with nothing live in it still renders no entry: a row
+    // reading "0" is a click through to an empty directory.
+    if (!count || count.liveCount <= 0) return [];
+    return [
+      {
+        need,
+        liveCount: count.liveCount,
+        subCategories: subCategoriesFor(resources, need),
+      },
+    ];
+  });
 }
 
 /**

@@ -45,22 +45,42 @@ describe('which entries exist', () => {
     // Both halves in one call. The absence half alone would pass against a
     // function that returned [] for everything.
     const menu = buildNeedMenu(
-      [count('compute', 3), count('funding', 0), count('partners', 1)],
+      [count('compute', 3), count('funding', 0), count('accelerator', 1)],
       [],
     );
-    expect(menu.map((e) => e.need)).toEqual(['compute', 'partners']);
+    expect(menu.map((e) => e.need)).toEqual(['compute', 'accelerator']);
   });
 
-  it('preserves the order it is given instead of imposing one', () => {
-    // Deliberately neither alphabetical nor NEED_KEYS order: listNeedCounts
-    // has already fixed the order in SQL, and a re-sort here would be a
-    // second opinion that silently wins. Only a scrambled input can catch
-    // one -- canonical input passes through any sort that happens to agree.
+  it('imposes the browse order, whatever order it is given', () => {
+    // This inverts an earlier rule. The menu used to pass through whatever
+    // order listNeedCounts returned; the client now positions the release
+    // around a stated sequence, so the builder owns it. Ordering by live
+    // count would reproduce today's mockup and then rearrange itself the
+    // next time something is published.
+    //
+    // The input is scrambled on purpose: canonical input passes through any
+    // ordering that happens to agree with it.
     const menu = buildNeedMenu(
-      [count('partners', 1), count('compute', 2), count('training', 3)],
+      [count('accelerator', 1), count('compute', 2), count('training', 3), count('funding', 4)],
       [],
     );
-    expect(menu.map((e) => e.need)).toEqual(['partners', 'compute', 'training']);
+    expect(menu.map((e) => e.need)).toEqual([
+      'training',
+      'compute',
+      'funding',
+      'accelerator',
+    ]);
+  });
+
+  it('leaves Partners out of the menu while keeping it a real category', () => {
+    // Hidden here only. `partners` is still a valid need everywhere else --
+    // the directory filter, the pill on a card, exports, the admin form -- so
+    // the resources under it keep their category and stay findable. A test
+    // that only checked the menu would not notice if someone "tidied up" by
+    // dropping the enum value, so the count going in proves the omission is
+    // the menu's decision and not an absence of data.
+    const menu = buildNeedMenu([count('partners', 3), count('compute', 1)], []);
+    expect(menu.map((e) => e.need)).toEqual(['compute']);
   });
 
   it('takes the count from need_counts_public and never recomputes it', () => {
@@ -231,10 +251,10 @@ describe('which sub-categories an entry carries', () => {
     // Not an omitted entry: the need still has resources and still filters.
     // It is the sub-menu that has nothing to offer.
     const menu = buildNeedMenu(
-      [count('partners', 1)],
-      [resource({ id: 'a', needPrimary: 'partners', subCategory: null })],
+      [count('accelerator', 1)],
+      [resource({ id: 'a', needPrimary: 'accelerator', subCategory: null })],
     );
-    expect(menu).toEqual([{ need: 'partners', liveCount: 1, subCategories: [] }]);
+    expect(menu).toEqual([{ need: 'accelerator', liveCount: 1, subCategories: [] }]);
   });
 
   it('keeps each need to its own sub-categories', () => {
@@ -247,9 +267,11 @@ describe('which sub-categories an entry carries', () => {
         resource({ id: 'b', needPrimary: 'training', subCategory: 'Curriculum' }),
       ],
     );
+    // Courses precedes Compute in the browse order, so the expectation is in
+    // that order rather than the order the counts were passed in.
     expect(menu.map((e) => e.subCategories.map((c) => c.label))).toEqual([
-      ['Cloud credits'],
       ['Curriculum'],
+      ['Cloud credits'],
     ]);
   });
 });
