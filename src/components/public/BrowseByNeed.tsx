@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { t } from '@/lib/i18n';
-import { EMPTY_CRITERIA, directoryHref } from '@/lib/public/filters';
+import { EMPTY_CRITERIA, browseHref, directoryHref } from '@/lib/public/filters';
 import type { NeedMenuEntry } from '@/lib/public/need-menu';
 import type { NeedKey } from '@/lib/public/types';
 
@@ -145,7 +145,13 @@ export default function BrowseByNeed({
                 // re-applying it, which is the prototype's own toggle. It is
                 // also the only way back out of a filtered directory from
                 // this rail, which otherwise offers no "all needs" entry.
-                href={directoryHref(isActive ? EMPTY_CRITERIA : needOnly)}
+                //
+                // browseHref, not directoryHref: opening a category reveals
+                // its sub-categories in the menu, and the #directory fragment
+                // scrolled the viewport straight past them to the results.
+                // The sub-category rows below keep the fragment, because
+                // choosing one is a request for the resources themselves.
+                href={browseHref(isActive ? EMPTY_CRITERIA : needOnly)}
                 aria-current={isActive ? 'true' : undefined}
                 className="proto-dept-item"
                 style={{

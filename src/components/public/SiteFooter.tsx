@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { t } from '@/lib/i18n';
 
@@ -44,12 +45,40 @@ const COLUMN_LINK = {
   textAlign: 'left',
 } as const;
 
+/**
+ * A white tile holding one co-lead's mark.
+ *
+ * The supplied logos are the colour-on-light variants: the AI Hub and MIMIT
+ * wordmarks are near-black, which on this #1A2332 footer would be all but
+ * invisible. The tile gives each mark the light ground it was drawn for,
+ * which is the same reason the prototype seated partner logos on white over
+ * its saturated banners. Swap in white-on-transparent variants and the tile
+ * can go.
+ */
 const BADGE = {
-  border: '1px solid rgba(255,255,255,0.3)',
-  padding: '6px 12px',
-  borderRadius: 6,
-  color: '#C6D2F2',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: '#fff',
+  height: 56,
+  padding: '8px 14px',
+  borderRadius: 8,
   textDecoration: 'none',
+} as const;
+
+/**
+ * The three marks do not share an aspect ratio -- AI Hub and MIMIT are wide
+ * lockups, UNDP is a tall one. Constraining height alone shrank UNDP to a
+ * sliver beside the other two, so each is bounded on both axes and left to
+ * fit whichever it meets first.
+ */
+const BADGE_IMAGE = {
+  maxHeight: 40,
+  maxWidth: 132,
+  width: 'auto',
+  height: 'auto',
+  objectFit: 'contain',
+  display: 'block',
 } as const;
 
 /**
@@ -61,9 +90,40 @@ const BADGE = {
  * while stripping them from every card would contradict that.
  */
 const PARTNER_LINKS = [
-  { href: 'https://aihubfordevelopment.org', key: 'footer.linkAiHub' },
-  { href: 'https://www.mimit.gov.it/en/', key: 'footer.linkMimit' },
-  { href: 'https://www.undp.org', key: 'footer.linkUndp' },
+  {
+    href: 'https://aihubfordevelopment.org',
+    key: 'footer.linkAiHub',
+    src: '/logos/ai-hub.png',
+    width: 847,
+    height: 294,
+  },
+  {
+    href: 'https://www.mimit.gov.it/en/',
+    key: 'footer.linkMimit',
+    src: '/logos/mimit.png',
+    width: 513,
+    height: 165,
+  },
+  {
+    href: 'https://www.undp.org',
+    key: 'footer.linkUndp',
+    src: '/logos/undp.png',
+    width: 158,
+    height: 320,
+  },
+] as const;
+
+/** The AI Hub website's own social accounts. */
+const SOCIAL_LINKS = [
+  {
+    href: 'https://www.linkedin.com/company/ai-hub-for-sustainable-development/',
+    key: 'footer.linkedin',
+  },
+  {
+    href: 'https://www.youtube.com/@AIHubforSustainableDevelopment',
+    key: 'footer.youtube',
+  },
+  { href: 'https://x.com/AIHub4SD', key: 'footer.x' },
 ] as const;
 
 export default function SiteFooter() {
@@ -90,9 +150,13 @@ export default function SiteFooter() {
               reference, a custom property the prototype sets on its own root
               from a settings value and that nothing in this app defines, so
               it had been resolving to its literal fallback. */}
-          <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: '-0.02em' }}>
-            {t('site.wordmark')}
-          </div>
+          <Image
+            src="/partners/askhub-wordmark.png"
+            alt={t('site.wordmark')}
+            width={165}
+            height={165}
+            style={{ height: 40, width: 40, objectFit: 'contain', display: 'block' }}
+          />
 
           <div
             style={{
@@ -141,7 +205,13 @@ export default function SiteFooter() {
                 className="proto-footer-badge"
                 style={BADGE}
               >
-                {t(link.key)}
+                <Image
+                  src={link.src}
+                  alt={t(link.key)}
+                  width={link.width}
+                  height={link.height}
+                  style={BADGE_IMAGE}
+                />
               </a>
             ))}
           </div>
@@ -162,6 +232,31 @@ export default function SiteFooter() {
             <Link href="/terms" className="proto-footer-link" style={COLUMN_LINK}>
               {t('footer.terms')}
             </Link>
+          </div>
+
+          {/* The AI Hub website's social row. Rendered as named links rather
+              than brand glyphs: this repository holds no icon assets for
+              LinkedIn, YouTube or X, and hand-drawing a company's mark is
+              both a trademark question and usually wrong. A named link is
+              also what a screen reader needs either way. */}
+          <div style={{ marginTop: 18 }}>
+            <div style={COLUMN_LABEL}>{t('footer.followUs')}</div>
+            <div
+              style={{ marginTop: 12, display: 'flex', gap: 14, flexWrap: 'wrap' }}
+            >
+              {SOCIAL_LINKS.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener"
+                  className="proto-footer-link"
+                  style={COLUMN_LINK}
+                >
+                  {t(link.key)}
+                </a>
+              ))}
+            </div>
           </div>
         </div>
       </div>

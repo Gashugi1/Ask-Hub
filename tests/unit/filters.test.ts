@@ -3,6 +3,7 @@ import {
   parseFilters,
   toSearchParams,
   directoryHref,
+  browseHref,
   filterResources,
   sortResources,
   EMPTY_CRITERIA,
@@ -364,5 +365,31 @@ describe('pagination', () => {
   it('reports one page for an empty result, not zero', () => {
     // pageCount 0 would render "page 1 of 0" and break every range check.
     expect(paginate([], 1, 12)).toEqual({ rows: [], page: 1, pageCount: 1 });
+  });
+});
+
+describe('browseHref', () => {
+  /**
+   * The browse menu's category rows use this instead of directoryHref.
+   * Opening a category reveals its sub-categories inside the menu, and the
+   * #directory fragment scrolled the viewport past them to the results -- so
+   * the sub-categories the click had just revealed were never seen.
+   */
+  it('serialises exactly as directoryHref does, without the fragment', () => {
+    const criteria: FilterCriteria = { ...EMPTY_CRITERIA, need: 'training' };
+    expect(browseHref(criteria)).toBe('/?need=training');
+    expect(directoryHref(criteria)).toBe('/?need=training#directory');
+  });
+
+  it('drops the query string entirely when nothing is filtered', () => {
+    // Clearing the active category returns to the bare home URL, not '/?'.
+    expect(browseHref(EMPTY_CRITERIA)).toBe('/');
+  });
+
+  it('preserves unrelated parameters, like the serialiser it shares', () => {
+    const base = new URLSearchParams('utm_source=newsletter');
+    expect(browseHref({ ...EMPTY_CRITERIA, need: 'funding' }, base)).toContain(
+      'utm_source=newsletter',
+    );
   });
 });

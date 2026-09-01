@@ -204,6 +204,29 @@ export function directoryHref(
 }
 
 /**
+ * The same URL as `directoryHref`, without the `#directory` fragment.
+ *
+ * For the browse menu's category rows. Opening a category is a request to see
+ * what is inside it, and the sub-categories appear in the menu itself -- but
+ * the fragment scrolled the viewport straight past them to the results, so
+ * the sub-categories a click had just revealed were never in view. The
+ * filtering still happens; only the jump is dropped.
+ *
+ * The sub-category rows keep the fragment: choosing one is a request for the
+ * matching resources, and there is nothing further to reveal in the menu.
+ *
+ * Built from the same `toSearchParams`, so a category row and a chip
+ * expressing the same selection still serialise identically.
+ */
+export function browseHref(
+  criteria: FilterCriteria,
+  base?: URLSearchParams,
+): string {
+  const query = toSearchParams(criteria, base).toString();
+  return query === '' ? '/' : `/?${query}`;
+}
+
+/**
  * An empty eligibility array means "no restriction", not "eligible for
  * nothing". The seed maps the prototype's `sectors: 'All'` sentinel to `[]`,
  * so reading an empty array as a filter miss would hide every

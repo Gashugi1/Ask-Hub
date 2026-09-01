@@ -139,11 +139,15 @@ describe('BrowseByNeed', () => {
         activeNeed={null}
       />,
     );
+    // No #directory on a category row, deliberately. Opening a category
+    // reveals its sub-categories inside the menu, and the fragment scrolled
+    // the viewport straight past them to the results -- so what the click had
+    // just revealed was never seen. The filter still applies.
     expect(screen.getByRole('link', { name: /Compute/ }).getAttribute('href')).toBe(
-      '/?need=compute#directory',
+      '/?need=compute',
     );
     expect(screen.getByRole('link', { name: /Funding/ }).getAttribute('href')).toBe(
-      '/?need=funding#directory',
+      '/?need=funding',
     );
   });
 
@@ -230,7 +234,7 @@ describe('BrowseByNeed', () => {
       <BrowseByNeed entries={[entry({ need: 'compute' })]} activeNeed="compute" />,
     );
     const compute = screen.getByRole('link', { name: /Compute/ });
-    expect(compute.getAttribute('href')).toBe('/#directory');
+    expect(compute.getAttribute('href')).toBe('/');
     expect(compute.getAttribute('aria-current')).toBe('true');
   });
 
