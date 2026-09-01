@@ -46,23 +46,18 @@ const COLUMN_LINK = {
 } as const;
 
 /**
- * A white tile holding one co-lead's mark.
+ * Each co-lead's mark, unboxed.
  *
- * The supplied logos are the colour-on-light variants: the AI Hub and MIMIT
- * wordmarks are near-black, which on this #1A2332 footer would be all but
- * invisible. The tile gives each mark the light ground it was drawn for,
- * which is the same reason the prototype seated partner logos on white over
- * its saturated banners. Swap in white-on-transparent variants and the tile
- * can go.
+ * These sat on white tiles because the supplied files are the colour-on-light
+ * variants and the AI Hub and MIMIT wordmarks are near-black. The client asked
+ * for the tiles gone, so the marks now sit directly on the #1A2332 footer --
+ * which means the two dark wordmarks are low-contrast there. White-on-
+ * transparent variants of those two would fix it outright.
  */
 const BADGE = {
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  background: '#fff',
-  height: 56,
-  padding: '8px 14px',
-  borderRadius: 8,
   textDecoration: 'none',
 } as const;
 
@@ -113,18 +108,6 @@ const PARTNER_LINKS = [
   },
 ] as const;
 
-/** The AI Hub website's own social accounts. */
-const SOCIAL_LINKS = [
-  {
-    href: 'https://www.linkedin.com/company/ai-hub-for-sustainable-development/',
-    key: 'footer.linkedin',
-  },
-  {
-    href: 'https://www.youtube.com/@AIHubforSustainableDevelopment',
-    key: 'footer.youtube',
-  },
-  { href: 'https://x.com/AIHub4SD', key: 'footer.x' },
-] as const;
 
 export default function SiteFooter() {
   return (
@@ -150,13 +133,21 @@ export default function SiteFooter() {
               reference, a custom property the prototype sets on its own root
               from a settings value and that nothing in this app defines, so
               it had been resolving to its literal fallback. */}
-          <Image
-            src="/partners/askhub-wordmark.png"
-            alt={t('site.wordmark')}
-            width={165}
-            height={165}
-            style={{ height: 40, width: 40, objectFit: 'contain', display: 'block' }}
-          />
+          {/* Mark and name together. `alt` is empty because the name sits
+              beside it in the same block -- describing the image too would
+              make a screen reader announce the product twice. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Image
+              src="/partners/askhub-wordmark.png"
+              alt=""
+              width={165}
+              height={165}
+              style={{ height: 40, width: 40, objectFit: 'contain', display: 'block' }}
+            />
+            <span style={{ fontSize: 19, fontWeight: 800, letterSpacing: '-0.02em' }}>
+              {t('site.wordmark')}
+            </span>
+          </div>
 
           <div
             style={{
@@ -234,30 +225,6 @@ export default function SiteFooter() {
             </Link>
           </div>
 
-          {/* The AI Hub website's social row. Rendered as named links rather
-              than brand glyphs: this repository holds no icon assets for
-              LinkedIn, YouTube or X, and hand-drawing a company's mark is
-              both a trademark question and usually wrong. A named link is
-              also what a screen reader needs either way. */}
-          <div style={{ marginTop: 18 }}>
-            <div style={COLUMN_LABEL}>{t('footer.followUs')}</div>
-            <div
-              style={{ marginTop: 12, display: 'flex', gap: 14, flexWrap: 'wrap' }}
-            >
-              {SOCIAL_LINKS.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener"
-                  className="proto-footer-link"
-                  style={COLUMN_LINK}
-                >
-                  {t(link.key)}
-                </a>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
 

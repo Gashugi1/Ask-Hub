@@ -214,6 +214,15 @@ export const PARTNER_ASSETS: readonly {
     logoUrl: '/partners/coursera.png',
     websiteUrl: 'https://www.coursera.org/',
   },
+  {
+    // Two organisations under one partner row, and the asset pack carries no
+    // Kaggle mark. The client's instruction is to use the Google mark, which
+    // is defensible -- Kaggle is Google-owned -- and is recorded here because
+    // the logo does not name everything the row does.
+    name: 'Google / Kaggle',
+    logoUrl: '/partners/google.png',
+    websiteUrl: 'https://www.kaggle.com/',
+  },
 ];
 
 /**
