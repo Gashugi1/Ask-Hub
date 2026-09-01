@@ -6,6 +6,7 @@ import { t } from '@/lib/i18n';
 import { sortResources } from '@/lib/public/filters';
 import { deadlineLabel } from '@/lib/public/deadline-label';
 import type { PublicResource } from '@/lib/public/types';
+import PartnerLogo, { LOGO_ON_FEATURED } from './PartnerLogo';
 
 /**
  * Transcribed from the approved prototype, docs/prototype/prototype.html
@@ -124,6 +125,7 @@ export default function FeaturedCarousel({ resources }: { resources: PublicResou
             {/* Prototype line 34 opens the banner with the partner's mark
                 above the name. The dot trio that sits beside it there is not
                 transcribed -- see WelcomeBand for why the marker is gone. */}
+            <PartnerLogo logoUrl={current.partnerLogoUrl} style={LOGO_ON_FEATURED} />
             <div
               style={{
                 fontSize: 12,

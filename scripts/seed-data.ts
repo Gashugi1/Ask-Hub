@@ -184,6 +184,21 @@ export const PARTNER_ASSETS: readonly {
     logoUrl: '/partners/microsoft.png',
     websiteUrl: 'https://www.microsoft.com/',
   },
+  {
+    name: 'NVIDIA',
+    logoUrl: '/partners/nvidia.png',
+    websiteUrl: 'https://www.nvidia.com/',
+  },
+  {
+    name: 'Google',
+    logoUrl: '/partners/google.png',
+    websiteUrl: 'https://www.google.com/',
+  },
+  {
+    name: 'African Development Bank',
+    logoUrl: '/partners/african-development-bank.png',
+    websiteUrl: 'https://www.afdb.org/',
+  },
 ];
 
 /**
