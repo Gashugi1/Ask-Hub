@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { t } from '@/lib/i18n';
 import { sortResources } from '@/lib/public/filters';
 import { deadlineLabel } from '@/lib/public/deadline-label';
+import { needBanner, bannerPartner } from '@/lib/public/need-banner';
 import type { PublicResource } from '@/lib/public/types';
 import PartnerLogo, { LOGO_ON_RAIL } from './PartnerLogo';
 
@@ -76,7 +77,7 @@ export default function RecentlyAddedRail({ resources }: { resources: PublicReso
               <div
                 style={{
                   height: 84,
-                  background: `var(--color-need-${resource.needPrimary})`,
+                  background: needBanner(resource.needPrimary),
                   position: 'relative',
                   flexShrink: 0,
                 }}
@@ -101,7 +102,7 @@ export default function RecentlyAddedRail({ resources }: { resources: PublicReso
                       textTransform: 'uppercase',
                     }}
                   >
-                    {resource.partnerName}
+                    {bannerPartner(resource.partnerName)}
                   </div>
                 </div>
               </div>

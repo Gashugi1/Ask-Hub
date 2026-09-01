@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { t } from '@/lib/i18n';
 import { sortResources } from '@/lib/public/filters';
 import { deadlineLabel } from '@/lib/public/deadline-label';
+import { needBanner, bannerPartner } from '@/lib/public/need-banner';
 import type { PublicResource } from '@/lib/public/types';
 import PartnerLogo, { LOGO_ON_FEATURED } from './PartnerLogo';
 
@@ -87,7 +88,7 @@ export default function FeaturedCarousel({ resources }: { resources: PublicResou
             flex: 1.1,
             minWidth: 260,
             minHeight: 220,
-            background: needColour,
+            background: needBanner(current.needPrimary),
             position: 'relative',
           }}
         >
@@ -135,7 +136,7 @@ export default function FeaturedCarousel({ resources }: { resources: PublicResou
                 textTransform: 'uppercase',
               }}
             >
-              {current.partnerName}
+              {bannerPartner(current.partnerName)}
             </div>
             <div
               style={{

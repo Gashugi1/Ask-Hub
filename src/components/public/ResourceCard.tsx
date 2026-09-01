@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { t } from '@/lib/i18n';
 import { deadlineLabel } from '@/lib/public/deadline-label';
+import { needBanner, bannerPartner } from '@/lib/public/need-banner';
 import PartnerLogo, { LOGO_ON_CARD } from './PartnerLogo';
 import type { PublicResource } from '@/lib/public/types';
 
@@ -45,6 +46,22 @@ export default function ResourceCard({ resource }: { resource: PublicResource })
   const label = deadlineLabel(resource);
   const needColour = `var(--color-need-${resource.needPrimary})`;
 
+  // The prototype's neutral tags: secondary need, sector reach, geographic
+  // scope. They are what tells a reader who a resource is for without opening
+  // it, and this card had been showing none of them.
+  const tags: string[] = [];
+  if (resource.needSecondary) tags.push(t(`need.${resource.needSecondary}`));
+  tags.push(
+    resource.sectorsEligible.length > 0
+      ? resource.sectorsEligible.join(' · ')
+      : t('card.allSectorsShort'),
+  );
+  tags.push(
+    resource.geoScope === 'specific' && resource.countriesEligible.length > 0
+      ? resource.countriesEligible.join(', ')
+      : t(`geo.short.${resource.geoScope}`),
+  );
+
   return (
     <article
       className="proto-card"
@@ -64,7 +81,7 @@ export default function ResourceCard({ resource }: { resource: PublicResource })
       <div
         style={{
           height: 92,
-          background: needColour,
+          background: needBanner(resource.needPrimary),
           position: 'relative',
           flexShrink: 0,
         }}
@@ -89,7 +106,22 @@ export default function ResourceCard({ resource }: { resource: PublicResource })
               textTransform: 'uppercase',
             }}
           >
-            {resource.partnerName}
+            {bannerPartner(resource.partnerName)}
+          </div>
+          <div
+            style={{
+              fontSize: 14.5,
+              fontWeight: 800,
+              color: '#fff',
+              lineHeight: 1.25,
+              marginTop: 3,
+              overflow: 'hidden',
+              display: '-webkit-box',
+              WebkitLineClamp: 1,
+              WebkitBoxOrient: 'vertical',
+            }}
+          >
+            {resource.name}
           </div>
         </div>
       </div>
@@ -125,6 +157,11 @@ export default function ResourceCard({ resource }: { resource: PublicResource })
           {resource.exclusivity === 'early_access' ? (
             <span style={ACCENT_PILL}>{t('badge.earlyAccess')}</span>
           ) : null}
+          {tags.map((tag) => (
+            <span key={tag} style={TAG_PILL}>
+              {tag}
+            </span>
+          ))}
           <span
             style={{
               marginLeft: 'auto',
@@ -188,6 +225,16 @@ export default function ResourceCard({ resource }: { resource: PublicResource })
     </article>
   );
 }
+
+/** The prototype's neutral tag pill (reference line 270). */
+const TAG_PILL = {
+  fontSize: 11.5,
+  fontWeight: 600,
+  padding: '3px 10px',
+  borderRadius: 99,
+  background: '#F1F4FA',
+  color: '#5B6B8C',
+} as const;
 
 const ACCENT_PILL = {
   fontSize: 11.5,

@@ -6,6 +6,7 @@ import NeedBadge from '@/components/public/NeedBadge';
 import ShareModal from '@/components/public/ShareModal';
 import PartnerLogo, { LOGO_ON_DETAIL } from '@/components/public/PartnerLogo';
 import { deadlineLabel } from '@/lib/public/deadline-label';
+import { needBanner, bannerPartner } from '@/lib/public/need-banner';
 import { geoEligibilityLabel } from '@/lib/public/geo';
 import { resourceJsonLd, serialiseJsonLd } from '@/lib/public/jsonld';
 import { getPublicResource, listPublicResources } from '@/lib/public/readers';
@@ -59,7 +60,6 @@ export default async function ResourceDetailPage({
   const label = deadlineLabel(resource);
   const jsonLd = resourceJsonLd(resource, canonicalUrl(resource.id));
 
-  const needColour = `var(--color-need-${resource.needPrimary})`;
 
   return (
     <article style={{ maxWidth: 900, margin: '0 auto', padding: '36px 32px 80px 32px' }}>
@@ -99,7 +99,7 @@ export default async function ResourceDetailPage({
           marginTop: 18,
           height: 170,
           borderRadius: 16,
-          background: needColour,
+          background: needBanner(resource.needPrimary),
           position: 'relative',
           overflow: 'hidden',
         }}
@@ -144,7 +144,7 @@ export default async function ResourceDetailPage({
               textTransform: 'uppercase',
             }}
           >
-            {resource.partnerName}
+            {bannerPartner(resource.partnerName)}
           </div>
           <div
             style={{
