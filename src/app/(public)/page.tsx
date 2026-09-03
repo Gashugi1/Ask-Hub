@@ -3,7 +3,6 @@ import WelcomeBand from '@/components/public/WelcomeBand';
 import StatsBand from '@/components/public/StatsBand';
 import BrowseByNeed from '@/components/public/BrowseByNeed';
 import BrowseByNeedClient from '@/components/public/BrowseByNeedClient';
-import FeaturedCarousel from '@/components/public/FeaturedCarousel';
 import RecentlyAddedRail from '@/components/public/RecentlyAddedRail';
 import ResourceDirectoryStatic from '@/components/public/ResourceDirectoryStatic';
 import ResourceDirectoryClient from '@/components/public/ResourceDirectoryClient';
@@ -17,7 +16,7 @@ import {
 
 /**
  * The storefront home, PRD 5.1 in order: welcome, reach strip, search,
- * browse by need, featured, recently added, then the full
+ * browse by need, recently added, then the full
  * directory on the same page (PRD 5.1 item 8 puts it here rather than on a
  * route of its own).
  *
@@ -97,7 +96,11 @@ export default async function PublicHomePage() {
           padding: '22px 28px 0 28px',
           display: 'flex',
           gap: 28,
-          alignItems: 'flex-start',
+          // Stretch, not flex-start: with the featured band gone this row
+          // holds just the browse rail and the recently-added cards, and the
+          // two ended at different heights. Stretching lets the shorter
+          // column fill the row so their bottoms line up.
+          alignItems: 'stretch',
           flexWrap: 'wrap',
         }}
       >
@@ -123,7 +126,6 @@ export default async function PublicHomePage() {
             minInlineSize: 0,
           }}
         >
-          <FeaturedCarousel resources={resources} />
           <RecentlyAddedRail resources={resources} />
         </div>
       </div>

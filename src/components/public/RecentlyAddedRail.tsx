@@ -35,7 +35,7 @@ export default function RecentlyAddedRail({ resources }: { resources: PublicReso
   if (recent.length === 0) return null;
 
   return (
-    <section>
+    <section style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <h2
         style={{
           margin: 0,
@@ -57,10 +57,12 @@ export default function RecentlyAddedRail({ resources }: { resources: PublicReso
           paddingBottom: 8,
           listStyle: 'none',
           paddingLeft: 0,
+          flex: 1,
+          alignItems: 'stretch',
         }}
       >
         {recent.map((resource) => (
-          <li key={resource.id} style={{ flex: '0 0 250px' }}>
+          <li key={resource.id} style={{ flex: '0 0 250px', display: 'flex' }}>
             <article
               className="proto-rail-card"
               style={{
@@ -76,7 +78,7 @@ export default function RecentlyAddedRail({ resources }: { resources: PublicReso
             >
               <div
                 style={{
-                  height: 84,
+                  height: 110,
                   background: needBanner(resource.needPrimary),
                   position: 'relative',
                   flexShrink: 0,
@@ -157,6 +159,23 @@ export default function RecentlyAddedRail({ resources }: { resources: PublicReso
                     {resource.name}
                   </Link>
                 </h3>
+
+                {resource.description ? (
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: 12.5,
+                      lineHeight: 1.5,
+                      color: '#42506E',
+                      overflow: 'hidden',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                    }}
+                  >
+                    {resource.description}
+                  </p>
+                ) : null}
 
                 <div
                   style={{

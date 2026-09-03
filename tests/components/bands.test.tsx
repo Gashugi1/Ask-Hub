@@ -3,8 +3,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import StatsBand from '@/components/public/StatsBand';
 import BrowseByNeed from '@/components/public/BrowseByNeed';
-import FeaturedCarousel from '@/components/public/FeaturedCarousel';
-import type { PublicStat, PublicResource } from '@/lib/public/types';
+import type { PublicStat } from '@/lib/public/types';
 import type { NeedMenuEntry } from '@/lib/public/need-menu';
 
 afterEach(cleanup);
@@ -277,63 +276,3 @@ describe('BrowseByNeed', () => {
   });
 });
 
-describe('FeaturedCarousel', () => {
-  const resource = (over: Partial<PublicResource> = {}): PublicResource => ({
-    id: 'r1', name: 'Cloud credits', partnerName: 'AWS', partnerLogoUrl: null,
-    partnerWebsiteUrl: null, partnerTier: 'strategic', resourceType: null,
-    needPrimary: 'compute', needSecondary: null, subCategory: null, description: null,
-    actionLabel: null, externalUrl: null, bannerImageUrl: null, countriesEligible: [],
-    sectorsEligible: [], stagesEligible: [], geoScope: 'global', deadline: null,
-    isFeatured: true, exclusivity: null, sortOrder: 0, addedDate: '2026-01-01',
-    isClosed: false, daysLeft: null, ...over,
-  });
-
-  it('renders nothing when nothing is featured', () => {
-    const { container } = render(<FeaturedCarousel resources={[resource({ isFeatured: false })]} />);
-    expect(container.firstChild).toBeNull();
-  });
-
-  it('renders the featured resources, and only those', () => {
-    // Both halves in one render. The absence half on its own is worthless: it
-    // passed unchanged when the whole component was made to `return null`,
-    // because a rail that renders nothing also renders no non-featured card.
-    render(
-      <FeaturedCarousel
-        resources={[
-          resource({ id: 'a', name: 'Cloud credits' }),
-          resource({ id: 'b', isFeatured: false, name: 'Not featured' }),
-        ]}
-      />,
-    );
-    expect(screen.getByRole('heading', { name: 'Featured opportunities' })).toBeDefined();
-    const card = screen.getByRole('link', { name: /Cloud credits/ });
-    expect(card.getAttribute('href')).toBe('/resources/a');
-    expect(screen.queryByText('Not featured')).toBeNull();
-    // Exactly one card, so "renders the featured ones" cannot be satisfied by
-    // rendering everything and hiding one of them.
-    expect(screen.getAllByRole('article')).toHaveLength(1);
-  });
-
-  it('orders the band by sort order rather than by arrival', () => {
-    // PRD 5.1 item 5's band is curated: `sort_order` is what the admin screen
-    // sets to arrange it. Without the sortResources call it would render in
-    // whatever order the reader happened to return.
-    //
-    // The band now shows one card at a time behind dots, matching the
-    // prototype, so order shows up in two places rather than one: which card
-    // opens first, and the order of the dots that reach the rest. Both are
-    // asserted, because a component that sorted only the dots would still be
-    // wrong.
-    render(
-      <FeaturedCarousel
-        resources={[
-          resource({ id: 'second', name: 'Second in the rail', sortOrder: 2 }),
-          resource({ id: 'first', name: 'First in the rail', sortOrder: 1 }),
-        ]}
-      />,
-    );
-    expect(screen.getByRole('heading', { level: 3 }).textContent).toBe('First in the rail');
-    const dots = screen.getAllByRole('button').map((b) => b.getAttribute('aria-label'));
-    expect(dots).toEqual(['First in the rail', 'Second in the rail']);
-  });
-});

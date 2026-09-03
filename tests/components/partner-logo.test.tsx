@@ -3,7 +3,6 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import ResourceCard from '@/components/public/ResourceCard';
 import RecentlyAddedRail from '@/components/public/RecentlyAddedRail';
-import FeaturedCarousel from '@/components/public/FeaturedCarousel';
 import PartnerLogo, { LOGO_ON_CARD } from '@/components/public/PartnerLogo';
 import type { PublicResource } from '@/lib/public/types';
 
@@ -74,18 +73,6 @@ describe('the partner logo slot', () => {
     expect(images(without)).toEqual([]);
   });
 
-  it('renders it on the featured card, and nothing at all without one', () => {
-    const { container: withLogo } = render(
-      <FeaturedCarousel resources={[resource()]} />,
-    );
-    expect(images(withLogo).map((i) => i.getAttribute('src'))).toEqual(['/partners/aws.png']);
-
-    cleanup();
-    const { container: without } = render(
-      <FeaturedCarousel resources={[resource({ partnerLogoUrl: null })]} />,
-    );
-    expect(images(without)).toEqual([]);
-  });
 
   it('leaves the mark out of the accessible tree', () => {
     // The banner names the organisation in text immediately below the tile.
