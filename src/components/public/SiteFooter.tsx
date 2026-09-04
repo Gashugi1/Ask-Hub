@@ -48,11 +48,10 @@ const COLUMN_LINK = {
 /**
  * Each co-lead's mark, unboxed.
  *
- * These sat on white tiles because the supplied files are the colour-on-light
- * variants and the AI Hub and MIMIT wordmarks are near-black. The client asked
- * for the tiles gone, so the marks now sit directly on the #1A2332 footer --
- * which means the two dark wordmarks are low-contrast there. White-on-
- * transparent variants of those two would fix it outright.
+ * The marks sit directly on the #1A2332 footer with no tile behind them, so
+ * each file has to carry its own contrast. AI Hub and MIMIT are the
+ * white-on-transparent variants and UNDP is the blue lockup, so all three read
+ * on the dark ground without a tile.
  */
 const BADGE = {
   display: 'inline-flex',
@@ -80,31 +79,31 @@ const BADGE_IMAGE = {
  * The three marks, linked as the AI Hub website links them
  * (aihubfordevelopment.org, mimit.gov.it/en/, undp.org).
  *
- * They stay text badges rather than logo images. This release removes partner
- * and programme logos throughout, and adding three logo files to the footer
- * while stripping them from every card would contradict that.
+ * Each width/height pair is the file's own pixel size, trimmed of its
+ * transparent margin, so next/image reserves the right box before the asset
+ * loads. BADGE_IMAGE below is what actually sizes them on the page.
  */
 const PARTNER_LINKS = [
   {
     href: 'https://aihubfordevelopment.org',
     key: 'footer.linkAiHub',
-    src: '/logos/ai-hub.png',
-    width: 847,
-    height: 294,
+    src: '/logos/ai-hub-white.png',
+    width: 900,
+    height: 313,
   },
   {
     href: 'https://www.mimit.gov.it/en/',
     key: 'footer.linkMimit',
-    src: '/logos/mimit.png',
-    width: 513,
-    height: 165,
+    src: '/logos/mimit-white.png',
+    width: 489,
+    height: 141,
   },
   {
     href: 'https://www.undp.org',
     key: 'footer.linkUndp',
-    src: '/logos/undp.png',
-    width: 158,
-    height: 320,
+    src: '/logos/undp-blue.png',
+    width: 77,
+    height: 156,
   },
 ] as const;
 
