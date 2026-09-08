@@ -23,21 +23,14 @@ import { t } from '@/lib/i18n';
  * render, and this page is statically generated -- a rebuild refreshes it.
  * A literal would have been correct for a few months and quietly wrong after.
  *
- * The mailto that used to sit here is gone, matching the prototype: the
- * footer now links to /contact, which is where the address lives. There is
- * still exactly one mailbox in the product, as CLAUDE.md requires.
+ * The Contact column links to /contact and also lists the mailbox as a
+ * `mailto:` link, reading from `site.contactEmail` -- the same key
+ * /privacy and /terms use, so there is still exactly one mailbox in the
+ * product, as CLAUDE.md requires.
  *
  * Hover states arrive as `style-hover` attributes, which are not real HTML.
  * This is a server component, so they land as global classes in globals.css.
  */
-const COLUMN_LABEL = {
-  fontSize: 12,
-  fontWeight: 800,
-  textTransform: 'uppercase',
-  letterSpacing: '0.06em',
-  color: '#A9B8E0',
-} as const;
-
 const COLUMN_LINK = {
   color: '#fff',
   fontSize: 13.5,
@@ -209,13 +202,17 @@ export default function SiteFooter() {
 
 
         <div style={{ flex: 1, minWidth: 160 }}>
-          <div style={COLUMN_LABEL}>{t('nav.contact')}</div>
-          <div
-            style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 9 }}
-          >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
             <Link href="/contact" className="proto-footer-link" style={COLUMN_LINK}>
               {t('footer.contactHub')}
             </Link>
+            <a
+              href={`mailto:${t('site.contactEmail')}`}
+              className="proto-footer-link"
+              style={COLUMN_LINK}
+            >
+              {t('site.contactEmail')}
+            </a>
           </div>
 
         </div>

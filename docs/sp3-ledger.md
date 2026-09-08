@@ -14,6 +14,13 @@ versions of an answer, and this file never carries a design.
 
 ## Status
 
+> **Superseded — 2026-09-08.** All nine SP3 tasks shipped and were merged into
+> `sp2a/public-read-surface`; the audit-triggers migration is `0018_audit_triggers.sql`
+> (renumbered from 0017 to resolve a live collision — see the migration header).
+> The dated task rows and figures below are the historical record as written and
+> are **not** current status: for the live state, read the code on
+> `sp2a/public-read-surface` and run the suite (77 test files).
+
 | | |
 |---|---|
 | Phase | **4 of 9 tasks complete** (1, 2, 3, 8). Task 4 in progress; 5, 6, 7 then 9 to follow |
@@ -25,7 +32,7 @@ versions of an answer, and this file never carries a design.
 
 | Task | State | Notes |
 |---|---|---|
-| 1. Audit spine | **Done** — `9fae580` | Migration `0017_audit_triggers.sql`, G15, 10 new trigger tests, atomicity proof. 327 tests / typecheck / lint / build green after a from-scratch `db:reset` |
+| 1. Audit spine | **Done** — `9fae580` | Migration `0018_audit_triggers.sql`, G15, 10 new trigger tests, atomicity proof. 327 tests / typecheck / lint / build green after a from-scratch `db:reset` |
 | 2. Sign in, shell, Dashboard | **Done** — `dafb6ce`, fixed in `f49388b` | Review found two Important issues, both fixed: `next build` had silently become dependent on Supabase env vars at build time (fixed with `force-dynamic` on the admin layout plus prose in README and `.env.example`), and `session.ts` had no test pinning the one-message-for-every-failure rule that stops account enumeration |
 | 3. Resources table | **Done** — `d159007` | Approved with no Critical or Important findings. Reviewer mutation-tested the 14-day boundary and the case-insensitive search to confirm those tests can fail |
 | 4. Resource mutations | In progress | Verified by `tests/rls/admin-actions-resources.test.ts`; that suite is the verification. Also absorbs the three minors Task 3 deferred into its area |
@@ -85,7 +92,7 @@ Product or client decisions, not architecture. None blocks execution.
 
 ### Task 1, performed 2026-07-30
 
-- [x] `npm run db:reset` applies `0017_audit_triggers.sql` to a clean database,
+- [x] `npm run db:reset` applies `0018_audit_triggers.sql` to a clean database,
       then `npm run seed` restores placeholder content
 - [x] 327 tests pass (31 files), including 10 new trigger tests and G15
 - [x] `npm run typecheck`, `npm run lint` and `npm run build` clean

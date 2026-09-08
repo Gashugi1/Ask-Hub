@@ -14,7 +14,7 @@ import { t } from '@/lib/i18n';
  * all, not a greyed-out one.
  *
  * A status change to 'live' is recorded as 'published' by the audit trigger
- * automatically (0017_audit_triggers.sql); this component does not, and must
+ * automatically (0018_audit_triggers.sql); this component does not, and must
  * not, signal that itself.
  */
 export default function StatusSelect({ id, status }: { id: string; status: ResourceStatus }) {

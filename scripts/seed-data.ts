@@ -915,4 +915,22 @@ export const SITE_CONTENT: readonly SeedSiteContent[] = [
     value:
       'The AI Hub is aligned with the African Union AI Strategy, co-designing 20 programmes with the private sector over its mandate — across 18 partner countries and six priority sectors.',
   },
+  {
+    // Placeholder pending legal review (PRD content rule 9 / §5.8). Seeded so
+    // the row exists for the Site Content screen to UPDATE; an editor replaces
+    // this with the reviewed notice, no deploy. Text matches the `privacy.pending`
+    // locale fallback so the page reads identically until then, and it is
+    // rule-compliant (names the programme in full, one mailbox, no bare "the Hub").
+    key: 'privacy_body',
+    locale: 'en',
+    value:
+      'The privacy notice is being finalised. For any question about how the AI Hub for Sustainable Development handles your data, write to the address below.',
+  },
+  {
+    // Placeholder pending legal review, seeded for the same reason as privacy_body.
+    key: 'terms_body',
+    locale: 'en',
+    value:
+      'The terms of use are being finalised. For any question, write to the address below.',
+  },
 ];

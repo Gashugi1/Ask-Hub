@@ -138,6 +138,16 @@ export default async function AdminContentPage() {
         ]}
       />
 
+      <ContentPanel
+        heading={t('admin.content.section.legal')}
+        canWrite={userCanWrite}
+        content={content}
+        fields={[
+          { key: 'privacy_body', label: t('admin.content.field.privacyBody') },
+          { key: 'terms_body', label: t('admin.content.field.termsBody') },
+        ]}
+      />
+
       <section className="flex flex-col gap-3 rounded border border-hairline p-4">
         <h2 className="text-base font-semibold text-navy">
           {t('admin.content.section.headlineStats')}

@@ -15,7 +15,11 @@ at the end.
 ## 1. What is deployed and what is not
 
 This build is SP2a: the public read surface. It contains browsing, search,
-filtering, resource detail pages, the About page, and export — all read-only.
+filtering, resource detail pages, and export — all read-only. There is no public
+About page: `/about` is a permanent redirect to the AI Hub website
+(`next.config.ts`). SP3's authenticated admin portal at `/admin` has since
+merged onto this branch and is included in any build off it — role-gated
+curation through server actions, not public write endpoints.
 
 It contains **no write endpoints**. `src/app/api/README.md` records that
 `/api/events`, `/api/contact`, `/api/submissions` and `/api/subscribers` are
@@ -105,7 +109,6 @@ committed or if a required name goes missing):
 | `NEXT_PUBLIC_SUPABASE_URL` | Public | **Yes** — Preview and Production | Supabase project URL. `NEXT_PUBLIC_`-prefixed variables are inlined into the client bundle by Next.js at build time — public by definition, per PRD 13.5. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public | **Yes** — Preview and Production | Supabase anonymous key. Also inlined into the client bundle; it only ever grants what RLS policies allow the `anon` role. |
 | `SUPABASE_SERVICE_ROLE_KEY` | **Secret** | **Yes** — SP3's Users screen has shipped, so a build off this branch needs it | Bypasses Row Level Security entirely. Server-only. **Not needed by a build scoped to the SP2a public read surface**, and needed by exactly one code path in any build that includes SP3's Users screen — `src/lib/actions/users.ts`, the sole caller of `createAdminSupabase()` under `src/`; see the note below. **Must never be given a `NEXT_PUBLIC_` prefix** — `tests/structure/env-contract.test.ts` asserts `.env.example` contains no such name, and that assertion is what makes this invariant structural rather than a matter of discipline. |
-
 | `SUPABASE_URL` | Test-only | **No, never.** | Read directly by test helpers and `tests/smoke.test.ts` from `.env.test`, against the local Supabase CLI stack. Not a deployment variable under any circumstance. |
 | `SUPABASE_ANON_KEY` | Test-only | **No, never.** | Same as above — a local-stack test credential, not something a Vercel project ever needs. |
 
@@ -225,8 +228,9 @@ this list; do not remove protection with any box unchecked.
 - [ ] **Legal-reviewed Privacy and Terms copy is in `site_content`.** PRD
       content rule 9 states privacy copy stays "minimal and factual pending
       legal review" — that review has to have happened, and the reviewed
-      copy has to be the copy actually stored under the `privacy_copy` and
-      `terms_copy` keys, not the placeholder that shipped with the seed.
+      copy has to be the copy actually stored under the `privacy_body` and
+      `terms_body` keys (editor-maintained through the Site Content screen),
+      not the placeholder that shipped with the seed.
 - [ ] **At least two admin accounts are provisioned, and the client team's
       roles are assigned.** PRD §3 requires two admins so that a single
       lockout does not lock out the team, and it is the one launch requirement
@@ -280,8 +284,9 @@ document, and none were used or attempted while writing it.
    - [ ] The site requires the Deployment Protection bypass to load at all
          (try it in a fresh private-browsing window with no bypass cookie).
    - [ ] `curl -sI <deployed-url>/ | grep -i x-robots-tag` returns
-         `noindex, nofollow`. Repeat against `/about` and against one
-         resource detail URL.
+         `noindex, nofollow`. Repeat against one resource detail URL.
+         (`/about` now 308-redirects off-site, so the header check does not
+         apply there.)
    - [ ] `/` renders the bands that currently have data, and omits the ones
          that do not.
    - [ ] A resource detail page resolves.
@@ -296,9 +301,9 @@ document, and none were used or attempted while writing it.
          `dynamicParams` behaviour that `src/app/(public)/resources/[id]/page.tsx`
          (added by Task 5) depends on for `generateStaticParams` — a
          route table that only ever worked at build time would fail this
-         check silently, by 404ing instead of resolving. That file did not
-         exist in the worktree this document was written from; confirm it
-         exists and exposes `dynamicParams` before relying on this check.
+         check silently, by 404ing instead of resolving. (That file now
+         exists and exposes `dynamicParams`; the earlier note that it was
+         absent from the authoring worktree is resolved.)
 
 Steps 1 and 2 above are the human's to run together with an assistant, not
 something this document certifies as already done.
