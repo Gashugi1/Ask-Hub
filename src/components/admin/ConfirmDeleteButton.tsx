@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import { t } from '@/lib/i18n';
+import { ADMIN_PANEL_COL, ADMIN_PRIMARY, ADMIN_HELP, ADMIN_LINK_ACTION } from './chrome';
 
 /**
  * The two-step delete control from `ResourceForm.tsx`, extracted so
@@ -35,18 +36,18 @@ export default function ConfirmDeleteButton({
         type="button"
         disabled={disabled}
         onClick={() => dialogRef.current?.showModal()}
-        className="block rounded border border-danger px-2 py-1 text-xs text-danger"
+        style={{ display: "block", width: "100%", border: "1px solid #C0392B", color: "#C0392B", background: "#fff", borderRadius: 8, padding: "7px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
       >
         {label}
       </button>
-      <dialog ref={dialogRef} className="rounded border border-hairline p-4">
-        <p className="font-medium text-navy">{t('admin.content.deleteConfirmHeading')}</p>
-        <p className="mt-1 text-sm text-muted">{t('admin.content.deleteConfirmBody')}</p>
-        <div className="mt-4 flex justify-end gap-3">
+      <dialog ref={dialogRef} style={{ ...ADMIN_PANEL_COL, gap: 10 }}>
+        <p style={{ fontSize: 14, fontWeight: 800 }}>{t('admin.content.deleteConfirmHeading')}</p>
+        <p style={{ ...ADMIN_HELP, marginTop: 6, fontSize: 13 }}>{t('admin.content.deleteConfirmBody')}</p>
+        <div style={{ marginTop: 18, display: "flex", justifyContent: "flex-end", gap: 12 }}>
           <button
             type="button"
             onClick={() => dialogRef.current?.close()}
-            className="text-sm text-muted underline"
+            style={{ ...ADMIN_LINK_ACTION, color: "#5B6B8C", textDecoration: "underline" }}
           >
             {t('admin.content.deleteCancel')}
           </button>
@@ -57,7 +58,7 @@ export default function ConfirmDeleteButton({
               dialogRef.current?.close();
               onConfirm();
             }}
-            className="rounded bg-danger px-3 py-1.5 text-sm text-surface"
+            style={{ ...ADMIN_PRIMARY, background: "#C0392B" }}
           >
             {t('admin.content.deleteConfirmAction')}
           </button>

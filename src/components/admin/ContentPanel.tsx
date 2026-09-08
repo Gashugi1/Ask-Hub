@@ -1,6 +1,7 @@
 import type { ContentKey } from '@/lib/schemas/content';
 import type { SiteContentMap } from '@/lib/admin/types';
 import TextAreaField from './TextAreaField';
+import { ADMIN_H2, ADMIN_PANEL_COL, ADMIN_HELP } from './chrome';
 
 interface Field {
   key: ContentKey;
@@ -29,9 +30,9 @@ export default function ContentPanel({
   canWrite: boolean;
 }) {
   return (
-    <section className="flex flex-col gap-3 rounded border border-hairline p-4">
-      <h2 className="text-base font-semibold text-navy">{heading}</h2>
-      <div className="flex flex-col gap-4">
+    <section style={ADMIN_PANEL_COL}>
+      <h2 style={ADMIN_H2}>{heading}</h2>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {fields.map((field) =>
           canWrite ? (
             <TextAreaField
@@ -41,9 +42,9 @@ export default function ContentPanel({
               initialValue={content[field.key]}
             />
           ) : (
-            <div key={field.key} className="flex flex-col gap-1">
-              <p className="text-sm font-medium text-navy">{field.label}</p>
-              <p className="whitespace-pre-wrap text-sm text-muted">
+            <div key={field.key} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <p style={{ fontSize: 13.5, fontWeight: 800 }}>{field.label}</p>
+              <p style={{ ...ADMIN_HELP, fontSize: 13, whiteSpace: "pre-wrap" }}>
                 {content[field.key]}
               </p>
             </div>

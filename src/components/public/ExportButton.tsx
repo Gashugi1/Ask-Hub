@@ -37,28 +37,65 @@ export default function ExportButton({ rows }: { rows: readonly PublicResource[]
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <div className="flex gap-2">
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+        gap: 6,
+      }}
+    >
+      <div style={{ display: 'flex', gap: 10 }}>
         <button
           type="button"
-          className="rounded-lg border border-hairline px-3 py-2 text-sm text-navy disabled:cursor-not-allowed disabled:opacity-50"
+          className="proto-outline-button"
           disabled={disabled}
           aria-busy={state === 'pending'}
           onClick={() => void run('csv')}
+          style={{ ...ACTION, border: '1.5px solid #C9D3E8', color: '#1F5FBF', background: '#fff' }}
         >
           {t('export.csv')}
         </button>
         <button
           type="button"
-          className="rounded-lg border border-hairline px-3 py-2 text-sm text-navy disabled:cursor-not-allowed disabled:opacity-50"
+          className="proto-primary-button"
           disabled={disabled}
           aria-busy={state === 'pending'}
           onClick={() => void run('xlsx')}
+          style={{ ...ACTION, border: 'none', color: '#fff', background: '#1F5FBF' }}
         >
           {t('export.excel')}
         </button>
       </div>
-      {state === 'failed' ? <p className="text-sm text-danger">{t('export.failed')}</p> : null}
+      <div
+        style={{
+          fontSize: 11.5,
+          color: '#5B6B8C',
+          maxWidth: 400,
+          textAlign: 'right',
+        }}
+      >
+        {t('export.hint')}
+      </div>
+      {state === 'failed' ? (
+        <p style={{ fontSize: 13.5, color: '#C0392B', margin: 0 }}>{t('export.failed')}</p>
+      ) : null}
     </div>
   );
 }
+
+/**
+ * The prototype's two directory actions (reference lines 183-184): an
+ * outlined secondary beside a solid primary, both 13.5px/700 on a 9px radius.
+ * Its own pair is "Submit a resource" and "Download this list (Excel)"; the
+ * submit half belongs to the write endpoints, which this read-only surface
+ * does not have, so the two export formats PRD 5.2 requires take the shape
+ * instead -- CSV as the secondary, Excel as the primary.
+ */
+const ACTION = {
+  fontSize: 13.5,
+  fontWeight: 700,
+  padding: '10px 16px',
+  borderRadius: 9,
+  cursor: 'pointer',
+} as const;

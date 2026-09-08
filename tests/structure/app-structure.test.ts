@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
-import { themeBlockLines } from './theme-block';
+import { existsSync, readFileSync } from 'node:fs';
 
 const REQUIRED = [
   'src/app/layout.tsx',
@@ -75,81 +73,20 @@ describe('globals.css', () => {
   });
 });
 
-/**
- * CLAUDE.md: no hardcoded colours, use design tokens. SP1 Task 2 lands the
- * real `@theme` block in `src/app/globals.css` — the one place a colour
- * literal is *supposed* to appear, because that block is the definition
- * site of the tokens everything else must reference. Narrowed here, not
- * deleted: the brief's own comment on this guard is explicit that deleting
- * it would let SP2 and SP3 land hardcoded colours in components with
- * nothing to catch them.
+/*
+ * The colour guard that stood here is gone. It forbade colour literals
+ * anywhere under `src/` outside the `@theme` block, which is incompatible
+ * with the decision to transcribe the approved prototype's inline styles
+ * verbatim — see docs/superpowers/specs/2026-08-14-prototype-styling-parity-design.md
+ * (D2). Two narrower alternatives, a presentation-layer exception and a
+ * palette allowlist, were offered and declined.
  *
- * Everywhere else a colour literal is still the exact defect this guard
- * exists to catch — including the rest of `globals.css` outside `@theme`
- * (the `@font-face` blocks, the `body` rule) and, most likely in practice,
- * a component's `style={{ color: '#1F5FBF' }}` or a `bg-[#1F5FBF]`
- * arbitrary Tailwind value in a `.tsx` file.
- *
- * Two widenings kept from the original guard, both still load-bearing:
- *
- *  - Every notation, not only hex. Tailwind v4 tokens are conventionally
- *    written in `oklch()` (and the `@theme` block's own shadow uses
- *    `rgb()`), so a hex-only guard would have missed the single most
- *    likely form of the mistake it exists to catch.
- *  - Every file under `src/`, not `globals.css` alone. A hardcoded colour is
- *    far more likely to arrive as `style={{ color: '#1F5FBF' }}` or a
- *    `bg-[#1F5FBF]` arbitrary value in a `.tsx` file than in CSS.
- *
- * `themeBlockLines` (./theme-block.ts) locates the real `@theme { ... }`
- * at-rule rather than treating any line containing the word "@theme" as
- * inside it, and strips CSS comments before counting braces — otherwise a
- * comment merely mentioning "@theme", or one with a stray unmatched brace,
- * could open or extend the exemption window past the real block's close.
- * See that module's own tests (theme-block.test.ts) for the fixtures this
- * is designed to survive.
+ * What still guards the palette: tests/unit/tokens.test.ts holds the need
+ * colours to WCAG AA by computing their contrast ratios, and it is the
+ * reason two of them (training, funding) are deliberately darker than the
+ * prototype's own values. That suite is load-bearing and must not be
+ * relaxed to make a transcription match.
  */
-describe('no hardcoded colour outside the @theme token block', () => {
-  function sourceFiles(dir = 'src', out: string[] = []): string[] {
-    for (const entry of readdirSync(dir)) {
-      const full = join(dir, entry);
-      if (statSync(full).isDirectory()) sourceFiles(full, out);
-      else if (/\.(ts|tsx|css|json)$/.test(entry)) out.push(full);
-    }
-    return out;
-  }
-
-  const NOTATIONS: Record<string, RegExp> = {
-    // 3, 4, 6 or 8 digits. Anchored on a non-word character so a URL
-    // fragment or a `#1` issue reference is not a colour.
-    hex: /(?<![\w#])#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})(?![0-9a-z])/i,
-    oklch: /\boklch\(/i,
-    rgb: /\brgba?\(/i,
-    hsl: /\bhsla?\(/i,
-  };
-
-  for (const [notation, pattern] of Object.entries(NOTATIONS)) {
-    it(`declares no ${notation} colour value outside @theme`, () => {
-      const offenders = sourceFiles()
-        .flatMap((file) => {
-          const content = readFileSync(file, 'utf8');
-          const lines = content.split('\n');
-          const exempt =
-            file === 'src/app/globals.css'
-              ? themeBlockLines(content)
-              : lines.map(() => false);
-          return lines
-            .map((text, index) => ({ file, line: index + 1, text, exempt: exempt[index] }))
-            .filter(({ text, exempt }) => !exempt && pattern.test(text));
-        })
-        .map(({ file, line, text }) => `${file}:${line}: ${text.trim()}`);
-
-      expect(
-        offenders,
-        `hardcoded ${notation} colour outside @theme — use a design token`,
-      ).toEqual([]);
-    });
-  }
-});
 
 describe('root layout', () => {
   const layout = readFileSync('src/app/layout.tsx', 'utf8');

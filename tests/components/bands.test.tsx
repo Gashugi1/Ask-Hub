@@ -2,10 +2,9 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import StatsBand from '@/components/public/StatsBand';
-import PartnerRow from '@/components/public/PartnerRow';
 import BrowseByNeed from '@/components/public/BrowseByNeed';
-import FeaturedCarousel from '@/components/public/FeaturedCarousel';
-import type { PublicStat, PublicPartner, PublicResource, NeedCount } from '@/lib/public/types';
+import type { PublicStat } from '@/lib/public/types';
+import type { NeedMenuEntry } from '@/lib/public/need-menu';
 
 afterEach(cleanup);
 
@@ -28,13 +27,6 @@ const stat = (over: Partial<PublicStat> & Pick<PublicStat, 'isHero'>): PublicSta
   ...over,
 });
 
-const partner = (over: Partial<PublicPartner> = {}): PublicPartner => ({
-  name: 'Zindi',
-  logoUrl: null,
-  websiteUrl: null,
-  sortOrder: 0,
-  ...over,
-});
 
 describe('StatsBand', () => {
   it('renders nothing at all when no figure has been attested', () => {
@@ -122,102 +114,165 @@ describe('StatsBand', () => {
   });
 });
 
-describe('PartnerRow', () => {
-  it('renders nothing when there are no partners', () => {
-    const { container } = render(<PartnerRow partners={[]} />);
-    expect(container.firstChild).toBeNull();
-  });
-
-  it('renders the partner name when no logo has been uploaded yet', () => {
-    // Logos are a client deliverable. A name-only row is the correct state
-    // until they arrive, not a gap to hide the whole band for.
-    render(<PartnerRow partners={[partner({ name: 'AfriLabs' })]} />);
-    expect(screen.getByText('AfriLabs')).toBeDefined();
-  });
-
-  it('renders the logo and links it to the partner site once both exist', () => {
-    // Content rule 10.10, which the database enforces as a CHECK: a logo may
-    // not exist without a website to link it to.
-    render(
-      <PartnerRow
-        partners={[
-          partner({ name: 'Zindi', logoUrl: 'https://cdn.test/z.png', websiteUrl: 'https://zindi.africa' }),
-        ]}
-      />,
-    );
-    const link = screen.getByRole('link', { name: 'Zindi' });
-    expect(link.getAttribute('href')).toBe('https://zindi.africa');
-    expect(link.getAttribute('rel')).toContain('noopener');
-  });
-});
-
 describe('BrowseByNeed', () => {
+  const entry = (over: Partial<NeedMenuEntry> & Pick<NeedMenuEntry, 'need'>): NeedMenuEntry => ({
+    liveCount: 4,
+    subCategories: [],
+    ...over,
+  });
+
+  // Sub-item counts are deliberately distinct from each other and from the
+  // entry's own count, so an assertion on one cannot be satisfied by another
+  // number that happens to be on screen.
+  const sub = (label: string, liveCount: number) => ({ label, liveCount });
+
   it('renders nothing when no need has a live resource', () => {
-    const { container } = render(<BrowseByNeed counts={[]} />);
+    const { container } = render(<BrowseByNeed entries={[]} activeNeed={null} />);
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders one chip per need with a live count, linking into the directory', () => {
-    const counts: NeedCount[] = [
-      { need: 'compute', liveCount: 4 },
-      { need: 'funding', liveCount: 2 },
-    ];
-    render(<BrowseByNeed counts={counts} />);
+  it('renders one entry per need with a live count, linking into the directory', () => {
+    render(
+      <BrowseByNeed
+        entries={[entry({ need: 'compute' }), entry({ need: 'funding', liveCount: 2 })]}
+        activeNeed={null}
+      />,
+    );
+    // No #directory on a category row, deliberately. Opening a category
+    // reveals its sub-categories inside the menu, and the fragment scrolled
+    // the viewport straight past them to the results -- so what the click had
+    // just revealed was never seen. The filter still applies.
+    expect(screen.getByRole('link', { name: /Compute/ }).getAttribute('href')).toBe(
+      '/?need=compute',
+    );
+    expect(screen.getByRole('link', { name: /Funding/ }).getAttribute('href')).toBe(
+      '/?need=funding',
+    );
+  });
+
+  it('keeps a need\u2019s sub-items hidden while that need is not the one filtering', () => {
+    // The sub-items are the expanded state of the *active* category
+    // (prototype line 3251). Rendering every need's sub-items at once would
+    // turn a 232px rail into a wall of twenty links and lose the signal of
+    // which category the directory is actually showing.
+    render(
+      <BrowseByNeed
+        entries={[entry({ need: 'compute', subCategories: [sub('Cloud credits', 2)] })]}
+        activeNeed={null}
+      />,
+    );
+    expect(screen.queryByRole('link', { name: /Cloud credits/ })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'More' })).toBeNull();
+  });
+
+  it('expands the active need, linking each sub-item to that need plus the phrase', () => {
+    // The href is the assertion that matters: it is the same need+q pair the
+    // directory's own chips read and write, so the sub-item is a real,
+    // shareable filter rather than a label.
+    render(
+      <BrowseByNeed
+        entries={[
+          entry({ need: 'training', subCategories: [sub('Cloud credits', 2), sub('Curriculum', 7)] }),
+        ]}
+        activeNeed="training"
+      />,
+    );
+    expect(screen.getByRole('link', { name: /Cloud credits/ }).getAttribute('href')).toBe(
+      '/?need=training&q=Cloud+credits#directory',
+    );
+    expect(screen.getByRole('link', { name: /Curriculum/ }).getAttribute('href')).toBe(
+      '/?need=training&q=Curriculum#directory',
+    );
+  });
+
+  it('shows each sub-item\u2019s own count, announced with its unit', () => {
+    // 7 is neither the entry's count (4) nor the other sub-item's (2), so
+    // this fails against a component wiring the wrong number through.
+    render(
+      <BrowseByNeed
+        entries={[
+          entry({ need: 'training', subCategories: [sub('Cloud credits', 2), sub('Curriculum', 7)] }),
+        ]}
+        activeNeed="training"
+      />,
+    );
+    const curriculum = screen.getByRole('link', { name: /Curriculum/ });
+    // The digit on screen, for the eye...
+    expect(curriculum.querySelector('[aria-hidden="true"]')?.textContent).toBe('7');
+    // ...and the unit for everyone else, so the link does not announce as
+    // "Curriculum 7", which is seven of nothing.
+    expect(curriculum.querySelector('.sr-only')?.textContent).toBe('7 live');
+    // The other sub-item keeps its own number: neither is the entry's count.
+    expect(
+      screen.getByRole('link', { name: /Cloud credits/ }).querySelector('.sr-only')
+        ?.textContent,
+    ).toBe('2 live');
+  });
+
+  it('expands only the active need when several have sub-items', () => {
+    // Both halves in one render. The "expands the active one" assertion on
+    // its own passes against a component that expands everything.
+    render(
+      <BrowseByNeed
+        entries={[
+          entry({ need: 'compute', subCategories: [sub('Cloud credits', 2)] }),
+          entry({ need: 'training', subCategories: [sub('Curriculum', 7)] }),
+        ]}
+        activeNeed="training"
+      />,
+    );
+    expect(screen.getByRole('link', { name: /Curriculum/ })).toBeDefined();
+    expect(screen.queryByRole('link', { name: /Cloud credits/ })).toBeNull();
+  });
+
+  it('turns the active need\u2019s own link into a way out of the filter', () => {
+    // Prototype line 3250 toggles the need off when it is picked again. The
+    // rail has no "all needs" entry, so without the toggle a visitor who
+    // filtered from here has no way back except the directory's Clear button.
+    render(
+      <BrowseByNeed entries={[entry({ need: 'compute' })]} activeNeed="compute" />,
+    );
     const compute = screen.getByRole('link', { name: /Compute/ });
-    expect(compute.getAttribute('href')).toBe('/?need=compute#directory');
+    expect(compute.getAttribute('href')).toBe('/');
+    expect(compute.getAttribute('aria-current')).toBe('true');
+  });
+
+  it('marks only the active entry as current', () => {
+    render(
+      <BrowseByNeed
+        entries={[entry({ need: 'compute' }), entry({ need: 'funding' })]}
+        activeNeed="compute"
+      />,
+    );
+    expect(
+      screen.getByRole('link', { name: /Funding/ }).getAttribute('aria-current'),
+    ).toBeNull();
+  });
+
+  it('offers More, which keeps the need and drops the sub-category', () => {
+    // This is the only route back to the rows the four-sub-item cap hid, so
+    // its href must clear q while keeping need -- not clear both.
+    render(
+      <BrowseByNeed
+        entries={[entry({ need: 'funding', subCategories: [sub('Grants', 3)] })]}
+        activeNeed="funding"
+      />,
+    );
+    expect(screen.getByRole('link', { name: 'More' }).getAttribute('href')).toBe(
+      '/?need=funding#directory',
+    );
+  });
+
+  it('expands to nothing when the active need has no sub-categories', () => {
+    // A lone "More" under an expanded entry would link to the filter that is
+    // already applied.
+    render(
+      <BrowseByNeed
+        entries={[entry({ need: 'partners', subCategories: [] })]}
+        activeNeed="partners"
+      />,
+    );
+    expect(screen.queryByRole('link', { name: 'More' })).toBeNull();
   });
 });
 
-describe('FeaturedCarousel', () => {
-  const resource = (over: Partial<PublicResource> = {}): PublicResource => ({
-    id: 'r1', name: 'Cloud credits', partnerName: 'AWS', partnerLogoUrl: null,
-    partnerWebsiteUrl: null, partnerTier: 'strategic', resourceType: null,
-    needPrimary: 'compute', needSecondary: null, subCategory: null, description: null,
-    actionLabel: null, externalUrl: null, bannerImageUrl: null, countriesEligible: [],
-    sectorsEligible: [], stagesEligible: [], geoScope: 'global', deadline: null,
-    isFeatured: true, exclusivity: null, sortOrder: 0, addedDate: '2026-01-01',
-    isClosed: false, daysLeft: null, ...over,
-  });
-
-  it('renders nothing when nothing is featured', () => {
-    const { container } = render(<FeaturedCarousel resources={[resource({ isFeatured: false })]} />);
-    expect(container.firstChild).toBeNull();
-  });
-
-  it('renders the featured resources, and only those', () => {
-    // Both halves in one render. The absence half on its own is worthless: it
-    // passed unchanged when the whole component was made to `return null`,
-    // because a rail that renders nothing also renders no non-featured card.
-    render(
-      <FeaturedCarousel
-        resources={[
-          resource({ id: 'a', name: 'Cloud credits' }),
-          resource({ id: 'b', isFeatured: false, name: 'Not featured' }),
-        ]}
-      />,
-    );
-    expect(screen.getByRole('heading', { name: 'Featured opportunities' })).toBeDefined();
-    const card = screen.getByRole('link', { name: 'Cloud credits' });
-    expect(card.getAttribute('href')).toBe('/resources/a');
-    expect(screen.queryByText('Not featured')).toBeNull();
-    // Exactly one card, so "renders the featured ones" cannot be satisfied by
-    // rendering everything and hiding one of them.
-    expect(screen.getAllByRole('article')).toHaveLength(1);
-  });
-
-  it('orders the rail by sort order rather than by arrival', () => {
-    // PRD 5.1 item 5's rail is curated: `sort_order` is what the admin screen
-    // sets to arrange it. Without the sortResources call the rail would render
-    // in whatever order the reader happened to return.
-    render(
-      <FeaturedCarousel
-        resources={[
-          resource({ id: 'second', name: 'Second in the rail', sortOrder: 2 }),
-          resource({ id: 'first', name: 'First in the rail', sortOrder: 1 }),
-        ]}
-      />,
-    );
-    const names = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
-    expect(names).toEqual(['First in the rail', 'Second in the rail']);
-  });
-});

@@ -14,7 +14,7 @@ import { t } from '@/lib/i18n';
  * all, not a greyed-out one.
  *
  * A status change to 'live' is recorded as 'published' by the audit trigger
- * automatically (0017_audit_triggers.sql); this component does not, and must
+ * automatically (0018_audit_triggers.sql); this component does not, and must
  * not, signal that itself.
  */
 export default function StatusSelect({ id, status }: { id: string; status: ResourceStatus }) {
@@ -33,7 +33,18 @@ export default function StatusSelect({ id, status }: { id: string; status: Resou
           router.refresh();
         });
       }}
-      className="rounded border border-hairline px-2 py-1 text-sm text-navy"
+      // Prototype line 828: the status control sits in the row as a compact
+      // 12px/800 select rather than a full-size field.
+      style={{
+        padding: '6px 8px',
+        borderRadius: 7,
+        border: '1px solid #C9D3E8',
+        background: '#fff',
+        color: '#42506E',
+        fontSize: 12,
+        fontWeight: 800,
+        cursor: 'pointer',
+      }}
     >
       {STATUSES.map((value) => (
         <option key={value} value={value}>

@@ -5,6 +5,34 @@ import { supabaseUrlFromEnv } from '@/lib/supabase/env';
 const LOGIN_PATH = '/admin/login';
 
 /**
+ * The /admin paths that must render without a session.
+ *
+ * `/admin/login` is the obvious one. `/admin/set-password` is the one that
+ * matters, and it was missing: Supabase's invitation email links to
+ * `{{ .ConfirmationURL }}`, which verifies the token on Supabase's side and
+ * then redirects the invitee here with their session in the URL **fragment**
+ * (`#access_token=...`). A fragment is never sent to a server. Without this
+ * exemption the middleware sees no cookie, resolves no user, and redirects to
+ * the login page — discarding the fragment, and with it the only copy of the
+ * session. An invited operator could never set a password, and the invitation
+ * flow was unusable end to end.
+ *
+ * `src/app/(admin)/admin/set-password/page.tsx` already skips `requireRole`
+ * for exactly this reason and carries an entry in `PAGE_ROLE_EXEMPT`; this is
+ * the other half of that decision, which had not been made.
+ *
+ * Exempting the path costs nothing, because the page is not a protected
+ * surface: it renders a heading and a form, reads no data, and its only action
+ * is `updateUser`, which acts solely on the session the *browser* holds and
+ * cannot be aimed at another account. A visitor arriving with no session can
+ * do nothing here but be told so.
+ */
+const SESSION_OPTIONAL_PATHS: ReadonlySet<string> = new Set([
+  LOGIN_PATH,
+  '/admin/set-password',
+]);
+
+/**
  * Every cookie @supabase/ssr writes is `sb-`-prefixed — `sb-<ref>-auth-token`,
  * its `.0`/`.1` chunks, and the PKCE code verifier. Matching the prefix rather
  * than an exact name is deliberate and fail-safe: the only cost of a false
@@ -74,7 +102,7 @@ export async function proxy(request: NextRequest) {
   // instead of trusting whatever the cookie claims.
   const { data } = await supabase.auth.getUser();
 
-  if (isAdminRoute && pathname !== LOGIN_PATH && !data.user) {
+  if (isAdminRoute && !SESSION_OPTIONAL_PATHS.has(pathname) && !data.user) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = LOGIN_PATH;
     // No `next` or `redirect` query parameter is carried. PRD 14.5 forbids

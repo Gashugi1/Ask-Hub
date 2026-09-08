@@ -1,6 +1,5 @@
 import { getCurrentUser } from '@/lib/auth';
 import AdminSidebar from '@/components/admin/AdminSidebar';
-import AdminFooter from '@/components/admin/AdminFooter';
 
 /**
  * Every screen under /admin is per-request: this layout resolves the
@@ -38,13 +37,18 @@ export default async function AdminLayout({
   // every other /admin path.
   if (!user) return <div className="min-h-full">{children}</div>;
 
+  // The prototype's admin shell (reference line 668): a fixed 232px rail
+  // beside the content, on a #F4F6F9 field.
+  //
+  // The grid and the rail's own sticky full-height behaviour live in
+  // globals.css rather than here, because both have to change below 900px and
+  // an inline style cannot carry a media query. Left as inline values, the
+  // 232px column and a 100vh rail simply persisted onto a phone: a third of
+  // the screen given to navigation, and content squeezed into what was left.
   return (
-    <div className="flex min-h-full">
-      <AdminSidebar role={user.role} />
-      <div className="flex min-h-full flex-1 flex-col">
-        <div className="flex-1 p-6">{children}</div>
-        <AdminFooter user={user} />
-      </div>
+    <div className="admin-shell" style={{ minHeight: '100vh', background: '#F4F6F9' }}>
+      <AdminSidebar role={user.role} user={user} />
+      <div className="admin-content">{children}</div>
     </div>
   );
 }

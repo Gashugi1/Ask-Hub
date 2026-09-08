@@ -2,10 +2,14 @@ import { describe, it, expect } from 'vitest';
 import {
   parseFilters,
   toSearchParams,
+  directoryHref,
+  browseHref,
   filterResources,
   sortResources,
   EMPTY_CRITERIA,
   DEFAULT_SORT,
+  paginate,
+  resetPageOnFilterChange,
   type FilterCriteria,
 } from '@/lib/public/filters';
 import type { PublicResource } from '@/lib/public/types';
@@ -64,6 +68,7 @@ describe('parseFilters', () => {
       stage: 'Building',
       query: 'grants',
       sort: 'recent',
+      page: 1,
     });
   });
 
@@ -79,6 +84,37 @@ describe('parseFilters', () => {
 
   it('trims the free-text query', () => {
     expect(parseFilters(new URLSearchParams('q=%20%20grants%20%20')).query).toBe('grants');
+  });
+});
+
+describe('directoryHref', () => {
+  it('drops the query string entirely when nothing is filtered', () => {
+    // Not '/?#directory'. A visitor copies whatever is in the address bar,
+    // and a bare '?' propagates through every subsequent share of that link.
+    expect(directoryHref(EMPTY_CRITERIA)).toBe('/#directory');
+  });
+
+  it('always carries the directory fragment, so a filter click lands on the band', () => {
+    // The directory is a section of the home page, not a route. Without the
+    // fragment a browse-menu link navigates to the top of the page and the
+    // filtered results are somewhere below the fold, unannounced.
+    expect(directoryHref(criteria({ need: 'compute' }))).toBe('/?need=compute#directory');
+  });
+
+  it('serialises a need and a sub-category search as the pair the chips use', () => {
+    // This exact string is what a browse-menu sub-item links to, and it must
+    // parse back to the same selection a visitor could have reached by
+    // choosing the need chip and typing the phrase into the search box.
+    const href = directoryHref(criteria({ need: 'training', query: 'Cloud credits' }));
+    expect(href).toBe('/?need=training&q=Cloud+credits#directory');
+    expect(parseFilters(new URLSearchParams(href.slice(2, href.indexOf('#'))))).toEqual(
+      criteria({ need: 'training', query: 'Cloud credits' }),
+    );
+  });
+
+  it('preserves unrelated parameters from the base it is given', () => {
+    const base = new URLSearchParams('utm_source=newsletter');
+    expect(directoryHref(criteria({ need: 'funding' }), base)).toContain('utm_source=newsletter');
   });
 });
 
@@ -253,5 +289,107 @@ describe('sortResources', () => {
   it('sorts a resource with no added date last under recent', () => {
     const withNull = [resource({ id: 'n', addedDate: null }), resource({ id: 'd', addedDate: '2026-01-01' })];
     expect(sortResources(withNull, 'recent').map((r) => r.id)).toEqual(['d', 'n']);
+  });
+});
+
+describe('pagination', () => {
+  /**
+   * Page is filter state, so it lives in the URL with every other facet --
+   * otherwise a shared link to page 3 opens on page 1, and the back button
+   * walks past the pages the visitor actually went through.
+   */
+  it('defaults to page 1 when the URL says nothing', () => {
+    expect(parseFilters(new URLSearchParams('')).page).toBe(1);
+  });
+
+  it('reads a valid page', () => {
+    expect(parseFilters(new URLSearchParams('page=3')).page).toBe(3);
+  });
+
+  it.each(['0', '-2', 'abc', '', '1.5', '1e3'])(
+    'clamps a nonsense page (%s) to 1 rather than showing nothing',
+    (raw) => {
+      // A hand-edited or stale URL must not produce an empty grid with no
+      // explanation. Every one of these used to be a way to reach page zero.
+      expect(parseFilters(new URLSearchParams(`page=${raw}`)).page).toBe(1);
+    },
+  );
+
+  it('omits page 1 from the URL, so a first-page link is the bare link', () => {
+    expect(toSearchParams({ ...EMPTY_CRITERIA, page: 1 }).toString()).toBe('');
+    expect(directoryHref({ ...EMPTY_CRITERIA, page: 1 })).toBe('/#directory');
+  });
+
+  it('serialises a page beyond the first, and round-trips it', () => {
+    const criteria: FilterCriteria = { ...EMPTY_CRITERIA, need: 'compute', page: 4 };
+    const params = toSearchParams(criteria);
+    expect(params.get('page')).toBe('4');
+    expect(parseFilters(params)).toEqual(criteria);
+  });
+
+  /**
+   * The trap this rule exists for: narrow a 60-row directory while on page 5,
+   * and without the reset the visitor lands on page 5 of a two-page result --
+   * an empty grid that looks like "no matches" for a filter that matched.
+   */
+  it('resets to the first page when any filter changes', () => {
+    const onPageFive: FilterCriteria = { ...EMPTY_CRITERIA, page: 5 };
+    expect(resetPageOnFilterChange({ ...onPageFive, need: 'compute' }, onPageFive).page).toBe(1);
+    expect(resetPageOnFilterChange({ ...onPageFive, query: 'gpu' }, onPageFive).page).toBe(1);
+    expect(resetPageOnFilterChange({ ...onPageFive, sort: 'recent' }, onPageFive).page).toBe(1);
+  });
+
+  it('keeps the page when only the page itself changes', () => {
+    // Paging forward is not a filter change; resetting here would pin the
+    // visitor to page 1 and make the control inert.
+    const previous: FilterCriteria = { ...EMPTY_CRITERIA, need: 'compute', page: 2 };
+    const next: FilterCriteria = { ...previous, page: 3 };
+    expect(resetPageOnFilterChange(next, previous).page).toBe(3);
+  });
+
+  it('slices the rows for the page it is given', () => {
+    const rows = Array.from({ length: 25 }, (_, i) => resource({ id: `r${i}` }));
+    expect(paginate(rows, 1, 12).rows).toHaveLength(12);
+    expect(paginate(rows, 3, 12).rows).toHaveLength(1);
+    expect(paginate(rows, 1, 12).pageCount).toBe(3);
+  });
+
+  it('clamps a page past the end to the last one, rather than showing an empty grid', () => {
+    // Reachable from a shared link whose result set has since shrunk.
+    const rows = Array.from({ length: 5 }, (_, i) => resource({ id: `r${i}` }));
+    const result = paginate(rows, 9, 12);
+    expect(result.page).toBe(1);
+    expect(result.rows).toHaveLength(5);
+  });
+
+  it('reports one page for an empty result, not zero', () => {
+    // pageCount 0 would render "page 1 of 0" and break every range check.
+    expect(paginate([], 1, 12)).toEqual({ rows: [], page: 1, pageCount: 1 });
+  });
+});
+
+describe('browseHref', () => {
+  /**
+   * The browse menu's category rows use this instead of directoryHref.
+   * Opening a category reveals its sub-categories inside the menu, and the
+   * #directory fragment scrolled the viewport past them to the results -- so
+   * the sub-categories the click had just revealed were never seen.
+   */
+  it('serialises exactly as directoryHref does, without the fragment', () => {
+    const criteria: FilterCriteria = { ...EMPTY_CRITERIA, need: 'training' };
+    expect(browseHref(criteria)).toBe('/?need=training');
+    expect(directoryHref(criteria)).toBe('/?need=training#directory');
+  });
+
+  it('drops the query string entirely when nothing is filtered', () => {
+    // Clearing the active category returns to the bare home URL, not '/?'.
+    expect(browseHref(EMPTY_CRITERIA)).toBe('/');
+  });
+
+  it('preserves unrelated parameters, like the serialiser it shares', () => {
+    const base = new URLSearchParams('utm_source=newsletter');
+    expect(browseHref({ ...EMPTY_CRITERIA, need: 'funding' }, base)).toContain(
+      'utm_source=newsletter',
+    );
   });
 });

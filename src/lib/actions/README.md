@@ -21,7 +21,7 @@ in `src/app/api`, server actions go here.
 - **Do not write an `audit_log` row, and do not pass an actor.** The database
   does it, inside your mutation's own transaction:
   `public.audit_row_change()`, a `security definer` trigger function from
-  `supabase/migrations/0017_audit_triggers.sql`, is attached to every
+  `supabase/migrations/0018_audit_triggers.sql`, is attached to every
   write-policied table and records `actor`,
   `actor_name`, `action`, `entity_type`, `entity_id`, `entity_label`,
   `change_summary` and `diff` per PRD 4.15, resolving the actor from

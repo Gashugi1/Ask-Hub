@@ -58,12 +58,25 @@ export default function ShareModal({ url, title }: { url: string; title: string 
     setCopyState('idle');
   }
 
+  // The trigger wears the prototype's secondary action (reference line 336):
+  // a 1.5px hairline that takes the primary blue on hover, beside the solid
+  // apply button.
   if (!open) {
     return (
       <button
         type="button"
-        className="rounded-lg border border-hairline px-4 py-2 text-sm text-navy"
+        className="proto-outline-button"
         onClick={() => setOpen(true)}
+        style={{
+          border: '1.5px solid #C9D3E8',
+          color: '#1A2332',
+          background: '#fff',
+          fontSize: 14,
+          fontWeight: 700,
+          padding: '12px 20px',
+          borderRadius: 10,
+          cursor: 'pointer',
+        }}
       >
         {t('share.open')}
       </button>
@@ -71,7 +84,15 @@ export default function ShareModal({ url, title }: { url: string; title: string 
   }
 
   return (
-    <div className="rounded-lg border border-hairline bg-tint-2 p-4">
+    <div
+      style={{
+        background: '#F4F6F9',
+        border: '1px solid #DDE5EE',
+        borderRadius: 14,
+        padding: '18px 20px',
+        width: '100%',
+      }}
+    >
       <h2 className="text-sm font-semibold text-navy">{t('share.title')}</h2>
       <label className="mt-3 block text-sm text-muted">
         <span>{t('share.message')}</span>

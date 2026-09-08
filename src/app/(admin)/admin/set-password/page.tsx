@@ -1,4 +1,5 @@
 import SetPasswordForm from '@/components/admin/SetPasswordForm';
+import AuthCard from '@/components/admin/AuthCard';
 import { t } from '@/lib/i18n';
 
 /**
@@ -19,11 +20,13 @@ import { t } from '@/lib/i18n';
  * no session can do nothing here but be told so.
  */
 export default function SetPasswordPage() {
+  // Wears the same shell as sign-in. The prototype has no set-password screen
+  // at all, so this is the plan's one sanctioned extrapolation: rather than
+  // invent a layout, the screen reuses AuthCard, which means "reads as the
+  // same family" is guaranteed by construction rather than by eye.
   return (
-    <main className="mx-auto flex max-w-sm flex-col gap-4 p-8">
-      <h1 className="text-xl font-semibold text-navy">{t('setPassword.heading')}</h1>
-      <p className="text-sm text-muted">{t('setPassword.intro')}</p>
+    <AuthCard heading={t('setPassword.heading')} intro={t('setPassword.intro')}>
       <SetPasswordForm />
-    </main>
+    </AuthCard>
   );
 }

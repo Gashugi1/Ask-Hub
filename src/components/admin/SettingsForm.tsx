@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { saveSetting } from '@/lib/actions/settings';
 import { settingUpdate, CONTACT_EMAIL, type SettingKey } from '@/lib/schemas/settings';
 import { t } from '@/lib/i18n';
+import { ADMIN_H2, ADMIN_PANEL_COL, ADMIN_FIELD_ROW, ADMIN_FIELD, ADMIN_PRIMARY, ADMIN_ERROR, ADMIN_HELP } from './chrome';
 
 /**
  * `/admin/settings` is gated `requirePageRole(['admin'])` (notFound for
@@ -56,26 +57,26 @@ function TextSetting({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-1">
-      <label className="flex flex-col gap-1 text-sm text-navy" htmlFor={`setting-${settingKey}`}>
+    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <label style={ADMIN_FIELD_ROW} htmlFor={`setting-${settingKey}`}>
         {label}
         <input
           id={`setting-${settingKey}`}
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          className="rounded border border-hairline px-2 py-1 text-sm text-navy"
+          style={ADMIN_FIELD}
         />
       </label>
-      <div className="flex items-center gap-2">
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <button
           type="submit"
           disabled={pending}
-          className="self-start rounded bg-primary px-3 py-1 text-xs text-surface"
+          className="proto-primary-button" style={{ ...ADMIN_PRIMARY, alignSelf: "flex-start" }}
         >
           {t('admin.content.save')}
         </button>
-        {error ? <span className="text-xs text-danger">{error}</span> : null}
+        {error ? <span style={ADMIN_ERROR}>{error}</span> : null}
       </div>
     </form>
   );
@@ -111,8 +112,8 @@ function FlagSetting({
   }
 
   return (
-    <div className="flex flex-col gap-1">
-      <label className="flex items-center gap-2 text-sm text-navy">
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, color: "#1A2332" }}>
         <input
           type="checkbox"
           checked={value}
@@ -122,8 +123,8 @@ function FlagSetting({
         />
         {label}
       </label>
-      <p className="text-xs text-muted">{t('admin.settings.flags.offAtLaunch')}</p>
-      {error ? <span className="text-xs text-danger">{error}</span> : null}
+      <p style={ADMIN_HELP}>{t('admin.settings.flags.offAtLaunch')}</p>
+      {error ? <span style={ADMIN_ERROR}>{error}</span> : null}
     </div>
   );
 }
@@ -144,11 +145,11 @@ export default function SettingsForm({ settings }: SettingsFormProps) {
   const publicImpactPage = settings.feature_public_impact_page === true;
 
   return (
-    <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-3 rounded border border-hairline p-4">
-        <h2 className="text-base font-semibold text-navy">{t('admin.settings.section.analytics')}</h2>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <section style={ADMIN_PANEL_COL}>
+        <h2 style={ADMIN_H2}>{t('admin.settings.section.analytics')}</h2>
         {measurementId === '' ? (
-          <p className="text-sm text-muted">{t('empty.ga4NotConnected')}</p>
+          <p style={ADMIN_HELP}>{t('empty.ga4NotConnected')}</p>
         ) : null}
         <TextSetting
           settingKey="ga4_measurement_id"
@@ -162,22 +163,22 @@ export default function SettingsForm({ settings }: SettingsFormProps) {
           initialValue={propertyId}
           invalidMessage={t('admin.settings.ga4.invalidPropertyId')}
         />
-        <p className="text-xs text-muted">{t('admin.settings.ga4.eventsNote')}</p>
+        <p style={ADMIN_HELP}>{t('admin.settings.ga4.eventsNote')}</p>
       </section>
 
-      <section className="flex flex-col gap-3 rounded border border-hairline p-4">
-        <h2 className="text-base font-semibold text-navy">{t('admin.settings.section.contact')}</h2>
+      <section style={ADMIN_PANEL_COL}>
+        <h2 style={ADMIN_H2}>{t('admin.settings.section.contact')}</h2>
         <TextSetting
           settingKey="contact_email"
           label={t('admin.settings.contact.label')}
           initialValue={contactEmail}
           invalidMessage={t('admin.settings.contact.note')}
         />
-        <p className="text-xs text-muted">{t('admin.settings.contact.note')}</p>
+        <p style={ADMIN_HELP}>{t('admin.settings.contact.note')}</p>
       </section>
 
-      <section className="flex flex-col gap-3 rounded border border-hairline p-4">
-        <h2 className="text-base font-semibold text-navy">{t('admin.settings.section.flags')}</h2>
+      <section style={ADMIN_PANEL_COL}>
+        <h2 style={ADMIN_H2}>{t('admin.settings.section.flags')}</h2>
         <FlagSetting
           settingKey="feature_innovator_profiles"
           label={t('admin.settings.flags.innovatorProfiles')}

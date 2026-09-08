@@ -32,7 +32,15 @@ export const NEED_KEYS = [
 
 export type NeedKey = (typeof NEED_KEYS)[number];
 
-export const NEEDS = ['Compute', 'Training', 'Funding', 'Accelerator', 'Partners'] as const;
+/**
+ * The five needs as display strings, kept only so `reference.test.ts` can
+ * assert it stays the same length as the enum. **No component reads it** --
+ * every label a visitor sees comes from `need.*` in `en.json`, which is what
+ * lets the copy be translated and changed without touching code. Updated in
+ * step with that file so the two do not disagree; if this array ever gains a
+ * consumer, that consumer is the bug.
+ */
+export const NEEDS = ['Compute', 'Courses', 'Funding', 'Accelerators', 'Partners'] as const;
 
 /**
  * PRD content rule 10.6: the country filter has no catch-all

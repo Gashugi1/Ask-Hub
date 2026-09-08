@@ -6,6 +6,7 @@ import { inviteUser } from '@/lib/actions/users';
 import { inviteInput, ROLES } from '@/lib/schemas/user';
 import type { Role } from '@/lib/auth';
 import { t } from '@/lib/i18n';
+import { ADMIN_H2, ADMIN_PANEL_COL, ADMIN_FIELD_ROW, ADMIN_FIELD, ADMIN_PRIMARY, ADMIN_ERROR, ADMIN_HELP } from './chrome';
 
 /**
  * PRD §3: there is no public sign-up route and signup is disabled at the
@@ -58,48 +59,48 @@ export default function InviteForm() {
   }
 
   return (
-    <section className="flex flex-col gap-3 rounded border border-hairline p-4">
-      <h2 className="text-base font-semibold text-navy">{t('admin.users.invite.heading')}</h2>
-      <p className="text-sm text-muted">{t('admin.login.noSignup')}</p>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm text-navy" htmlFor="invite-email">
+    <section style={ADMIN_PANEL_COL}>
+      <h2 style={ADMIN_H2}>{t('admin.users.invite.heading')}</h2>
+      <p style={ADMIN_HELP}>{t('admin.login.noSignup')}</p>
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+          <label style={ADMIN_FIELD_ROW} htmlFor="invite-email">
             {t('admin.users.invite.email')}
             <input
               id="invite-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="rounded border border-hairline px-2 py-1 text-sm text-navy"
+              style={ADMIN_FIELD}
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm text-navy" htmlFor="invite-full-name">
+          <label style={ADMIN_FIELD_ROW} htmlFor="invite-full-name">
             {t('admin.users.invite.fullName')}
             <input
               id="invite-full-name"
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="rounded border border-hairline px-2 py-1 text-sm text-navy"
+              style={ADMIN_FIELD}
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm text-navy" htmlFor="invite-display-label">
+          <label style={ADMIN_FIELD_ROW} htmlFor="invite-display-label">
             {t('admin.users.invite.displayLabel')}
             <input
               id="invite-display-label"
               type="text"
               value={displayLabel}
               onChange={(e) => setDisplayLabel(e.target.value)}
-              className="rounded border border-hairline px-2 py-1 text-sm text-navy"
+              style={ADMIN_FIELD}
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm text-navy" htmlFor="invite-role">
+          <label style={ADMIN_FIELD_ROW} htmlFor="invite-role">
             {t('admin.users.invite.role')}
             <select
               id="invite-role"
               value={role}
               onChange={(e) => setRole(e.target.value as Role)}
-              className="rounded border border-hairline px-2 py-1 text-sm text-navy"
+              style={ADMIN_FIELD}
             >
               {ROLES.map((value) => (
                 <option key={value} value={value}>
@@ -109,16 +110,16 @@ export default function InviteForm() {
             </select>
           </label>
         </div>
-        <p className="text-xs text-muted">{t('admin.users.invite.displayLabelNote')}</p>
-        <div className="flex items-center gap-2">
+        <p style={ADMIN_HELP}>{t('admin.users.invite.displayLabelNote')}</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <button
             type="submit"
             disabled={pending}
-            className="self-start rounded bg-primary px-3 py-1 text-xs text-surface"
+            className="proto-primary-button" style={{ ...ADMIN_PRIMARY, alignSelf: "flex-start" }}
           >
             {t('admin.users.invite.submit')}
           </button>
-          {error ? <span className="text-xs text-danger">{error}</span> : null}
+          {error ? <span style={ADMIN_ERROR}>{error}</span> : null}
         </div>
       </form>
     </section>

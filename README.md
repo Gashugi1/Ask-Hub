@@ -70,7 +70,7 @@ npm test
 This repository began as an application **skeleton**, with every `page.tsx`
 rendering its own route path and nothing else, each to be replaced in turn by
 the sub-project that builds the real surface. SP1's database schema and RLS
-policies have since landed, and SP2 is landing the public site page by page.
+policies landed first, then SP2a delivered the public site page by page.
 The admin portal landed with SP3, merged into this branch: sign-in, the
 role-aware shell, Dashboard, Resources (list and edit), Site Content, Settings,
 Users and a read-only Audit Log. Five of PRD §6's nine screens are deliberately
@@ -106,5 +106,11 @@ from this build.
 
 ## Infrastructure
 
-Supabase project ref: <recorded in SP1 Task 14>
-Supabase region: <confirmed EU region, recorded in SP1 Task 14>
+- **Staging Supabase project ref:** `cmephczoegbfeijafzve` (the ref is a public
+  identifier — it is the subdomain of `NEXT_PUBLIC_SUPABASE_URL` — not a secret).
+- **Staging region:** confirm in the Supabase dashboard (Project Settings →
+  General). PRD §13 requires an EU region for data residency.
+- **Production:** a separate project the client provisions at handover. It does
+  **not** inherit `supabase/config.toml`, so every hosted Auth and security
+  setting (disable signup, redirect allow-list, password policy, leaked-password
+  protection, region) must be re-hardened from its default on day one.

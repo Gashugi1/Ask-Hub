@@ -3,9 +3,22 @@
 import { useActionState } from 'react';
 import { signIn } from '@/lib/actions/session';
 import { t } from '@/lib/i18n';
+import AuthCard, { FIELD, FIELD_LABEL, CARD_BUTTON } from './AuthCard';
 
 type State = { error: string } | null;
 
+/**
+ * Wears the prototype's signed-out shell (see AuthCard, transcribed from
+ * docs/prototype/prototype.html lines 632-665). This screen does not use the
+ * public header: it is its own shell in the prototype and stays so here -- a
+ * sign-in page carrying a site-wide search box and a Contact button is a page
+ * that has not decided what it is for.
+ *
+ * The error is rendered exactly as `signIn` returns it and nothing is added.
+ * That action deliberately gives one message for both an unknown email and a
+ * wrong password, so the form cannot be used to discover which addresses have
+ * accounts; a friendlier, more specific message here would undo that.
+ */
 export default function SignInForm() {
   const [state, action, pending] = useActionState<State, FormData>(
     async (_previous, formData) => (await signIn(formData)) ?? null,
@@ -13,24 +26,72 @@ export default function SignInForm() {
   );
 
   return (
-    <main className="mx-auto flex max-w-sm flex-col gap-4 p-8">
-      <h1 className="text-xl font-semibold text-navy">{t('admin.login.heading')}</h1>
-      <p className="text-sm text-muted">{t('admin.login.intro')}</p>
-      <form action={action} className="flex flex-col gap-3">
-        <label className="flex flex-col gap-1 text-sm">
-          {t('admin.login.email')}
-          <input name="email" type="email" required autoComplete="username" className="rounded border border-hairline px-3 py-2" />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          {t('admin.login.password')}
-          <input name="password" type="password" required autoComplete="current-password" className="rounded border border-hairline px-3 py-2" />
-        </label>
-        <button type="submit" disabled={pending} className="rounded bg-primary px-4 py-2 text-white">
+    <AuthCard
+      heading={t('admin.login.heading')}
+      intro={t('admin.login.intro')}
+      footer={
+        <p
+          style={{
+            textAlign: 'center',
+            marginTop: 14,
+            fontSize: 12,
+            color: '#5B6B8C',
+          }}
+        >
+          {t('admin.login.noSignup')}
+        </p>
+      }
+    >
+      <form action={action}>
+        <div
+          style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 11 }}
+        >
+          <div>
+            <label htmlFor="admin-email" style={FIELD_LABEL}>
+              {t('admin.login.email')}
+            </label>
+            <input
+              id="admin-email"
+              name="email"
+              type="email"
+              required
+              autoComplete="username"
+              style={FIELD}
+            />
+          </div>
+          <div>
+            <label htmlFor="admin-password" style={FIELD_LABEL}>
+              {t('admin.login.password')}
+            </label>
+            <input
+              id="admin-password"
+              name="password"
+              type="password"
+              required
+              autoComplete="current-password"
+              style={FIELD}
+            />
+          </div>
+        </div>
+
+        {state?.error ? (
+          <p
+            role="alert"
+            style={{ margin: '10px 0 0 0', fontSize: 13, color: '#C0392B', fontWeight: 600 }}
+          >
+            {state.error}
+          </p>
+        ) : null}
+
+        <button
+          type="submit"
+          disabled={pending}
+          className="proto-primary-button"
+          style={CARD_BUTTON}
+        >
           {t('admin.login.submit')}
         </button>
       </form>
-      {state?.error ? <p role="alert" className="text-sm text-danger">{state.error}</p> : null}
-      <p className="text-xs text-muted">{t('admin.login.noSignup')}</p>
-    </main>
+    </AuthCard>
   );
 }

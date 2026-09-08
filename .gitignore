@@ -23,6 +23,11 @@
 # misc
 .DS_Store
 *.pem
+*.key
+*.crt
+*.p12
+*.pfx
+credentials*
 
 # debug
 npm-debug.log*
@@ -50,3 +55,6 @@ next-env.d.ts
 
 # Local Claude Code session state and settings
 /.claude/
+
+# screenshot comparison output
+tmp/

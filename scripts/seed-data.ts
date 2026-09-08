@@ -67,12 +67,13 @@ export type Exclusivity = 'exclusive' | 'early_access';
 // Partners — 19 rows, names only.
 // ============================================================================
 //
-// `logo_url` and `website_url` are both null for every row: the prototype
-// carries no partner URLs at all (its favicon-domain trick even misattributes
-// Stanford to coursera.org — see 0013_reconcile_partners.sql), and the client
-// has not supplied real ones. supabase/migrations/0014_partner_logos.sql
-// keeps both columns nullable for exactly this reason: a partner row can
-// exist before its asset pair (logo + site) arrives, and
+// `logo_url` and `website_url` are null for every row except the three in
+// `PARTNER_ASSETS` below. The prototype carries no partner URLs at all (its
+// favicon-domain trick even misattributes Stanford to coursera.org — see
+// 0013_reconcile_partners.sql), so every logo here comes from the client's
+// asset pack instead. supabase/migrations/0014_partner_logos.sql keeps both
+// columns nullable precisely so the rest can wait: a partner row can exist
+// before its asset pair (logo + site) arrives, and
 // `partners_logo_requires_site` only refuses a logo with no link, which a
 // name-only row never triggers.
 //
@@ -122,6 +123,106 @@ export const PARTNERS: readonly string[] = [
   'Safaricom',
   'Stanford / Coursera',
   'Zindi',
+];
+
+/**
+ * The partners whose logo and official site the client's asset pack covers.
+ *
+ * The files are `public/partners/*.png`, committed in 744108a ("the client's
+ * asset pack, PNG (the schema rejects SVG)"). That commit also uploaded them
+ * to a Supabase Storage bucket by hand and wired three partners to the
+ * resulting https URLs, because `partners_logo_https` accepted nothing else.
+ * That upload is still live on the hosted project behind Vercel and still
+ * renders in production -- what was never committed is anything that
+ * *reproduces* it: no bucket migration, no upload script, no seeded URL. So
+ * every other environment starts with 19 null logos, and a local stack cannot
+ * be brought up to match, since its Supabase URL is http and the constraint
+ * refused it.
+ *
+ * supabase/migrations/0021_partner_logo_asset_paths.sql widens that
+ * constraint to also accept a site-root-relative path, which is what these
+ * are: Next serves them from `public/`, on the page's own origin, with no
+ * bucket involved, and they survive a `db:reset` because they are declared
+ * here rather than uploaded.
+ *
+ * **These do not disturb the hosted rows.** The seed writes them only where
+ * `logo_url` is null (see scripts/seed.ts), so running it against the
+ * deployed project leaves its Storage URLs exactly as they are. The two
+ * sources coexist on purpose: the deployment keeps what it has, and a
+ * checkout stops depending on a bucket this repository cannot recreate.
+ *
+ * **Three partners, not five.** The pack also contains `cisco.png` and
+ * `domyn.png`, and both stay unwired for the reason 744108a gave and this
+ * seed's own header repeats. There is no Domyn partner row at all, and Cisco
+ * exists only inside the combined name "Cyber 4.0 and Cisco" -- putting the
+ * Cisco mark on a row that names two organisations would state something
+ * about a UN programme's partnerships that nobody has confirmed. Adding a row
+ * for either is a client decision, not a seeding one.
+ *
+ * Each site is the organisation's own, which is content rule 10.10 ("each
+ * logo must link to its own official site") and is also the only reason the
+ * pair is declared together: `partners_logo_requires_site` refuses to store a
+ * logo whose partner has no link.
+ */
+export const PARTNER_ASSETS: readonly {
+  name: string;
+  logoUrl: string;
+  websiteUrl: string;
+}[] = [
+  {
+    name: 'Amazon Web Services',
+    logoUrl: '/partners/aws.png',
+    websiteUrl: 'https://aws.amazon.com/',
+  },
+  {
+    name: 'CINECA',
+    logoUrl: '/partners/cineca.png',
+    websiteUrl: 'https://www.cineca.it/',
+  },
+  {
+    name: 'Microsoft',
+    logoUrl: '/partners/microsoft.png',
+    websiteUrl: 'https://www.microsoft.com/',
+  },
+  {
+    name: 'NVIDIA',
+    logoUrl: '/partners/nvidia.png',
+    websiteUrl: 'https://www.nvidia.com/',
+  },
+  {
+    name: 'Google',
+    logoUrl: '/partners/google.png',
+    websiteUrl: 'https://www.google.com/',
+  },
+  {
+    name: 'African Development Bank',
+    logoUrl: '/partners/african-development-bank.png',
+    websiteUrl: 'https://www.afdb.org/',
+  },
+  {
+    name: 'AfriLabs',
+    logoUrl: '/partners/afrilabs.png',
+    websiteUrl: 'https://www.afrilabs.com/',
+  },
+  {
+    name: 'Zindi',
+    logoUrl: '/partners/zindi.png',
+    websiteUrl: 'https://zindi.africa/',
+  },
+  {
+    name: 'Stanford / Coursera',
+    logoUrl: '/partners/coursera.png',
+    websiteUrl: 'https://www.coursera.org/',
+  },
+  {
+    // Two organisations under one partner row, and the asset pack carries no
+    // Kaggle mark. The client's instruction is to use the Google mark, which
+    // is defensible -- Kaggle is Google-owned -- and is recorded here because
+    // the logo does not name everything the row does.
+    name: 'Google / Kaggle',
+    logoUrl: '/partners/google.png',
+    websiteUrl: 'https://www.kaggle.com/',
+  },
 ];
 
 /**
@@ -734,13 +835,27 @@ export const RESOURCES: readonly SeedResource[] = [
 //      `partnerships` row -- "Leonardo GPU allocations under the Mattei
 //      Plan" -- needs no rewrite here because `partnerships` is out of this
 //      task's scope and is not seeded at all; it simply never lands.)
-//   2. `welcome_body` drops the prototype's "Curated and verified by the AI
-//      Hub team." sentence. The prototype states this curation claim in
+//   2. `welcome_body` dropped the prototype's "Curated and verified by the
+//      AI Hub team." sentence. The prototype states this curation claim in
 //      three different wordings across the app; content rule 10.8 wants it
 //      stated once. `identity_lead` already carries the brief's canonical
 //      wording verbatim ("Every resource is curated and verified by the AI
 //      Hub team.") unchanged, so it is kept as the single instance and the
-//      duplicate in `welcome_body` is removed rather than rephrased.
+//      duplicate in `welcome_body` was removed rather than rephrased.
+//
+//      That rewrite is now history rather than a live edit: `welcome_body`
+//      has since been rewritten again by an editor on the hosted project and
+//      this file transcribes that value, which carries no curation claim
+//      either. Rule 10.8 still holds, by the same argument and not by
+//      inheritance — it was re-checked against the live string.
+//
+// **These rows are not the source of truth.** `site_content` is editable
+// from /admin/content precisely so copy can change without a deploy, and the
+// upsert below is keyed on (key, locale), so a seed run overwrites whatever
+// an editor has since written. When the two disagree, the hosted value is
+// the one that has been reviewed and published; update this file to match it
+// rather than re-running the seed to overwrite it. Verified divergent once
+// already, on 2026-08-14, for exactly this key.
 export interface SeedSiteContent {
   key: string;
   locale: string;
@@ -765,10 +880,20 @@ export const SITE_CONTENT: readonly SeedSiteContent[] = [
   {
     key: 'welcome_body',
     locale: 'en',
-    // Rewritten: dropped the trailing "Curated and verified by the AI Hub
-    // team." sentence (see the rule-2 rewrite note above).
+    // Transcribed from the hosted project, where an editor rewrote this line
+    // through the Site Content screen; the seed's original wording ("The open
+    // directory for African AI — find the compute, funding, training,
+    // accelerators, and partners to move your idea forward.") is no longer
+    // what the site says, and the seed upserts on (key, locale), so leaving
+    // the two out of step meant any future `npm run seed` would silently
+    // revert a deliberate copy change.
+    //
+    // Still rule-compliant, checked against the live value rather than
+    // assumed: it names the programme in full, carries content rule 10.1's
+    // attribution verbatim, and makes no curation claim — so `identity_lead`
+    // remains the single place that states it (rule 10.8).
     value:
-      'The open directory for African AI — find the compute, funding, training, accelerators, and partners to move your idea forward.',
+      "The open directory for Africa's AI ecosystem — connecting innovators to the compute, funding, training, accelerators, and partnerships of the AI Hub for Sustainable Development, co-led by MIMIT and UNDP",
   },
   {
     key: 'welcome_cta',
@@ -789,5 +914,23 @@ export const SITE_CONTENT: readonly SeedSiteContent[] = [
     // rule-1 rewrite note above). Everything else transcribed verbatim.
     value:
       'The AI Hub is aligned with the African Union AI Strategy, co-designing 20 programmes with the private sector over its mandate — across 18 partner countries and six priority sectors.',
+  },
+  {
+    // Placeholder pending legal review (PRD content rule 9 / §5.8). Seeded so
+    // the row exists for the Site Content screen to UPDATE; an editor replaces
+    // this with the reviewed notice, no deploy. Text matches the `privacy.pending`
+    // locale fallback so the page reads identically until then, and it is
+    // rule-compliant (names the programme in full, one mailbox, no bare "the Hub").
+    key: 'privacy_body',
+    locale: 'en',
+    value:
+      'The privacy notice is being finalised. For any question about how the AI Hub for Sustainable Development handles your data, write to the address below.',
+  },
+  {
+    // Placeholder pending legal review, seeded for the same reason as privacy_body.
+    key: 'terms_body',
+    locale: 'en',
+    value:
+      'The terms of use are being finalised. For any question, write to the address below.',
   },
 ];

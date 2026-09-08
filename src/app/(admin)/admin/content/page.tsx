@@ -125,7 +125,6 @@ export default async function AdminContentPage() {
           { key: 'welcome_title', label: t('admin.content.field.welcomeTitle') },
           { key: 'welcome_tagline', label: t('admin.content.field.welcomeTagline') },
           { key: 'welcome_body', label: t('admin.content.field.welcomeBody') },
-          { key: 'welcome_cta', label: t('admin.content.field.welcomeCta') },
         ]}
       />
 
@@ -136,6 +135,16 @@ export default async function AdminContentPage() {
         fields={[
           { key: 'identity_lead', label: t('admin.content.field.identityLead') },
           { key: 'identity_align', label: t('admin.content.field.identityAlign') },
+        ]}
+      />
+
+      <ContentPanel
+        heading={t('admin.content.section.legal')}
+        canWrite={userCanWrite}
+        content={content}
+        fields={[
+          { key: 'privacy_body', label: t('admin.content.field.privacyBody') },
+          { key: 'terms_body', label: t('admin.content.field.termsBody') },
         ]}
       />
 

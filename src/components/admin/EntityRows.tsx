@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { t } from '@/lib/i18n';
 import ConfirmDeleteButton from './ConfirmDeleteButton';
+import { ADMIN_FIELD, ADMIN_PRIMARY, ADMIN_TH, ADMIN_TD, ADMIN_TABLE, ADMIN_TABLE_PANEL, ADMIN_TR, ADMIN_ERROR, ADMIN_HELP } from './chrome';
 
 /**
  * The generic list-editor for `programmes` (PRD 6.7 panel 7) and
@@ -65,7 +66,7 @@ function FieldInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         rows={2}
-        className="w-56 rounded border border-hairline px-2 py-1 text-sm"
+        style={{ ...ADMIN_FIELD, width: 230 }}
       />
     );
   }
@@ -74,7 +75,7 @@ function FieldInput({
       aria-label={field.label}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-40 rounded border border-hairline px-2 py-1 text-sm"
+      style={{ ...ADMIN_FIELD, width: 170 }}
     />
   );
 }
@@ -122,33 +123,33 @@ function EditableRow({
   }
 
   return (
-    <tr className="border-b border-hairline align-top">
+    <tr style={ADMIN_TR}>
       {fields.map((field) => (
-        <td key={field.key} className="p-2">
+        <td key={field.key} style={ADMIN_TD}>
           <FieldInput field={field} value={draft[field.key] ?? ''} onChange={(v) => set(field.key, v)} />
         </td>
       ))}
-      <td className="p-2">
+      <td style={ADMIN_TD}>
         <input
           type="number"
           min={0}
           aria-label={t('admin.content.stat.sortOrder')}
           value={draft.sortOrder}
           onChange={(e) => set('sortOrder', e.target.value)}
-          className="w-16 rounded border border-hairline px-2 py-1 text-sm"
+          style={{ ...ADMIN_FIELD, width: 72 }}
         />
       </td>
-      <td className="space-y-1 p-2">
+      <td style={{ ...ADMIN_TD, display: "flex", flexDirection: "column", gap: 6 }}>
         <button
           type="button"
           disabled={pending}
           onClick={handleSave}
-          className="block rounded bg-primary px-2 py-1 text-xs text-surface"
+          className="proto-primary-button" style={{ ...ADMIN_PRIMARY, display: "block", width: "100%", fontSize: 12, padding: "7px 12px" }}
         >
           {t('admin.content.save')}
         </button>
         <ConfirmDeleteButton onConfirm={handleDelete} disabled={pending} label={t('admin.content.delete')} />
-        {error ? <span className="block text-xs text-danger">{error}</span> : null}
+        {error ? <span style={{ ...ADMIN_ERROR, display: "block" }}>{error}</span> : null}
       </td>
     </tr>
   );
@@ -178,32 +179,32 @@ function NewRow({ fields, actions }: { fields: readonly EntityField[]; actions: 
   }
 
   return (
-    <tr className="align-top">
+    <tr style={{ verticalAlign: "top" }}>
       {fields.map((field) => (
-        <td key={field.key} className="p-2">
+        <td key={field.key} style={ADMIN_TD}>
           <FieldInput field={field} value={draft[field.key] ?? ''} onChange={(v) => set(field.key, v)} />
         </td>
       ))}
-      <td className="p-2">
+      <td style={ADMIN_TD}>
         <input
           type="number"
           min={0}
           aria-label={t('admin.content.stat.sortOrder')}
           value={draft.sortOrder}
           onChange={(e) => set('sortOrder', e.target.value)}
-          className="w-16 rounded border border-hairline px-2 py-1 text-sm"
+          style={{ ...ADMIN_FIELD, width: 72 }}
         />
       </td>
-      <td className="p-2">
+      <td style={ADMIN_TD}>
         <button
           type="button"
           disabled={pending}
           onClick={handleCreate}
-          className="rounded bg-primary px-2 py-1 text-xs text-surface"
+          className="proto-primary-button" style={{ ...ADMIN_PRIMARY, fontSize: 12, padding: "7px 12px" }}
         >
           {t('admin.content.add')}
         </button>
-        {error ? <span className="block text-xs text-danger">{error}</span> : null}
+        {error ? <span style={{ ...ADMIN_ERROR, display: "block" }}>{error}</span> : null}
       </td>
     </tr>
   );
@@ -230,15 +231,15 @@ export default function EntityRows({
 
   if (!canWrite) {
     if (rows.length === 0) {
-      return <p className="text-sm text-muted">{t('admin.empty.noRows')}</p>;
+      return <p style={ADMIN_HELP}>{t('admin.empty.noRows')}</p>;
     }
     return (
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
+      <div style={ADMIN_TABLE_PANEL}>
+        <table style={ADMIN_TABLE}>
           <thead>
-            <tr className="border-b border-hairline text-xs text-muted">
+            <tr style={{ ...ADMIN_TR, ...ADMIN_HELP }}>
               {headers.map((h) => (
-                <th key={h} className="p-2 font-medium">
+                <th key={h} style={ADMIN_TH}>
                   {h}
                 </th>
               ))}
@@ -246,13 +247,13 @@ export default function EntityRows({
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.id} className="border-b border-hairline">
+              <tr key={row.id} style={ADMIN_TR}>
                 {fields.map((field) => (
-                  <td key={field.key} className="p-2 text-navy">
+                  <td key={field.key} style={ADMIN_TD}>
                     {row[field.key]}
                   </td>
                 ))}
-                <td className="p-2 text-navy">{row.sortOrder}</td>
+                <td style={ADMIN_TD}>{row.sortOrder}</td>
               </tr>
             ))}
           </tbody>
@@ -262,16 +263,16 @@ export default function EntityRows({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
+    <div style={ADMIN_TABLE_PANEL}>
+      <table style={ADMIN_TABLE}>
         <thead>
-          <tr className="border-b border-hairline text-xs text-muted">
+          <tr style={{ ...ADMIN_TR, ...ADMIN_HELP }}>
             {headers.map((h) => (
-              <th key={h} className="p-2 font-medium">
+              <th key={h} style={ADMIN_TH}>
                 {h}
               </th>
             ))}
-            <th className="p-2 font-medium">{t('admin.content.actions')}</th>
+            <th style={ADMIN_TH}>{t('admin.content.actions')}</th>
           </tr>
         </thead>
         <tbody>

@@ -31,13 +31,14 @@
 }
 
 /*
- * Design tokens. CLAUDE.md: no hardcoded colours or type values outside
- * this block — everything downstream (Tailwind utilities, components)
- * consumes these via `bg-primary`, `text-navy`, `shadow-card`, etc.
+ * Design tokens. Downstream code consumes these via `bg-primary`,
+ * `text-navy`, `shadow-card`, etc.
  *
- * tests/structure/app-structure.test.ts's colour guard is narrowed to
- * allow colour literals only inside this @theme block; a colour anywhere
- * else in the repo still fails that guard.
+ * The colour guard that once made this block the only legal home for a
+ * colour literal is gone (spec D2): the approved prototype styles every
+ * element with inline styles, and those are now transcribed verbatim. These
+ * tokens remain the source for anything the prototype does not cover, and
+ * for the two colours where accessibility overrides it (D9, below).
  */
 @theme {
   --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
@@ -141,4 +142,256 @@ body {
   font-family: var(--font-sans);
   background: var(--color-surface);
   color: var(--color-navy);
+}
+
+/*
+ * Transcribed from the approved prototype's own global stylesheet
+ * (docs/prototype/prototype.html). `fadeUp` is its entrance animation, and
+ * `.askhub-wordmark` hides the header wordmark on narrow screens so the logo
+ * and search pill still fit on one row.
+ *
+ * The prototype's `marquee` keyframes went with the partner carousel this
+ * release removes; nothing else animated on translation.
+ *
+ * `box-sizing` and the font-family inheritance for form controls are
+ * likewise the prototype's. Tailwind's preflight already sets both; they
+ * are kept here so this block is a faithful record of the prototype's
+ * globals rather than a partial one, and so the page does not silently
+ * depend on preflight for behaviour the prototype stated outright.
+ */
+* {
+  box-sizing: border-box;
+}
+
+input,
+select,
+textarea,
+button {
+  font-family: inherit;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .askhub-wordmark {
+    display: none;
+  }
+}
+
+/*
+ * The prototype expresses hover as a `style-hover` attribute, which is not
+ * real HTML. This carries it for server components, where the alternative
+ * would be converting a component to a client one purely for a background
+ * colour. The value is the prototype's own: #F1F4FA behind a nav item.
+ *
+ * `.proto-nav-action` used to sit here for an outlined pill in the header's
+ * right-hand slot. The prototype fills that slot with ADMIN, which PRD 5.8
+ * forbids in public navigation, and Contact -- which had been standing in it
+ * -- is a plain nav item in the prototype (reference line 21). With nothing
+ * outlined left in the header the rule had no consumer, so it is gone rather
+ * than kept as a class nothing applies.
+ */
+.proto-nav-item:hover {
+  background: #f1f4fa;
+}
+
+/* Footer, prototype lines 595-631: links warm to the accent, the outlined
+   partner badges take an accent border and full-white text. */
+.proto-footer-link:hover {
+  color: #f06428;
+}
+
+.proto-footer-badge:hover {
+  border-color: #f06428;
+  color: #fff;
+}
+
+/* Welcome band CTA, prototype line 45: the accent button brightens on hover
+   rather than shifting hue, so the navy-on-orange contrast ratio holds. */
+.proto-accent-button:hover {
+  filter: brightness(1.06);
+}
+
+/* Storefront department menu, prototype lines 55-62. */
+.proto-dept-item:hover {
+  background: #f1f4fa;
+}
+
+/* The expanded category's sub-items, prototype lines 66-71: each warms to the
+   nav tint and the primary blue, and the trailing "More" underlines. */
+.proto-dept-sub:hover {
+  background: #f1f4fa;
+  color: #1f5fbf;
+}
+
+.proto-dept-more:hover {
+  text-decoration: underline;
+}
+
+/* Featured card, prototype line 88: the shadow lifts on hover. */
+.proto-feature-card:hover {
+  box-shadow: 0 12px 36px rgb(0 60 100 / 0.18);
+}
+
+/* Recently-added rail card, prototype line 148. */
+.proto-rail-card:hover {
+  border-color: #1f5fbf;
+  box-shadow: 0 6px 20px rgb(0 60 100 / 0.1);
+}
+
+/* Directory actions and filter chips, prototype lines 183-184, 194-196. */
+.proto-primary-button:hover:not(:disabled) {
+  background: #174a99;
+}
+
+.proto-outline-button:hover:not(:disabled) {
+  border-color: #1f5fbf;
+}
+
+.proto-primary-button:disabled,
+.proto-outline-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.proto-active-chip:hover {
+  border-color: #1f5fbf;
+}
+
+.proto-clear-all:hover {
+  color: #1a2332;
+}
+
+/* Detail page back link, prototype line 293. */
+.proto-back-link:hover {
+  color: #1f5fbf;
+}
+
+/* Admin rail, prototype lines 677 and 684. The nav hover is a translucent
+   white so it reads the same over the dark rail whether or not the item is
+   the current one. */
+.proto-admin-nav:hover {
+  background: rgb(255 255 255 / 0.12);
+}
+
+.proto-admin-footer-link:hover {
+  color: #fff;
+}
+
+/* Row actions in the admin tables, prototype lines 834-835. */
+.proto-admin-action:hover {
+  text-decoration: underline;
+}
+
+/* Directory card, prototype line 253. */
+.proto-card:hover {
+  border-color: #1f5fbf;
+  box-shadow: 0 6px 20px rgb(0 60 100 / 0.1);
+}
+
+/* The prototype animates each card in with fadeUp. Honour a reduced-motion
+   request by showing them already settled rather than sliding. */
+@media (prefers-reduced-motion: reduce) {
+  .proto-card {
+    animation: none !important;
+  }
+}
+
+
+/* Directory pager. The current page is a solid primary and needs no hover. */
+.proto-page-link:hover {
+  border-color: #1f5fbf;
+  color: #1f5fbf;
+}
+
+/*
+ * Admin shell.
+ *
+ * Wide: the prototype's fixed 232px rail beside the content, the rail sticky
+ * for the viewport's height so the screen list stays reachable down a long
+ * table.
+ *
+ * Narrow: one column, and the rail stops being sticky and full-height. Kept
+ * inline, a 232px column and a 100vh rail persisted onto a phone -- a third of
+ * the screen spent on navigation, and a 100vh rail pinning the viewport before
+ * a single row of content appeared. 900px is where the rail plus a readable
+ * table stop fitting side by side, not a device width.
+ */
+.admin-shell {
+  display: grid;
+  grid-template-columns: 232px 1fr;
+}
+
+.admin-rail {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.admin-content {
+  padding: 30px 34px 60px 34px;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-rail {
+    position: static;
+    height: auto;
+  }
+
+  .admin-content {
+    padding: 22px 18px 48px 18px;
+  }
+}
+
+/*
+ * Storefront browse rail.
+ *
+ * Wide: a fixed 232px column that sticks below the sticky header, so the
+ * category list stays reachable while the resource column scrolls.
+ *
+ * Narrow: full width, in flow, not sticky. Left as an inline sticky 232px
+ * column it kept those properties on a phone -- so the rail floated over the
+ * resource cards as the page scrolled past it, which is the overlap the
+ * client reported. 900px is where a 232px rail plus a readable card column
+ * stop fitting side by side.
+ */
+.proto-browse-rail {
+  flex: 0 0 232px;
+  min-width: 232px;
+  position: sticky;
+  top: 80px;
+}
+
+@media (max-width: 900px) {
+  .proto-browse-rail {
+    flex: 1 1 100%;
+    min-width: 0;
+    position: static;
+  }
+}
+
+/*
+ * Stretched link on a recently-added card: the anchor covers the card, so the
+ * banner, pills and deadline all open the resource. The card is the
+ * positioning context; everything that must stay clickable in its own right
+ * would need a z-index above this, and on these cards nothing does.
+ */
+.proto-rail-card .proto-rail-open::after {
+  content: '';
+  position: absolute;
+  inset: 0;
 }

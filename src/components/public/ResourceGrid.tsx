@@ -3,6 +3,29 @@ import ResourceCard from './ResourceCard';
 import type { PublicResource } from '@/lib/public/types';
 
 /**
+ * The directory's outer measure, from the prototype's directory screen
+ * (docs/prototype/prototype.html line 177): 1180px, not the 1280px the
+ * storefront above it uses. Exported because the server-rendered fallback and
+ * the hydrated client directory must be identical down to the padding -- they
+ * swap places on hydration, and any difference shows up as the page jumping.
+ * One definition is what makes that impossible rather than merely unlikely.
+ */
+export const DIRECTORY_SECTION = {
+  maxWidth: 1180,
+  margin: '0 auto',
+  padding: '44px 32px 80px 32px',
+} as const;
+
+/** The directory's h1, prototype line 180. */
+export const DIRECTORY_HEADING = {
+  margin: 0,
+  fontSize: 32,
+  fontWeight: 800,
+  letterSpacing: '-0.02em',
+  color: '#1A2332',
+} as const;
+
+/**
  * The card grid and its two data-driven empty states. Shared by the
  * server-rendered fallback (always unfiltered, so `resources` and `allCount`
  * are the same length) and the client directory (filtered, so they can
@@ -12,6 +35,18 @@ import type { PublicResource } from '@/lib/public/types';
  * Deliberately has no `'use client'` directive and no hooks: it is plain
  * presentation over props, so it is equally valid to render from a Server
  * Component and from a Client Component.
+ *
+ * The grid is `auto-fill` over a 290px minimum rather than the prototype's
+ * fixed three columns. At the directory's 1180px measure that resolves to the
+ * same three, and it is what lets the grid reflow to two and then one instead
+ * of forcing a horizontal scrollbar on a narrow screen -- which the fixed
+ * version does, and which PRD 5.8 ("fully mobile-responsive at every
+ * breakpoint") rules out.
+ *
+ * The empty states take the prototype's dashed panel (reference lines
+ * 281-287) but not its "Clear all filters" button: the removable chips and
+ * the Clear filters control already sit directly above this, so a third route
+ * to the same action would be noise.
  */
 export default function ResourceGrid({
   resources,
@@ -25,25 +60,48 @@ export default function ResourceGrid({
   // than saying nothing -- so "nothing live at all" and "nothing after
   // filtering" stay two different messages, never collapsed into one.
   if (allCount === 0) {
-    return <p className="mt-10 text-muted">{t('directory.emptyAll')}</p>;
+    return (
+      <div style={EMPTY_PANEL}>
+        <div style={{ fontSize: 16, fontWeight: 800 }}>{t('directory.emptyAll')}</div>
+      </div>
+    );
   }
 
   if (resources.length === 0) {
     return (
-      <div className="mt-10 flex flex-col items-start gap-3">
-        <p className="text-muted">{t('directory.emptyFiltered')}</p>
-        <p className="text-sm text-muted-light">{t('directory.emptyFilteredAction')}</p>
+      <div style={EMPTY_PANEL}>
+        <div style={{ fontSize: 16, fontWeight: 800 }}>{t('directory.emptyFiltered')}</div>
+        <div style={{ fontSize: 13.5, color: '#5B6B8C', marginTop: 6 }}>
+          {t('directory.emptyFilteredAction')}
+        </div>
       </div>
     );
   }
 
   return (
-    <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <ul
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))',
+        gap: 20,
+        marginTop: 14,
+        listStyle: 'none',
+        padding: 0,
+      }}
+    >
       {resources.map((resource) => (
-        <li key={resource.id} className="flex">
+        <li key={resource.id} style={{ display: 'flex' }}>
           <ResourceCard resource={resource} />
         </li>
       ))}
     </ul>
   );
 }
+
+const EMPTY_PANEL = {
+  marginTop: 30,
+  border: '1px dashed #C9D3E8',
+  borderRadius: 14,
+  padding: 44,
+  textAlign: 'center',
+} as const;

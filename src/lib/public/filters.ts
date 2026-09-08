@@ -14,7 +14,12 @@ export interface FilterCriteria {
   stage: string | null;
   query: string;
   sort: SortMode;
+  /** 1-based. Page state lives in the URL like every other facet. */
+  page: number;
 }
+
+/** Cards per page: four rows of the directory's three-column grid. */
+export const PAGE_SIZE = 12;
 
 export const EMPTY_CRITERIA: FilterCriteria = {
   need: null,
@@ -23,6 +28,7 @@ export const EMPTY_CRITERIA: FilterCriteria = {
   stage: null,
   query: '',
   sort: DEFAULT_SORT,
+  page: 1,
 };
 
 /**
@@ -59,7 +65,33 @@ export function parseFilters(params: ReadableParams): FilterCriteria {
     stage: oneOf(params.get('stage'), STAGES),
     query: (params.get('q') ?? '').trim(),
     sort: oneOf<SortMode>(params.get('sort'), SORT_MODES) ?? DEFAULT_SORT,
+    page: pageFrom(params.get('page')),
   };
+}
+
+/**
+ * A page number from the URL, or 1.
+ *
+ * Only plain digits count. Zero, negatives, decimals, exponent notation and
+ * outright nonsense all become 1, because every one of them arrives the same
+ * way -- a hand-edited link or a stale bookmark -- and would otherwise slice an
+ * empty window and render a directory with nothing in it and nothing
+ * explaining why.
+ *
+ * The digit test rather than `Number()`: `Number('1e3')` is 1000, a perfectly
+ * valid integer that no visitor ever typed, and `parseInt` reads both `1.5`
+ * and `1e3` as 1, which is a different wrong answer. A page parameter is
+ * either a run of digits or it is not a page parameter.
+ *
+ * `Number.MAX_SAFE_INTEGER` bounds it so a very long digit string cannot
+ * become `Infinity`; `paginate` then clamps whatever survives to a page that
+ * exists.
+ */
+function pageFrom(raw: string | null): number {
+  if (raw === null || !/^\d+$/.test(raw)) return 1;
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value) || value < 1) return 1;
+  return value;
 }
 
 /**
@@ -86,7 +118,112 @@ export function toSearchParams(
   set('stage', criteria.stage);
   set('q', criteria.query.trim());
   set('sort', criteria.sort === DEFAULT_SORT ? null : criteria.sort);
+  // Page 1 is the default, so it is left out: a first-page link should be the
+  // bare link, not `?page=1`, or every shared URL carries a parameter that
+  // means nothing and survives every later copy of it.
+  set('page', criteria.page > 1 ? String(criteria.page) : null);
   return out;
+}
+
+/**
+ * Return `next`, on the first page if anything other than the page changed.
+ *
+ * The trap: narrow a sixty-row directory while reading page five, and without
+ * this the visitor lands on page five of a two-page result -- an empty grid
+ * that reads as "no matches" for a filter that matched plenty. Paging itself
+ * is not a filter change, so moving between pages is left alone; resetting
+ * there would pin the visitor to page one and make the control inert.
+ *
+ * A pure function rather than a rule inside the directory component, so both
+ * the behaviour and its exception are testable without rendering anything.
+ */
+export function resetPageOnFilterChange(
+  next: FilterCriteria,
+  previous: FilterCriteria,
+): FilterCriteria {
+  const changed =
+    next.need !== previous.need ||
+    next.sector !== previous.sector ||
+    next.country !== previous.country ||
+    next.stage !== previous.stage ||
+    next.query !== previous.query ||
+    next.sort !== previous.sort;
+  return changed ? { ...next, page: 1 } : next;
+}
+
+export interface PaginatedRows<T> {
+  rows: readonly T[];
+  /** The page actually shown, which may be lower than the one requested. */
+  page: number;
+  pageCount: number;
+}
+
+/**
+ * One page of rows, with the page clamped to what exists.
+ *
+ * A page past the end returns the first page rather than an empty window: it
+ * is reachable from a shared link whose result set has since shrunk, and an
+ * empty grid there is indistinguishable from "nothing matched".
+ *
+ * `pageCount` is never 0 -- an empty directory is one empty page, so "page 1
+ * of 1" is what renders, and every range check downstream stays honest.
+ *
+ * Exported and used by both directory renderers, so the server-rendered
+ * fallback and the hydrated client cannot slice differently and shift the page
+ * under the reader on hydration.
+ */
+export function paginate<T>(
+  rows: readonly T[],
+  page: number,
+  size: number = PAGE_SIZE,
+): PaginatedRows<T> {
+  const pageCount = Math.max(1, Math.ceil(rows.length / size));
+  const safePage = Math.min(Math.max(1, page), pageCount);
+  const start = (safePage - 1) * size;
+  return { rows: rows.slice(start, start + size), page: safePage, pageCount };
+}
+
+/**
+ * The URL a filter selection navigates to.
+ *
+ * The directory is a band on the home page, not a route, so every filtered
+ * view is `/` plus a query string plus the `#directory` fragment. Both
+ * consumers -- `ResourceDirectoryClient`'s own controls and the browse
+ * menu's links -- go through here, so a link in the sidebar and a chip in
+ * the directory cannot serialise the same selection two different ways.
+ *
+ * The empty query string is dropped rather than serialised as `/?`, which a
+ * visitor would otherwise copy out of the address bar and share.
+ */
+export function directoryHref(
+  criteria: FilterCriteria,
+  base?: URLSearchParams,
+): string {
+  const query = toSearchParams(criteria, base).toString();
+  return query === '' ? '/#directory' : `/?${query}#directory`;
+}
+
+/**
+ * The same URL as `directoryHref`, without the `#directory` fragment.
+ *
+ * For the browse menu's category rows. Opening a category is a request to see
+ * what is inside it, and the sub-categories appear in the menu itself -- but
+ * the fragment scrolled the viewport straight past them to the results, so
+ * the sub-categories a click had just revealed were never in view. The
+ * filtering still happens; only the jump is dropped.
+ *
+ * The sub-category rows keep the fragment: choosing one is a request for the
+ * matching resources, and there is nothing further to reveal in the menu.
+ *
+ * Built from the same `toSearchParams`, so a category row and a chip
+ * expressing the same selection still serialise identically.
+ */
+export function browseHref(
+  criteria: FilterCriteria,
+  base?: URLSearchParams,
+): string {
+  const query = toSearchParams(criteria, base).toString();
+  return query === '' ? '/' : `/?${query}`;
 }
 
 /**

@@ -12,6 +12,7 @@ import {
 } from '@/lib/admin/resource-view';
 import { NEED_KEYS } from '@/lib/reference';
 import ResourceTable from '@/components/admin/ResourceTable';
+import { ADMIN_H1, ADMIN_SUB, ADMIN_PRIMARY, ADMIN_FIELD } from '@/components/admin/chrome';
 import { t } from '@/lib/i18n';
 
 /** A tab link keeps the current search, status and need — switching tabs narrows the deadline view, not the filters. */
@@ -41,60 +42,86 @@ export default async function AdminResourcesPage({
   const userCanWrite = canWrite(user.role);
 
   return (
-    <main data-route="/admin/resources" className="flex flex-col gap-4">
-      <div className="flex items-start justify-between gap-4">
+    <main data-route="/admin/resources">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 16,
+          flexWrap: 'wrap',
+        }}
+      >
         <div>
-          <h1 className="text-xl font-semibold text-navy">{t('admin.resources.heading')}</h1>
-          <p className="text-sm text-muted">{t('admin.resources.publicNote')}</p>
+          <h1 style={ADMIN_H1}>{t('admin.resources.heading')}</h1>
+          <div style={ADMIN_SUB}>{t('admin.resources.publicNote')}</div>
         </div>
+        {/* CLAUDE.md: a viewer sees no write affordance at all, not a disabled
+            one — so this is absent rather than greyed out. */}
         {userCanWrite ? (
           <Link
             href="/admin/resources/new"
-            className="rounded bg-primary px-3 py-1.5 text-sm text-surface"
+            className="proto-primary-button"
+            style={{ ...ADMIN_PRIMARY, padding: '11px 20px', fontSize: 13.5 }}
           >
             {t('admin.resources.addNew')}
           </Link>
         ) : null}
       </div>
 
-      <nav className="flex gap-4 border-b border-hairline" aria-label={t('admin.resources.heading')}>
-        {TABS.map((tab) => (
-          <Link
-            key={tab}
-            href={tabHref(query, tab)}
-            className={
-              query.tab === tab
-                ? 'border-b-2 border-primary px-1 pb-2 text-sm font-medium text-navy'
-                : 'border-b-2 border-transparent px-1 pb-2 text-sm text-muted'
-            }
-          >
-            {t(`admin.resources.tab.${tab}`)}
-          </Link>
-        ))}
+      {/* The prototype's view switcher is a row of pills rather than underlined
+          tabs (reference line 781). These stay links, not buttons: each view is
+          a distinct URL, which is what makes one shareable and the back button
+          work. */}
+      <nav
+        aria-label={t('admin.resources.heading')}
+        style={{ marginTop: 18, display: 'flex', gap: 8, flexWrap: 'wrap' }}
+      >
+        {TABS.map((tab) => {
+          const on = query.tab === tab;
+          return (
+            <Link
+              key={tab}
+              href={tabHref(query, tab)}
+              aria-current={on ? 'page' : undefined}
+              style={{
+                border: `1px solid ${on ? '#1F5FBF' : '#C9D3E8'}`,
+                background: on ? '#EEF2FB' : '#fff',
+                color: on ? '#1F5FBF' : '#42506E',
+                borderRadius: 99,
+                padding: '7px 16px',
+                fontSize: 12.5,
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {t(`admin.resources.tab.${tab}`)}
+            </Link>
+          );
+        })}
       </nav>
 
+      {/* A plain GET form, deliberately: the filters live in the URL, so a
+          filtered view can be shared and the back button behaves. */}
       <form
         method="get"
         action="/admin/resources"
-        className="flex flex-wrap items-end gap-3 rounded border border-hairline p-3"
+        style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}
       >
         <input type="hidden" name="tab" value={query.tab} />
-        <label className="flex flex-col gap-1 text-xs text-muted">
-          {t('admin.resources.search')}
+        <label style={{ flex: 1, minWidth: 220, display: 'flex' }}>
+          <span className="sr-only">{t('admin.resources.search')}</span>
           <input
             type="text"
             name="q"
             defaultValue={query.search}
-            className="rounded border border-hairline px-2 py-1 text-sm text-navy"
+            placeholder={t('admin.resources.search')}
+            style={{ ...ADMIN_FIELD, borderRadius: 9, padding: '10px 14px' }}
           />
         </label>
-        <label className="flex flex-col gap-1 text-xs text-muted">
-          {t('admin.resources.filterStatus')}
-          <select
-            name="status"
-            defaultValue={query.status}
-            className="rounded border border-hairline px-2 py-1 text-sm text-navy"
-          >
+        <label>
+          <span className="sr-only">{t('admin.resources.filterStatus')}</span>
+          <select name="status" defaultValue={query.status} style={FILTER_SELECT}>
             <option value="all">{t('admin.resources.filterAll')}</option>
             {STATUSES.map((status) => (
               <option key={status} value={status}>
@@ -103,13 +130,9 @@ export default async function AdminResourcesPage({
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-xs text-muted">
-          {t('admin.resources.filterNeed')}
-          <select
-            name="need"
-            defaultValue={query.need}
-            className="rounded border border-hairline px-2 py-1 text-sm text-navy"
-          >
+        <label>
+          <span className="sr-only">{t('admin.resources.filterNeed')}</span>
+          <select name="need" defaultValue={query.need} style={FILTER_SELECT}>
             <option value="all">{t('admin.resources.filterAll')}</option>
             {NEED_KEYS.map((need) => (
               <option key={need} value={need}>
@@ -118,7 +141,7 @@ export default async function AdminResourcesPage({
             ))}
           </select>
         </label>
-        <button type="submit" className="rounded bg-primary px-3 py-1.5 text-sm text-surface">
+        <button type="submit" className="proto-primary-button" style={ADMIN_PRIMARY}>
           {t('admin.resources.applyFilters')}
         </button>
       </form>
@@ -127,3 +150,14 @@ export default async function AdminResourcesPage({
     </main>
   );
 }
+
+/** Prototype line 786: the two filter selects beside the search field. */
+const FILTER_SELECT = {
+  padding: '10px 12px',
+  borderRadius: 9,
+  border: '1px solid #C9D3E8',
+  fontSize: 13.5,
+  background: '#fff',
+  color: '#1A2332',
+  cursor: 'pointer',
+} as const;

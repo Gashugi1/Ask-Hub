@@ -3,12 +3,15 @@
 import { useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { t } from '@/lib/i18n';
-import ResourceGrid from './ResourceGrid';
+import ResourceGrid, { DIRECTORY_SECTION, DIRECTORY_HEADING } from './ResourceGrid';
+import Pagination from './Pagination';
 import FilterControls from './FilterControls';
 import ExportButton from './ExportButton';
 import {
   parseFilters,
-  toSearchParams,
+  paginate,
+  resetPageOnFilterChange,
+  directoryHref,
   filterResources,
   sortResources,
   type FilterCriteria,
@@ -70,24 +73,42 @@ export default function ResourceDirectoryClient({
     ],
   );
 
+  const shown = paginate(visible, criteria.page);
+
   function apply(next: FilterCriteria) {
-    const params = toSearchParams(next, new URLSearchParams(searchParams.toString()));
-    const query = params.toString();
-    router.replace(query === '' ? '/#directory' : `/?${query}#directory`, { scroll: false });
+    // Changing a facet returns to the first page. Narrowing the results while
+    // reading page five would otherwise land on page five of a two-page
+    // result: an empty grid that reads as "no matches" for a filter that
+    // matched. The rule lives in filters.ts so it is testable without
+    // rendering, and it deliberately leaves a page change alone.
+    const reset = resetPageOnFilterChange(next, criteria);
+    // Same serialiser as the browse menu's links, so a chip and a sidebar
+    // entry expressing the same selection produce the same URL.
+    const href = directoryHref(reset, new URLSearchParams(searchParams.toString()));
+    router.replace(href, { scroll: false });
   }
 
   return (
-    <section id="directory" className="mx-auto max-w-6xl px-4 py-12">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <h2 className="text-h2 font-extrabold text-navy">{t('directory.title')}</h2>
+    <section id="directory" style={DIRECTORY_SECTION}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          gap: 16,
+          flexWrap: 'wrap',
+        }}
+      >
+        <h2 style={DIRECTORY_HEADING}>{t('directory.title')}</h2>
         <ExportButton rows={visible} />
       </div>
 
-      <div className="mt-6">
+      <div style={{ marginTop: 24 }}>
         <FilterControls criteria={criteria} resultCount={visible.length} onChange={apply} />
       </div>
 
-      <ResourceGrid resources={visible} allCount={resources.length} />
+      <ResourceGrid resources={shown.rows} allCount={resources.length} />
+      <Pagination criteria={criteria} page={shown.page} pageCount={shown.pageCount} />
     </section>
   );
 }

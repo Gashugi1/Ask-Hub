@@ -1,6 +1,6 @@
 import { t } from '@/lib/i18n';
-import ResourceGrid from './ResourceGrid';
-import { DEFAULT_SORT, sortResources } from '@/lib/public/filters';
+import ResourceGrid, { DIRECTORY_SECTION, DIRECTORY_HEADING } from './ResourceGrid';
+import { DEFAULT_SORT, paginate, sortResources } from '@/lib/public/filters';
 import type { PublicResource } from '@/lib/public/types';
 
 /**
@@ -29,18 +29,33 @@ export default function ResourceDirectoryStatic({
   const sorted = sortResources(resources, DEFAULT_SORT);
 
   return (
-    <section id="directory" className="mx-auto max-w-6xl px-4 py-12">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <h2 className="text-h2 font-extrabold text-navy">{t('directory.title')}</h2>
+    <section id="directory" style={DIRECTORY_SECTION}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          gap: 16,
+          flexWrap: 'wrap',
+        }}
+      >
+        <h2 style={DIRECTORY_HEADING}>{t('directory.title')}</h2>
       </div>
 
-      <p className="mt-6 text-sm text-muted">
+      <p style={{ marginTop: 22, fontSize: 13.5, color: '#5B6B8C', fontWeight: 600 }}>
         {sorted.length === 1
           ? t('directory.countOne')
           : t('directory.count', { count: sorted.length })}
+        {' · '}
+        {t('site.curationStatement')}
       </p>
 
-      <ResourceGrid resources={sorted} allCount={sorted.length} />
+      {/* The first page, sliced by the same function the hydrated directory
+          uses, so the two cannot disagree about what a page holds. This
+          renderer reads no search params by design, so it always shows page
+          one; the client swaps in the requested page on hydration, exactly as
+          it already does for a filtered URL. */}
+      <ResourceGrid resources={paginate(sorted, 1).rows} allCount={sorted.length} />
     </section>
   );
 }

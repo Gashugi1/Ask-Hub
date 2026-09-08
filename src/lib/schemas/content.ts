@@ -1,42 +1,42 @@
 import { z } from 'zod';
 
 /**
- * The five keys `public.site_content` actually holds, all `locale = 'en'` —
- * confirmed against the database (`select key from public.site_content order
- * by key`), not against PRD §4.12's seven names.
+ * The keys `public.site_content` holds, all `locale = 'en'` — confirmed
+ * against the database, not against PRD §4.12's names.
  *
- * PRD §4.12 names `welcome_band_heading`, `welcome_band_body`,
- * `welcome_band_cta_label`, `about_intro`, `about_alignment`, `privacy_copy`
- * and `terms_copy`. None of those were ever implemented:
- * `scripts/seed-data.ts` says in its own header that its key names are the
- * seed's own invention, because the prototype rendered
- * `settings.welcome.title` directly and had no key/locale structure to
- * inherit. SP2a's public readers read these five names, so renaming one
- * here is not in SP3's remit (design spec §5) and would break the public
- * render.
+ * PRD §4.12 named `welcome_band_heading`, `about_intro`, `privacy_copy`,
+ * `terms_copy` and others that were never implemented: `scripts/seed-data.ts`
+ * invented its own key names because the prototype rendered
+ * `settings.welcome.title` directly with no key/locale structure to inherit,
+ * and SP2a's public readers read the invented names. This list follows the
+ * seed and the readers, not the PRD — a `privacy_copy` write would match zero
+ * rows and appear to succeed while changing nothing (the exact failure the
+ * `contentEntry` allow-list exists to prevent).
  *
- * `privacy_copy` and `terms_copy` are deliberately absent. `/privacy` and
- * `/terms` do not exist on this branch, `getSiteContent` has no consumer,
- * and `src/locales/en.json` already carries `privacy.pending` /
- * `terms.pending` — the public side intends to render those two pages from
- * locale copy, not from `site_content`. Creating the keys here would add
- * editable rows nothing reads, which is exactly the "save succeeds and
- * changes nothing" failure this allow-list exists to prevent. That naming
- * question belongs to whichever sub-project builds those two public pages,
- * not to this admin screen.
+ * `privacy_body` and `terms_body` back the public /privacy and /terms pages
+ * (`src/app/(public)/privacy|terms/page.tsx`), which render `site_content.<key>`
+ * and fall back to the `*.pending` locale copy only when the row is absent.
+ * `scripts/seed-data.ts` seeds both with that pending copy so a row exists for
+ * the Site Content screen to UPDATE — without a seeded row `saveContentEntry`'s
+ * `assertRowAffected` correctly rejects the edit as a zero-row write. Legal copy
+ * is therefore editor-maintained with no deploy; the deployment checklist gates
+ * launch on the reviewed text being stored under these two keys.
  */
 export const CONTENT_KEYS = [
   'welcome_title',
   // Added with the welcome band's dark-band restyle: the band renders a
-  // tagline between the title and the body, and every string in it is
-  // editor-supplied at runtime rather than hardcoded, so the key has to be
-  // writable from the Site Content screen or the line could never be
-  // corrected without a deploy. `scripts/seed-data.ts` seeds it.
+  // tagline between the title and the body, editor-supplied at runtime rather
+  // than hardcoded. `scripts/seed-data.ts` seeds it.
   'welcome_tagline',
   'welcome_body',
   'welcome_cta',
   'identity_lead',
   'identity_align',
+  // Public /privacy and /terms body copy, editor-maintained via the Site
+  // Content screen; seeded with the `*.pending` copy so the row exists to
+  // UPDATE. See the docblock above.
+  'privacy_body',
+  'terms_body',
 ] as const;
 
 export type ContentKey = (typeof CONTENT_KEYS)[number];
