@@ -114,7 +114,7 @@ const SOCIAL_LINKS = [
     src: '/logos/social-linkedin.png',
     width: 50,
     height: 50,
-    displaySize: 60,
+    displaySize: 40,
   },
   {
     href: 'https://x.com/AIHub4SD',
@@ -122,7 +122,12 @@ const SOCIAL_LINKS = [
     src: '/logos/social-x.png',
     width: 48,
     height: 48,
-    displaySize: 60,
+    // The X glyph's diagonal strokes reach into all four corners of its
+    // canvas, unlike LinkedIn's rounded-square tile or YouTube's rounded
+    // rect, both of which keep visible margin on every side. At an equal
+    // pixel box the X reads larger regardless of which X asset is used, so
+    // it renders at a smaller box than the other two to match apparent size.
+    displaySize: 32,
   },
   {
     href: 'https://www.youtube.com/@AIHubforSustainableDevelopment',
@@ -130,7 +135,7 @@ const SOCIAL_LINKS = [
     src: '/logos/social-youtube.png',
     width: 50,
     height: 50,
-    displaySize: 60,
+    displaySize: 40,
   },
 ] as const;
 
