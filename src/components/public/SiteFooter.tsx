@@ -26,7 +26,9 @@ import { t } from '@/lib/i18n';
  * The Contact column links to /contact and also lists the mailbox as a
  * `mailto:` link, reading from `site.contactEmail` -- the same key
  * /privacy and /terms use, so there is still exactly one mailbox in the
- * product, as CLAUDE.md requires.
+ * product, as CLAUDE.md requires. Below that sit the AI Hub's own social
+ * links (LinkedIn, X, YouTube) as white glyph-only icons, matching
+ * PARTNER_LINKS' white-on-dark treatment.
  *
  * Hover states arrive as `style-hover` attributes, which are not real HTML.
  * This is a server component, so they land as global classes in globals.css.
@@ -97,6 +99,38 @@ const PARTNER_LINKS = [
     src: '/logos/undp-blue.png',
     width: 77,
     height: 156,
+  },
+] as const;
+
+/**
+ * The AI Hub's own social accounts, in the Contact column. White glyphs on
+ * transparent background, like PARTNER_LINKS above, so they read on the same
+ * dark ground with no tile behind them.
+ */
+const SOCIAL_LINKS = [
+  {
+    href: 'https://www.linkedin.com/company/ai-hub-for-sustainable-development/',
+    key: 'footer.socialLinkedin',
+    src: '/logos/social-linkedin.png',
+    width: 50,
+    height: 50,
+    displaySize: 60,
+  },
+  {
+    href: 'https://x.com/AIHub4SD',
+    key: 'footer.socialX',
+    src: '/logos/social-x.png',
+    width: 48,
+    height: 48,
+    displaySize: 60,
+  },
+  {
+    href: 'https://www.youtube.com/@AIHubforSustainableDevelopment',
+    key: 'footer.socialYoutube',
+    src: '/logos/social-youtube.png',
+    width: 50,
+    height: 50,
+    displaySize: 60,
   },
 ] as const;
 
@@ -202,7 +236,7 @@ export default function SiteFooter() {
 
 
         <div style={{ flex: 1, minWidth: 160 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             <Link href="/contact" className="proto-footer-link" style={COLUMN_LINK}>
               {t('footer.contactHub')}
             </Link>
@@ -213,6 +247,34 @@ export default function SiteFooter() {
             >
               {t('site.contactEmail')}
             </a>
+          </div>
+
+          <div style={{ marginTop: 14, display: 'flex', gap: 14, alignItems: 'center' }}>
+            {SOCIAL_LINKS.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                target="_blank"
+                rel="noopener"
+                className="proto-footer-badge"
+                style={BADGE}
+              >
+                <Image
+                  src={link.src}
+                  alt={t(link.key)}
+                  width={link.width}
+                  height={link.height}
+                  style={{
+                    maxHeight: link.displaySize,
+                    maxWidth: link.displaySize,
+                    width: 'auto',
+                    height: 'auto',
+                    objectFit: 'contain',
+                    display: 'block',
+                  }}
+                />
+              </a>
+            ))}
           </div>
 
         </div>
