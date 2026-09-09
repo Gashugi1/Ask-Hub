@@ -411,7 +411,7 @@ Supabase Auth covers only authentication email (invite, password reset). A trans
 5. CINECA resource titled "CINECA Leonardo". No "Mattei Plan" in the title.
 6. No "Global programmes" option in the country filter.
 7. Cyber4Africa partners are Cyber 4.0 and Cisco.
-8. **No per-resource "Verified" badge.** Quality assurance is stated once globally: "Every resource is curated and verified by the AI Hub team."
+8. **No per-resource "Verified" badge.** Quality assurance is stated once globally: "Every resource is curated by the AI Hub team."
 9. No claims about "UNDP or MIMIT data-protection standards". Privacy copy stays minimal and factual pending legal review.
 10. Partner and institution logos link to their official sites. Footer logo order matches the official AI Hub website.
 

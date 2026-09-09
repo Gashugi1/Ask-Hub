@@ -903,9 +903,10 @@ export const SITE_CONTENT: readonly SeedSiteContent[] = [
   {
     key: 'identity_lead',
     locale: 'en',
-    // Unchanged: already matches the canonical curation sentence verbatim.
+    // Matches the canonical curation sentence verbatim (site.curationStatement,
+    // src/locales/en.json) -- "and verified" dropped from both on 2026-09-09.
     value:
-      'AskHub is the open directory of the AI Hub for Sustainable Development — co-led by MIMIT and UNDP. Every resource is curated and verified by the AI Hub team.',
+      'AskHub is the open directory of the AI Hub for Sustainable Development — co-led by MIMIT and UNDP. Every resource is curated by the AI Hub team.',
   },
   {
     key: 'identity_align',
