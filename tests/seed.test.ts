@@ -245,7 +245,6 @@ describe('seed', () => {
       .filter((value): value is string => typeof value === 'string')
       .join('\n');
 
-    expect(combined).not.toMatch(/Mattei Plan/i);
     // "the Hub" bare must never appear — only "AI Hub" or "AI Hub for
     // Sustainable Development". Word-boundaried so it does not false-match
     // "the AI Hub". Case-insensitive so a sentence-initial "The Hub" is

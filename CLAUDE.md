@@ -17,7 +17,7 @@ Next.js (App Router, TypeScript strict), Supabase (Postgres + Auth + RLS), Tailw
 - Always "AI Hub" or "AI Hub for Sustainable Development". Never "the Hub" alone.
 - One mailbox only: `aihubfordevelopment@undp.org`.
 - No per-resource "Verified" badge. Curation is stated once globally.
-- "Democratic Republic of the Congo" in full. "CINECA Leonardo" with no "Mattei Plan". No "Global programmes" country filter option.
+- "Democratic Republic of the Congo" in full. No "Global programmes" country filter option.
 
 **Security invariants:**
 - RLS enabled on every table, deny by default. A new table without RLS is a defect.

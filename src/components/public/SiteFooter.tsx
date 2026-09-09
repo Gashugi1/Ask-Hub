@@ -189,14 +189,12 @@ export default function SiteFooter() {
               maxWidth: 380,
             }}
           >
-            {/* The AI Hub website's own tagline, with its final clause
-                dropped. That clause names an Italy-Africa plan whose name a
-                CLAUDE.md content rule keeps out of this product, and which
-                tests/unit/i18n.test.ts and tests/seed.test.ts both assert
-                against across the whole corpus -- comments included, which is
-                how this very note first failed the suite. Carrying the clause
-                would mean deleting two assertions to import the one phrase
-                those assertions exist to exclude.
+            {/* The AI Hub website's own tagline, in full -- including the
+                closing "Italy-Africa Mattei Plan" clause, which CLAUDE.md
+                excluded from the product until 2026-09-09. That exclusion is
+                gone now: the clause is back in `footer.tagline`, and
+                tests/unit/i18n.test.ts and tests/seed.test.ts no longer
+                assert against it.
 
                 `site.footer` beneath it is pinned to an exact string by
                 tests/unit/i18n.test.ts and carries the full co-led

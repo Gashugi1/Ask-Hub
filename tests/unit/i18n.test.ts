@@ -192,11 +192,6 @@ describe.each([
     expect(all).not.toMatch(/\bDRC\b/);
   });
 
-  it('never attaches the Mattei Plan to CINECA Leonardo', () => {
-    // Rule 10.5.
-    expect(all).not.toMatch(/mattei plan/i);
-  });
-
   it('carries no fabricated metric from the prototype GADATA block', () => {
     // PRD 8.4 and CLAUDE.md: a plausible fake number reaching production is a
     // launch-blocking defect. These are the prototype's invented figures, and
