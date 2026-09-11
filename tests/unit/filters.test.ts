@@ -236,6 +236,31 @@ describe('filterResources', () => {
     expect(filterResources(rows, criteria({ query: 'CLOUD' })).map((r) => r.id)).toEqual(['a']);
   });
 
+  it('requires every word, and lets them fall in different fields', () => {
+    // The text term reaching this point is the leftover of `parseQuery` -- a
+    // bag of words it could not turn into a facet -- so matching is per word,
+    // not a phrase lookup. 'Google' is the partner and 'grant' the name, and
+    // no single field holds both.
+    expect(filterResources(rows, criteria({ query: 'google grant' })).map((r) => r.id)).toEqual([
+      'b',
+    ]);
+    expect(filterResources(rows, criteria({ query: 'indaba curriculum' })).map((r) => r.id)).toEqual([
+      'c',
+    ]);
+  });
+
+  it('does not match when only some of the words are there', () => {
+    // 'indaba' is row c's partner and 'grant' is row b's name; neither row
+    // carries both, so an OR would wrongly return two rows here.
+    expect(filterResources(rows, criteria({ query: 'indaba grant' }))).toEqual([]);
+  });
+
+  it('ignores the order the words are typed in', () => {
+    expect(filterResources(rows, criteria({ query: 'grant google' })).map((r) => r.id)).toEqual([
+      'b',
+    ]);
+  });
+
   it('intersects facets rather than unioning them', () => {
     expect(
       filterResources(rows, criteria({ need: 'compute', country: 'Senegal' })),

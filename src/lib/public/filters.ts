@@ -249,12 +249,31 @@ function matchesCountry(row: PublicResource, selected: string | null): boolean {
   return matchesList(row.countriesEligible, selected);
 }
 
+/**
+ * Every word has to appear somewhere, rather than the whole string appearing
+ * intact in one field -- the prototype's `textMatch`.
+ *
+ * The searchable text is the four fields joined, so the words may be spread
+ * across them: "aws compute" matches a resource named "Activate" from partner
+ * "Amazon Web Services" described as compute credits, which a
+ * contiguous-phrase match in a single field could never find. A one-word
+ * query behaves exactly as it did before.
+ *
+ * What reaches here is already the *leftover* of `parseQuery` — the words it
+ * could not turn into a facet — so this is a search over prose, not a second
+ * attempt at classification.
+ */
 function matchesQuery(row: PublicResource, query: string): boolean {
   if (query === '') return true;
-  const needle = query.toLowerCase();
-  return [row.name, row.partnerName, row.description, row.subCategory].some(
-    (field) => field !== null && field.toLowerCase().includes(needle),
-  );
+  const haystack = [row.name, row.partnerName, row.description, row.subCategory]
+    .filter((field): field is string => field !== null)
+    .join(' ')
+    .toLowerCase();
+  return query
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((word) => word !== '')
+    .every((word) => haystack.includes(word));
 }
 
 export function filterResources(

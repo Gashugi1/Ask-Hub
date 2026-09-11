@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { t } from '@/lib/i18n';
+import { directoryHref, parseFilters } from '@/lib/public/filters';
+import { applyParsedQuery } from '@/lib/public/search-parse';
 
 /**
  * The prototype's rounded search control (docs/prototype/prototype.html lines
@@ -15,11 +17,18 @@ import { t } from '@/lib/i18n';
  * one of them was adjusted, and the plan's Task 11 explicitly requires the
  * hero to reuse the header's values rather than re-derive them.
  *
- * Behaviour matches the search that was already here: write `?q=` and jump to
- * the directory, which owns the filtering. There is one implementation of
- * search on the page, not two. `useRouter` is called but `useSearchParams` is
- * not, so this needs no Suspense boundary and the bands around it still
- * prerender.
+ * Behaviour is the directory search's, exactly: the query goes through the
+ * same parser, merges into whatever is already filtered, and lands on the
+ * directory. There is one implementation of search on the page, not two --
+ * this box used to hand-build `?q=` and so quietly dropped every other active
+ * facet, which is the one write path that did not go through `directoryHref`.
+ *
+ * The current params are read from `window.location` inside the submit
+ * handler rather than from `useSearchParams()`, which would make this a
+ * dynamic read and cost the header its prerendering (and need a Suspense
+ * boundary). A handler runs only in the browser, long after that matters. The
+ * pathname guard is what stops a resource page's query string being carried
+ * onto the directory, where it means something else.
  *
  * Hover and focus arrive as `style-hover` / `style-focus` attributes in the
  * prototype, which are not real HTML. This is already a client component, so
@@ -32,8 +41,10 @@ export default function SearchPill({ maxWidth = 430 }: { maxWidth?: number }) {
   const [hovered, setHovered] = useState(false);
 
   function go() {
-    const query = value.trim();
-    router.replace(query === '' ? '/#directory' : `/?q=${encodeURIComponent(query)}#directory`);
+    const params = new URLSearchParams(
+      window.location.pathname === '/' ? window.location.search : '',
+    );
+    router.replace(directoryHref(applyParsedQuery(parseFilters(params), value), params));
   }
 
   return (

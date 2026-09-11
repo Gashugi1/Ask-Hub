@@ -3,42 +3,42 @@
 import { useEffect, useRef, useState } from 'react';
 import { t } from '@/lib/i18n';
 import { COUNTRIES, SECTORS, STAGES, NEED_KEYS } from '@/lib/reference';
-import { DEFAULT_SORT, EMPTY_CRITERIA, type FilterCriteria, type SortMode } from '@/lib/public/filters';
-
-/** Idle typing time before the search box commits `query` to the URL. */
-const SEARCH_DEBOUNCE_MS = 300;
+import {
+  DEFAULT_SORT,
+  EMPTY_CRITERIA,
+  type FilterCriteria,
+  type SortMode,
+} from '@/lib/public/filters';
+import { applyParsedQuery } from '@/lib/public/search-parse';
 
 /**
- * Transcribed from the approved prototype, docs/prototype/prototype.html
- * lines 190-235 and 240-251: a wide search field with a flush primary button,
- * a row of removable chips for whatever is currently filtered, and a #F4F6F9
- * panel holding need, sector and stage as toggle chips with country as a
- * select.
+ * Transcribed from the approved prototype's directory screen: a search pill
+ * with the button inside it, a line of plain-language help beneath, a row of
+ * removable chips for whatever is currently filtered, and one row of four
+ * dropdowns -- need, sector, stage, country.
  *
- * Need, sector and stage became chips because the prototype shows them as
- * chips; country stays a select because eighteen countries do not fit a chip
- * row, which is why the prototype keeps that one a select too.
+ * **Search runs on submit, not on every keystroke.** The prototype searches
+ * only on Enter or the button, and it has to: a query is *parsed* into facets
+ * (see `applyParsedQuery`), and parsing half a sentence would set filters from
+ * words the visitor had not finished typing. Committing per keystroke would
+ * also put a URL replacement behind every letter. The earlier debounce is
+ * gone with it. Nothing is lost without JavaScript, either -- this component
+ * is never rendered without it, because `ResourceDirectoryStatic` is what
+ * serves the no-JS and crawler path and it deliberately renders no controls
+ * at all.
  *
- * Every control writes the whole criteria object back through `onChange`,
- * except the search box: it holds the in-progress text in local state and
- * commits it to the URL debounced. That is a deliberate, spec'd exception
- * (an uncommitted keystroke is not filter state) and not a second copy of
- * committed state -- everything else still round-trips through the URL with
- * no local mirror and no syncing effect, because a second copy of *that* is
- * what makes back-button behaviour and shared links disagree.
+ * **The draft text is the one piece of local state**, and it is deliberately
+ * allowed to diverge from `criteria.query`: after searching "funding in
+ * Kenya" the box still reads that sentence while the committed query is empty
+ * and two facets are set. That divergence is why the draft cannot simply be
+ * bound to `criteria.query` -- and it could not be anyway, because `q` is
+ * trimmed on read and on write in filters.ts, so a trailing space would be
+ * trimmed out of the DOM the instant a URL update committed, deleting it
+ * before the next keystroke could arrive. Multi-word search would be
+ * unusable.
  *
- * The reason the exception exists: `criteria.query` is trimmed on read and
- * on write (see filters.ts), so if the input's value came straight from
- * `criteria.query` on every keystroke, a trailing space would be trimmed out
- * of the DOM the instant a URL update committed -- deleting it before the
- * next keystroke could arrive, and doing so nondeterministically depending on
- * render timing. Multi-word search would be unusable.
- *
- * The prototype's Search button is kept even though the field already
- * commits on its own. It is how the control reads as a search box rather than
- * a text input, and pressing it simply commits immediately instead of waiting
- * out the debounce -- so it is never the only way to search, which would make
- * the field unusable without JavaScript-driven clicks.
+ * Everything else still round-trips through the URL with no local mirror,
+ * which is what keeps the back button and shared links honest.
  */
 export default function FilterControls({
   criteria,
@@ -49,75 +49,42 @@ export default function FilterControls({
   resultCount: number;
   onChange: (next: FilterCriteria) => void;
 }) {
-  const [queryText, setQueryText] = useState(criteria.query);
+  const [draft, setDraft] = useState(criteria.query);
   const [searchFocused, setSearchFocused] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Read inside the debounce callback instead of closing over `criteria`
-  // directly, so a facet changed by a chip while the search box is still
-  // debouncing is not clobbered by a stale snapshot of the other fields.
-  // Updated in an effect, not during render, per the rules of hooks -- a ref
-  // written mid-render is not something React (or this codebase's lint
-  // config) allows.
-  const criteriaRef = useRef(criteria);
+
+  // What this component last sent upstream. Written only in event handlers and
+  // read only in the effect below -- never during render, which is what
+  // `react-hooks/refs` requires and what makes this safe.
+  const sentRef = useRef(criteria.query);
+
+  // Re-seed the box when the committed query changes from somewhere other than
+  // this component: a shared link, the back button, or the text chip's ×. A
+  // render-time comparison against `criteria.query` cannot do this job any
+  // more -- submitting deliberately leaves the two different, so comparing
+  // them would wipe the visitor's own sentence out of the box the moment they
+  // pressed Search.
   useEffect(() => {
-    criteriaRef.current = criteria;
-  });
+    if (criteria.query === sentRef.current) return;
+    sentRef.current = criteria.query;
+    setDraft(criteria.query);
+  }, [criteria.query]);
 
-  // Re-seed local text when the committed query changes from somewhere other
-  // than this input's own debounce -- a shared link, the back button, or
-  // Clear filters. This is "adjusting state when a prop changes" (React's own
-  // recipe for it): compare during render and call setState directly rather
-  // than in an effect, which only bails the render out and re-renders once,
-  // instead of committing the stale value to the screen first.
-  const [syncedQuery, setSyncedQuery] = useState(criteria.query);
-  if (criteria.query !== syncedQuery) {
-    setSyncedQuery(criteria.query);
-    setQueryText(criteria.query);
-  }
-
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, []);
-
-  function handleQueryChange(value: string) {
-    setQueryText(value);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      onChange({ ...criteriaRef.current, query: value });
-    }, SEARCH_DEBOUNCE_MS);
-  }
-
-  function commitQuery() {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    onChange({ ...criteriaRef.current, query: queryText });
-  }
-
-  // Named rather than inlined into the chip below: the chip list is built
-  // during render, and an inline closure reading debounceRef there reads a ref
-  // during render as far as the lint rule can tell.
-  function clearQuery() {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    setQueryText('');
-    onChange({ ...criteriaRef.current, query: '' });
+  function runSearch() {
+    const next = applyParsedQuery(criteria, draft);
+    // `next.query` is the leftover after parsing, not what was typed, so this
+    // is what the effect above has to compare against to recognise its own
+    // commit coming back.
+    sentRef.current = next.query;
+    onChange(next);
   }
 
   function clearAll() {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    setQueryText('');
+    sentRef.current = '';
+    setDraft('');
     // EMPTY_CRITERIA rather than a hand-written literal: a field added to
     // FilterCriteria should reset here by default, not be forgotten until the
     // compiler notices -- which is exactly how `page` arrived.
-    onChange({
-      ...EMPTY_CRITERIA,
-      need: null,
-      sector: null,
-      country: null,
-      stage: null,
-      query: '',
-      sort: DEFAULT_SORT,
-    });
+    onChange({ ...EMPTY_CRITERIA });
   }
 
   const isFiltered =
@@ -129,12 +96,12 @@ export default function FilterControls({
     criteria.sort !== DEFAULT_SORT;
 
   /**
-   * The active facets, as the prototype's removable chip row.
+   * The active facets, as the prototype's removable chip row, in the order the
+   * dropdowns below sit in so the two read as one control rather than two.
    *
    * The committed query gets a chip too. It is filter state like any other,
-   * and without one the only evidence of an active search would be the text
-   * in the box -- which a visitor arriving on a shared link may not connect
-   * to the results being narrower than they expect.
+   * and without one the only evidence of an active search would be the text in
+   * the box -- which after parsing is not the same thing at all.
    */
   const activeChips: { key: string; label: string; clear: () => void }[] = [];
   if (criteria.need) {
@@ -151,13 +118,6 @@ export default function FilterControls({
       clear: () => onChange({ ...criteria, sector: null }),
     });
   }
-  if (criteria.country) {
-    activeChips.push({
-      key: 'country',
-      label: criteria.country,
-      clear: () => onChange({ ...criteria, country: null }),
-    });
-  }
   if (criteria.stage) {
     activeChips.push({
       key: 'stage',
@@ -165,58 +125,88 @@ export default function FilterControls({
       clear: () => onChange({ ...criteria, stage: null }),
     });
   }
+  if (criteria.country) {
+    activeChips.push({
+      key: 'country',
+      label: criteria.country,
+      clear: () => onChange({ ...criteria, country: null }),
+    });
+  }
+  if (criteria.query !== '') {
+    activeChips.push({
+      key: 'query',
+      label: t('filter.textChip', { value: criteria.query }),
+      clear: () => onChange({ ...criteria, query: '' }),
+    });
+  }
 
   return (
     <div>
       <div style={{ display: 'flex', gap: 12 }}>
-        <label style={{ flex: 1, display: 'flex' }}>
-          <span className="sr-only">{t('filter.searchHint')}</span>
+        <form
+          role="search"
+          onSubmit={(event) => {
+            event.preventDefault();
+            runSearch();
+          }}
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            border: `1.5px solid ${searchFocused ? '#1F5FBF' : '#C9D3E8'}`,
+            borderRadius: 12,
+            background: '#fff',
+            padding: '0 6px 0 16px',
+          }}
+        >
+          <span aria-hidden="true" style={{ fontSize: 15, color: '#1F5FBF', flexShrink: 0 }}>
+            ✦
+          </span>
           <input
             type="search"
-            value={queryText}
+            value={draft}
+            aria-label={t('filter.searchHint')}
             placeholder={t('filter.search')}
-            onChange={(event) => handleQueryChange(event.target.value)}
+            onChange={(event) => setDraft(event.target.value)}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault();
-                commitQuery();
-              }
-            }}
             style={{
               flex: 1,
-              padding: '13px 18px',
-              borderRadius: 10,
-              border: `1.5px solid ${searchFocused ? '#1F5FBF' : '#C9D3E8'}`,
+              minWidth: 0,
+              padding: '13px 0',
+              border: 'none',
               fontSize: 15,
               color: '#1A2332',
               outline: 'none',
+              background: 'transparent',
             }}
           />
-        </label>
-        <button
-          type="button"
-          onClick={commitQuery}
-          className="proto-primary-button"
-          style={{
-            background: '#1F5FBF',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 10,
-            padding: '0 26px',
-            fontSize: 14.5,
-            fontWeight: 700,
-            cursor: 'pointer',
-          }}
-        >
-          {t('search.submit')}
-        </button>
+          <button
+            type="submit"
+            className="proto-primary-button"
+            style={{
+              background: '#1F5FBF',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 9,
+              padding: '10px 24px',
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            {t('search.submit')}
+          </button>
+        </form>
       </div>
 
-      {/* Shown whenever anything is filtered, not merely when a facet chip
-          exists: a non-default sort produces no chip, and hiding "Clear
-          filters" in that state would leave no way back to the default view. */}
+      <p style={{ marginTop: 8, fontSize: 11.5, color: '#5B6B8C' }}>{t('filter.smartHint')}</p>
+
+      {/* Shown whenever anything is filtered, not merely when a chip exists: a
+          non-default sort produces no chip, and hiding "Clear all" in that
+          state would leave no way back to the default view. */}
       {isFiltered ? (
         <div
           style={{
@@ -227,26 +217,6 @@ export default function FilterControls({
             alignItems: 'center',
           }}
         >
-          {/* The committed query is a chip too -- it is filter state like any
-              other, and a visitor arriving on a shared link should see why the
-              results are narrower than they expect, not only find the text in
-              the box. Rendered here rather than pushed into `activeChips`
-              because its handler closes over the debounce ref, and a JSX event
-              handler is where React permits that; putting the same function
-              into an array during render is what `react-hooks/refs` forbids. */}
-          {criteria.query !== '' ? (
-            <button
-              type="button"
-              onClick={clearQuery}
-              className="proto-active-chip"
-              style={ACTIVE_CHIP}
-            >
-              {criteria.query}
-              <span aria-hidden="true" style={{ fontWeight: 800, opacity: 0.6 }}>
-                ×
-              </span>
-            </button>
-          ) : null}
           {activeChips.map((chip) => (
             <button
               key={chip.key}
@@ -275,75 +245,95 @@ export default function FilterControls({
               padding: '6px 8px',
             }}
           >
-            {t('filter.clear')}
+            {t('filter.clearAll')}
           </button>
         </div>
       ) : null}
 
       <div
         style={{
-          marginTop: 20,
-          background: '#F4F6F9',
-          border: '1px solid #DDE5EE',
-          borderRadius: 14,
-          padding: '18px 20px',
+          marginTop: 16,
           display: 'flex',
-          flexDirection: 'column',
-          gap: 14,
+          gap: 10,
+          flexWrap: 'wrap',
+          alignItems: 'center',
         }}
       >
-        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center' }}>
-          <ChipGroup
-            label={t('filter.need')}
-            options={NEED_KEYS.map((key) => ({ value: key, label: t(`need.${key}`) }))}
-            selected={criteria.need}
-            onPick={(value) =>
-              onChange({ ...criteria, need: value as FilterCriteria['need'] })
-            }
-          />
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              marginLeft: 'auto',
-            }}
-          >
-            <span style={GROUP_LABEL}>{t('filter.country')}</span>
-            <select
-              value={criteria.country ?? ''}
-              onChange={(event) =>
-                onChange({
-                  ...criteria,
-                  country: event.target.value === '' ? null : event.target.value,
-                })
-              }
-              style={SELECT}
-            >
-              <option value="">{t('filter.any')}</option>
-              {COUNTRIES.map((country) => (
-                <option key={country} value={country}>
-                  {country}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-          <ChipGroup
-            label={t('filter.sector')}
-            options={SECTORS.map((s) => ({ value: s, label: s }))}
-            selected={criteria.sector}
-            onPick={(value) => onChange({ ...criteria, sector: value })}
-          />
-          <ChipGroup
-            label={t('filter.stage')}
-            options={STAGES.map((s) => ({ value: s, label: s }))}
-            selected={criteria.stage}
-            onPick={(value) => onChange({ ...criteria, stage: value })}
-          />
-        </div>
+        <span style={GROUP_LABEL}>{t('filter.label')}</span>
+        <select
+          value={criteria.need ?? ''}
+          aria-label={t('filter.need')}
+          onChange={(event) =>
+            onChange({
+              ...criteria,
+              need: (event.target.value === ''
+                ? null
+                : event.target.value) as FilterCriteria['need'],
+            })
+          }
+          style={FACET_SELECT}
+        >
+          <option value="">{t('filter.anyNeed')}</option>
+          {NEED_KEYS.map((key) => (
+            <option key={key} value={key}>
+              {t(`need.${key}`)}
+            </option>
+          ))}
+        </select>
+        <select
+          value={criteria.sector ?? ''}
+          aria-label={t('filter.sector')}
+          onChange={(event) =>
+            onChange({
+              ...criteria,
+              sector: event.target.value === '' ? null : event.target.value,
+            })
+          }
+          style={FACET_SELECT}
+        >
+          <option value="">{t('filter.anySector')}</option>
+          {SECTORS.map((sector) => (
+            <option key={sector} value={sector}>
+              {sector}
+            </option>
+          ))}
+        </select>
+        <select
+          value={criteria.stage ?? ''}
+          aria-label={t('filter.stage')}
+          onChange={(event) =>
+            onChange({
+              ...criteria,
+              stage: event.target.value === '' ? null : event.target.value,
+            })
+          }
+          style={FACET_SELECT}
+        >
+          <option value="">{t('filter.anyStage')}</option>
+          {STAGES.map((stage) => (
+            <option key={stage} value={stage}>
+              {stage}
+            </option>
+          ))}
+        </select>
+        <select
+          value={criteria.country ?? ''}
+          aria-label={t('filter.country')}
+          onChange={(event) =>
+            onChange({
+              ...criteria,
+              country: event.target.value === '' ? null : event.target.value,
+            })
+          }
+          style={FACET_SELECT}
+        >
+          <option value="">{t('filter.anyCountry')}</option>
+          {COUNTRIES.map((country) => (
+            <option key={country} value={country}>
+              {country}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div
@@ -367,6 +357,7 @@ export default function FilterControls({
           <span style={GROUP_LABEL}>{t('sort.label')}</span>
           <select
             value={criteria.sort}
+            aria-label={t('sort.label')}
             onChange={(event) =>
               onChange({
                 ...criteria,
@@ -384,54 +375,7 @@ export default function FilterControls({
   );
 }
 
-/**
- * One facet rendered as the prototype's toggle chips. Clicking the selected
- * chip clears the facet, which is the only way to get back to "any" without a
- * chip labelled so -- the prototype has no such chip, and the removable chips
- * above the panel are the other route back.
- */
-function ChipGroup({
-  label,
-  options,
-  selected,
-  onPick,
-}: {
-  label: string;
-  options: { value: string; label: string }[];
-  selected: string | null;
-  onPick: (value: string | null) => void;
-}) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-      <span style={GROUP_LABEL}>{label}</span>
-      {options.map((option) => {
-        const on = selected === option.value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={on}
-            onClick={() => onPick(on ? null : option.value)}
-            style={{
-              border: `1px solid ${on ? '#1F5FBF' : '#C9D3E8'}`,
-              background: on ? '#EEF2FB' : '#fff',
-              color: on ? '#1F5FBF' : '#42506E',
-              borderRadius: 99,
-              padding: '6px 14px',
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-/** A removable filter chip, prototype line 196. */
+/** A removable filter chip, as the prototype draws it. */
 const ACTIVE_CHIP = {
   display: 'flex',
   alignItems: 'center',
@@ -446,12 +390,31 @@ const ACTIVE_CHIP = {
   cursor: 'pointer',
 } as const;
 
+/** The "Filter" and "Sort" eyebrows. */
 const GROUP_LABEL = {
   fontSize: 11.5,
   fontWeight: 800,
   color: '#5B6B8C',
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
+} as const;
+
+/**
+ * The four facet dropdowns. Held apart from `SELECT` below, which is the sort
+ * control's: the two are different sizes in the prototype, and folding them
+ * into one const would restyle a row this change does not touch.
+ */
+const FACET_SELECT = {
+  flex: 1,
+  minWidth: 150,
+  padding: '9px 12px',
+  borderRadius: 9,
+  border: '1px solid #C9D3E8',
+  fontSize: 13,
+  fontWeight: 600,
+  background: '#fff',
+  color: '#1A2332',
+  cursor: 'pointer',
 } as const;
 
 const SELECT = {
