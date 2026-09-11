@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { t } from '@/lib/i18n';
 import { deadlineLabel } from '@/lib/public/deadline-label';
 import { needBanner, bannerPartner } from '@/lib/public/need-banner';
-import PartnerLogo, { LOGO_ON_CARD } from './PartnerLogo';
 import type { PublicResource } from '@/lib/public/types';
 
 /**
@@ -25,10 +24,10 @@ import type { PublicResource } from '@/lib/public/types';
  * rather than a change in how it looks. It wears the same treatment as the
  * learn-more line beside it.
  *
- * The providing organisation's mark sits in the banner's top-right corner
- * when `partners.logo_url` has one, exactly as the prototype's `bnLogoDir`
- * does. Most partners have none, and the slot simply renders nothing --
- * see PartnerLogo for why there is no placeholder in its place.
+ * **No partner mark on the banner**, though the prototype's `bnLogoDir` pins
+ * one to its top-right corner. Most partners have no `logo_url`, so the slot
+ * rendered for a handful of cards and not the rest, which read as a defect
+ * rather than as data the grid did not have.
  *
  * **The banner colour is the need's, not the organisation's.** The prototype
  * paints it per card; this database holds no brand colour per partner, and
@@ -86,7 +85,6 @@ export default function ResourceCard({ resource }: { resource: PublicResource })
           flexShrink: 0,
         }}
       >
-        <PartnerLogo logoUrl={resource.partnerLogoUrl} style={LOGO_ON_CARD} />
         <div
           style={{
             position: 'absolute',

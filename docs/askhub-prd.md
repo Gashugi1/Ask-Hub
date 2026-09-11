@@ -404,7 +404,7 @@ Supabase Auth covers only authentication email (invite, password reset). A trans
 
 ## 10. Content rules (non-negotiable, set by K&S)
 
-1. Attribution is always "co-led by MIMIT and UNDP". Never "powered by" or "implemented by". Footer reads: "Co-led by the Ministry of Enterprises and Made in Italy and the United Nations Development Programme."
+1. Attribution is always "co-led by MIMIT and UNDP". Never "powered by" or "implemented by". The footer carries it in the copyright bar — "Co-led by MIMIT and UNDP" — and the full sentence, "Co-led by the Ministry of Enterprises and Made in Italy and the United Nations Development Programme.", is carried by the Contact page.
 2. Always "AI Hub" or "AI Hub for Sustainable Development". Never "the Hub" alone.
 3. One mailbox only: `aihubfordevelopment@undp.org`.
 4. "Democratic Republic of the Congo" written in full.

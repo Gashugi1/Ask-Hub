@@ -1,14 +1,20 @@
 import type { CSSProperties } from 'react';
 
 /**
- * The providing organisation's mark, sitting on a resource's banner.
+ * The providing organisation's mark, sitting on a resource detail banner.
  *
  * Transcribed from the approved prototype's `logoBits`, docs/prototype/
- * prototype.html lines 2503-2508: one image at four sizes, each a white
- * rounded tile with the logo contained inside it. The white tile is not
- * decoration -- every banner behind it is a saturated need colour, and a
- * partner's mark is drawn for white. `objectFit: 'contain'` is what keeps a
- * wordmark from being cropped to a square.
+ * prototype.html line 2508: a white rounded tile with the logo contained
+ * inside it. The white tile is not decoration -- the banner behind it is a
+ * saturated need colour, and a partner's mark is drawn for white.
+ * `objectFit: 'contain'` is what keeps a wordmark from being cropped to a
+ * square.
+ *
+ * **Detail pages only.** The prototype pins the same mark to its directory
+ * and rail cards too; those were dropped because `logo_url` is null for most
+ * partners, so the tile appeared on a handful of cards in a grid and read as
+ * a defect rather than as data the grid did not have. One mark on the page a
+ * reader opened deliberately does not have that problem.
  *
  * **Nothing renders when there is no logo.** `partners.logo_url` is null for
  * most partners and will stay null until the client's pack covers them, so a
@@ -56,47 +62,6 @@ export default function PartnerLogo({
     />
   );
 }
-
-/** Directory card banner, prototype line 2507 (`bnLogoDir`). */
-export const LOGO_ON_CARD: CSSProperties = {
-  position: 'absolute',
-  top: 11,
-  right: 14,
-  width: 28,
-  height: 28,
-  borderRadius: 6,
-  padding: 3,
-};
-
-/** Recently-added rail card, prototype line 2506 (`bnLogoRail`). */
-export const LOGO_ON_RAIL: CSSProperties = {
-  position: 'absolute',
-  top: 10,
-  right: 12,
-  width: 26,
-  height: 26,
-  borderRadius: 6,
-  padding: 3,
-};
-
-/**
- * Featured card, prototype line 2505 (`bnLogoM`). The only one of the four
- * that is not absolutely positioned: the prototype sets it inline in the flex
- * row that opens the featured banner (reference line 34), not pinned to a
- * corner.
- */
-export const LOGO_ON_FEATURED: CSSProperties = {
-  // Block, unlike the three pinned tiles: an inline <img> would take a
-  // baseline-aligned line box and ignore the margin that separates it from
-  // the partner name below.
-  display: 'block',
-  marginBottom: 10,
-  width: 34,
-  height: 34,
-  borderRadius: 8,
-  padding: 4,
-  flexShrink: 0,
-};
 
 /** Resource detail banner, prototype line 2508 (`bnLogoL`). */
 export const LOGO_ON_DETAIL: CSSProperties = {
