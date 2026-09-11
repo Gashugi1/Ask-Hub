@@ -138,13 +138,14 @@ const PROGRAMME_LINKS = [
     key: 'footer.programmeInfrastructure',
   },
   {
+    href: 'https://www.mimit.gov.it/en/media-tools/news/india-italy-and-africa-unite-to-bring-voice-ai-to-the-worlds-most-underserved-communities',
+    key: 'footer.programmeVoiceAi',
+  },
+  {
     href: 'https://aihubfordevelopment.org/cyber4africa-programme',
     key: 'footer.programmeCyber',
   },
-  {
-    href: 'https://www.aihubfordevelopment.org/programmes',
-    key: 'footer.programmeVoiceAi',
-  },
+
 ] as const;
 
 /**

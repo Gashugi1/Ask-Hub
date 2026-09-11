@@ -4,7 +4,6 @@ import type { Metadata } from 'next';
 import { t } from '@/lib/i18n';
 import NeedBadge from '@/components/public/NeedBadge';
 import ShareModal from '@/components/public/ShareModal';
-import PartnerLogo, { LOGO_ON_DETAIL } from '@/components/public/PartnerLogo';
 import { deadlineLabel } from '@/lib/public/deadline-label';
 import { needBanner, bannerPartner } from '@/lib/public/need-banner';
 import { geoEligibilityLabel } from '@/lib/public/geo';
@@ -121,10 +120,6 @@ export default async function ResourceDetailPage({
             }}
           />
         ) : null}
-        {/* Prototype line 297 (`bnLogoL`), the largest of the four tiles.
-            Outside the flex column below it, because it is pinned to the
-            band's top-right corner rather than stacked with the copy. */}
-        <PartnerLogo logoUrl={resource.partnerLogoUrl} style={LOGO_ON_DETAIL} />
         <div
           style={{
             position: 'absolute',

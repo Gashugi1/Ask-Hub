@@ -5,10 +5,12 @@ import { needBanner, bannerPartner } from '@/lib/public/need-banner';
 import type { PublicResource } from '@/lib/public/types';
 
 /**
- * Transcribed from the approved prototype, docs/prototype/prototype.html
- * lines 253-278: a 14px-radius card with a 92px need-coloured banner carrying
- * the providing organisation, then pills, a 17px title, the partner, the
- * description, and a "learn more" line pinned to the bottom.
+ * Transcribed from the approved prototype's directory card: a 14px-radius card
+ * with a 92px need-coloured banner carrying the providing organisation and,
+ * below it, the title in white clamped to one line (the linked heading). The
+ * body then carries the need pill, accent and neutral tag pills, the
+ * description, and a "learn more"/apply line pinned to the bottom. The title
+ * and partner appear once each, in the banner -- not repeated in the body.
  *
  * Pure presentation over a `resources_public` row: it derives nothing the
  * database did not already state, which is what keeps the deadline rule in
@@ -106,21 +108,26 @@ export default function ResourceCard({ resource }: { resource: PublicResource })
           >
             {bannerPartner(resource.partnerName)}
           </div>
-          <div
+          {/* The title lives in the banner (white, one-line clamp), as the
+              linked heading -- the prototype's directory card shows it once,
+              here, not again in the body. */}
+          <h3
             style={{
+              margin: '3px 0 0 0',
               fontSize: 14.5,
               fontWeight: 800,
               color: '#fff',
               lineHeight: 1.25,
-              marginTop: 3,
               overflow: 'hidden',
               display: '-webkit-box',
               WebkitLineClamp: 1,
               WebkitBoxOrient: 'vertical',
             }}
           >
-            {resource.name}
-          </div>
+            <Link href={`/resources/${resource.id}`} style={{ color: '#fff' }}>
+              {resource.name}
+            </Link>
+          </h3>
         </div>
       </div>
 
@@ -170,16 +177,6 @@ export default function ResourceCard({ resource }: { resource: PublicResource })
           >
             {label}
           </span>
-        </div>
-
-        <h3 style={{ fontSize: 17, fontWeight: 800, lineHeight: 1.3, margin: 0 }}>
-          <Link href={`/resources/${resource.id}`} style={{ color: '#1A2332' }}>
-            {resource.name}
-          </Link>
-        </h3>
-
-        <div style={{ fontSize: 12.5, fontWeight: 700, color: '#1F5FBF' }}>
-          {resource.partnerName}
         </div>
 
         {resource.description ? (
