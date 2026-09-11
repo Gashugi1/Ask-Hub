@@ -61,7 +61,10 @@ describe('which entries exist', () => {
     // The input is scrambled on purpose: canonical input passes through any
     // ordering that happens to agree with it.
     const menu = buildNeedMenu(
-      [count('accelerator', 1), count('compute', 2), count('training', 3), count('funding', 4)],
+      [
+        count('accelerator', 1), count('community', 2), count('compute', 3),
+        count('data', 4), count('training', 5), count('challenges', 6), count('funding', 7),
+      ],
       [],
     );
     expect(menu.map((e) => e.need)).toEqual([
@@ -69,6 +72,9 @@ describe('which entries exist', () => {
       'compute',
       'funding',
       'accelerator',
+      'data',
+      'challenges',
+      'community',
     ]);
   });
 

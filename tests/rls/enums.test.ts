@@ -4,7 +4,7 @@ import { serviceClient } from '../helpers/clients';
 const EXPECTED: Record<string, string[]> = {
   app_role: ['admin', 'editor', 'viewer'],
   resource_status: ['live', 'pipeline', 'reference'],
-  need_type: ['compute', 'training', 'funding', 'accelerator', 'partners'],
+  need_type: ['compute', 'training', 'funding', 'accelerator', 'partners', 'data', 'challenges', 'community'],
   geo_scope: ['global', 'all_africa', 'partner_countries', 'specific'],
   partner_tier: ['strategic', 'government', 'development_partner', 'academic', 'network'],
   submission_type: ['new_resource', 'update_suggestion'],

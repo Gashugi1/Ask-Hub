@@ -28,6 +28,10 @@ export const STAGES = [
 
 export const NEED_KEYS = [
   'compute', 'training', 'funding', 'accelerator', 'partners',
+  // Appended in trailing order to match 0022_need_types_expand.sql, which
+  // adds these to public.need_type after 'partners'. reference.test.ts asserts
+  // this order equals the DB enum element-for-element.
+  'data', 'challenges', 'community',
 ] as const;
 
 export type NeedKey = (typeof NEED_KEYS)[number];
@@ -40,7 +44,10 @@ export type NeedKey = (typeof NEED_KEYS)[number];
  * step with that file so the two do not disagree; if this array ever gains a
  * consumer, that consumer is the bug.
  */
-export const NEEDS = ['Compute', 'Courses', 'Funding', 'Accelerators', 'Partners'] as const;
+export const NEEDS = [
+  'Compute', 'Courses', 'Funding', 'Accelerators', 'Partners',
+  'Data', 'Challenges', 'Community',
+] as const;
 
 /**
  * PRD content rule 10.6: the country filter has no catch-all

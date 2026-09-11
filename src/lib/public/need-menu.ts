@@ -85,14 +85,17 @@ function inNeed(row: PublicResource, need: NeedKey): boolean {
  * category out from under a returning visitor's cursor. A stated order stays
  * put.
  *
- * **Partners is absent, deliberately.** The client positioned this release
- * around four categories. It is hidden from this menu only: `partners` remains
- * a valid need everywhere else -- the directory's filter chips, the pill on a
- * card, exports, and the admin form -- so the resources under it keep their
- * category and stay findable by filtering. Nothing is stranded, and nothing
- * had to be re-categorised to make the menu shorter.
+ * **Partners is absent, deliberately, and is now the only need hidden here.**
+ * The four original categories are joined by `data`, `challenges` and
+ * `community` (added with the expanded catalogue). `partners` stays out of
+ * this menu only: it remains a valid need everywhere else -- the directory's
+ * filter chips, the pill on a card, exports, and the admin form -- so the
+ * resources under it keep their category and stay findable by filtering.
+ * Nothing is stranded, and nothing had to be re-categorised.
  */
-const BROWSE_ORDER: readonly NeedKey[] = ['training', 'compute', 'funding', 'accelerator'];
+const BROWSE_ORDER: readonly NeedKey[] = [
+  'training', 'compute', 'funding', 'accelerator', 'data', 'challenges', 'community',
+];
 
 export function buildNeedMenu(
   counts: readonly NeedCount[],

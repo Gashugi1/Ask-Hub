@@ -112,6 +112,12 @@
   --color-need-accelerator-bg: #F1EAF9;
   --color-need-partners: #0E7A54;
   --color-need-partners-bg: #E7F4EE;
+  --color-need-data: #0E7A54;
+  --color-need-data-bg: #E7F4EE;
+  --color-need-challenges: #B4235F;
+  --color-need-challenges-bg: #FBE9F1;
+  --color-need-community: #0B6E63;
+  --color-need-community-bg: #E4F2F0;
 
   /* PRD §11: "#003C64 at 8%, x0 y2 blur 20". */
   --shadow-card: 0 2px 20px rgb(0 60 100 / 0.08);

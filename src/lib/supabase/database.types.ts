@@ -1156,7 +1156,15 @@ export type Database = {
         | "digest_sent"
       exclusivity: "exclusive" | "early_access"
       geo_scope: "global" | "all_africa" | "partner_countries" | "specific"
-      need_type: "compute" | "training" | "funding" | "accelerator" | "partners"
+      need_type:
+        | "compute"
+        | "training"
+        | "funding"
+        | "accelerator"
+        | "partners"
+        | "data"
+        | "challenges"
+        | "community"
       partner_tier:
         | "strategic"
         | "government"
@@ -1314,7 +1322,16 @@ export const Constants = {
       ],
       exclusivity: ["exclusive", "early_access"],
       geo_scope: ["global", "all_africa", "partner_countries", "specific"],
-      need_type: ["compute", "training", "funding", "accelerator", "partners"],
+      need_type: [
+        "compute",
+        "training",
+        "funding",
+        "accelerator",
+        "partners",
+        "data",
+        "challenges",
+        "community",
+      ],
       partner_tier: [
         "strategic",
         "government",

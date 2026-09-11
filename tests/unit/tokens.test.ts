@@ -43,7 +43,10 @@ function token(name: string): string {
   return match[1];
 }
 
-const NEEDS = ['compute', 'training', 'funding', 'accelerator', 'partners'] as const;
+const NEEDS = [
+  'compute', 'training', 'funding', 'accelerator', 'partners',
+  'data', 'challenges', 'community',
+] as const;
 const AA_NORMAL_TEXT = 4.5;
 
 describe('design tokens', () => {

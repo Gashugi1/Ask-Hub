@@ -22,6 +22,9 @@ const BANNER_GRADIENT: Record<NeedKey, readonly [string, string]> = {
   funding: ['#6E3D0E', '#A5661F'],
   accelerator: ['#3D2069', '#5F3AA0'],
   partners: ['#0A4630', '#177052'],
+  data: ['#0A4630', '#177052'],
+  challenges: ['#5C1230', '#93365B'],
+  community: ['#083F38', '#12776B'],
 };
 
 /** The prototype's 135deg banner fade for one need. */
