@@ -133,6 +133,12 @@ export default function BrowseByNeed({
           gap: 2,
           listStyle: 'none',
           padding: 0,
+          // The scroll region inside the 440px card (globals.css
+          // .proto-browse-rail): the "Browse" label stays put while the
+          // category list scrolls, matching the prototype's department menu.
+          overflowY: 'auto',
+          flex: 1,
+          minHeight: 0,
         }}
       >
         {entries.map((entry) => {

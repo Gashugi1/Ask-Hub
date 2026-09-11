@@ -380,6 +380,14 @@ button {
   min-width: 232px;
   position: sticky;
   top: 80px;
+  /* Prototype: a fixed 440px card whose category list scrolls inside it,
+     rather than a menu that grows with the number of needs. `overflow: hidden`
+     clips to the radius; the inner list (BrowseByNeed's <ul>) carries the
+     scroll via overflow-y: auto + flex: 1 + min-height: 0. */
+  max-height: 440px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 @media (max-width: 900px) {
@@ -387,6 +395,9 @@ button {
     flex: 1 1 100%;
     min-width: 0;
     position: static;
+    /* Stacked full-width on a phone, the menu shows in full rather than
+       scrolling a stub of itself. */
+    max-height: none;
   }
 }
 
