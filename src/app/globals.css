@@ -40,7 +40,13 @@
  * tokens remain the source for anything the prototype does not cover, and
  * for the two colours where accessibility overrides it (D9, below).
  */
-@theme {
+/* `static` forces every token here to be emitted as a :root CSS variable even
+   when no generated utility references it. The need colours are read through a
+   dynamic `var(--color-need-${need})` in the cards and browse rail, which
+   Tailwind cannot see, so without `static` a need used only that way (data,
+   challenges, community) had its variable tree-shaken and its swatch rendered
+   colourless. */
+@theme static {
   --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
 
   --color-primary: #1F5FBF;
