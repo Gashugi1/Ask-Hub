@@ -7,13 +7,14 @@ import { t } from '@/lib/i18n';
  * Links, Programmes, Contact, over a hairline rule with a thin copyright bar
  * beneath.
  *
- * **The marks are this product's own image assets, not the prototype's.** The
- * prototype draws every mark inline -- a conic-gradient circle for the AI Hub,
- * a three-span tricolour for MIMIT, a bordered "UN" circle for UNDP, and the
- * letters `in`, `▶` and `𝕏` for the socials. Those are stand-ins for artwork
- * it did not have. What ships is the client's asset pack, dropped into the
- * prototype's own chrome: the same outlined pills for the co-leads, the same
- * 30px outlined boxes for the socials.
+ * **Only the placement is the prototype's; the marks are this product's own.**
+ * The prototype draws every mark inline -- a conic-gradient circle for the AI
+ * Hub, a three-span tricolour for MIMIT, a bordered "UN" circle for UNDP, and
+ * the letters `in`, `▶` and `𝕏` for the socials -- and outlines each one in a
+ * pill or a box, which is what those stand-ins need to read as marks at all.
+ * The client's asset pack does not: each file is a finished lockup that
+ * carries its own contrast, so the outlines are deliberately not transcribed
+ * and the marks sit unboxed where the prototype puts them.
  *
  * **The brand marks stack rather than sitting in one wrapping row.** The
  * prototype writes them as a single `flex-wrap` row that happens to wrap,
@@ -32,8 +33,7 @@ import { t } from '@/lib/i18n';
  * few months and quietly wrong after.
  *
  * Hover states arrive as `style-hover` attributes, which are not real HTML.
- * This is a server component, so they land as global classes in globals.css --
- * `proto-footer-badge` is what lights an outline up on hover.
+ * This is a server component, so they land as global classes in globals.css.
  */
 const COLUMN_HEADING = {
   fontSize: 13,
@@ -56,45 +56,34 @@ const COLUMN_LINK = {
   textAlign: 'left',
 } as const;
 
-/** The co-lead's outlined pill, prototype reference: the MIMIT/UNDP chips. */
-const PILL = {
+/**
+ * Each mark, unboxed.
+ *
+ * The marks sit directly on the #1A2332 footer with no tile or outline behind
+ * them, so each file has to carry its own contrast. AI Hub and MIMIT are the
+ * white-on-transparent variants and UNDP is the blue lockup, so all three read
+ * on the dark ground unaided.
+ */
+const BADGE = {
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  border: '1px solid rgba(255,255,255,0.3)',
-  borderRadius: 6,
-  padding: '6px 11px',
   textDecoration: 'none',
 } as const;
 
 /**
- * Each mark reads on the dark ground unaided: AI Hub and MIMIT are the
- * white-on-transparent variants, UNDP the blue lockup. The pill outlines them
- * rather than tiling them, so none of the three needs a white plate behind it.
- *
- * They do not share an aspect ratio -- AI Hub and MIMIT are wide lockups,
- * UNDP is a tall one -- so each is bounded on both axes and left to fit
- * whichever it meets first.
+ * The marks do not share an aspect ratio -- AI Hub and MIMIT are wide
+ * lockups, UNDP is a tall one. Constraining height alone shrank UNDP to a
+ * sliver beside the other two, so each is bounded on both axes and left to
+ * fit whichever it meets first.
  */
-const PILL_IMAGE = {
-  maxHeight: 30,
-  maxWidth: 120,
+const BADGE_IMAGE = {
+  maxHeight: 40,
+  maxWidth: 132,
   width: 'auto',
   height: 'auto',
   objectFit: 'contain',
   display: 'block',
-} as const;
-
-/** The socials' 30px outlined box, prototype reference: the `in`/`▶`/`𝕏` chips. */
-const SOCIAL_BOX = {
-  width: 30,
-  height: 30,
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  border: '1px solid rgba(255,255,255,0.3)',
-  borderRadius: 7,
-  textDecoration: 'none',
 } as const;
 
 /**
@@ -160,7 +149,8 @@ const PROGRAMME_LINKS = [
 
 /**
  * The AI Hub's own social accounts, at the foot of the Contact column. White
- * glyphs on transparent background, inside the prototype's outlined boxes.
+ * glyphs on transparent background, like the marks above, so they read on the
+ * same dark ground with nothing behind them.
  */
 const SOCIAL_LINKS = [
   {
@@ -169,7 +159,7 @@ const SOCIAL_LINKS = [
     src: '/logos/social-linkedin.png',
     width: 50,
     height: 50,
-    glyphSize: 17,
+    displaySize: 40,
   },
   {
     href: 'https://x.com/AIHub4SD',
@@ -180,8 +170,9 @@ const SOCIAL_LINKS = [
     // The X glyph's diagonal strokes reach into all four corners of its
     // canvas, unlike LinkedIn's rounded-square tile or YouTube's rounded
     // rect, both of which keep visible margin on every side. At an equal
-    // pixel box the X reads larger, so it sits a notch smaller in its box.
-    glyphSize: 14,
+    // pixel box the X reads larger regardless of which X asset is used, so
+    // it renders at a smaller box than the other two to match apparent size.
+    displaySize: 32,
   },
   {
     href: 'https://www.youtube.com/@AIHubforSustainableDevelopment',
@@ -189,7 +180,7 @@ const SOCIAL_LINKS = [
     src: '/logos/social-youtube.png',
     width: 50,
     height: 50,
-    glyphSize: 17,
+    displaySize: 40,
   },
 ] as const;
 
@@ -212,21 +203,15 @@ export default function SiteFooter() {
               href={AI_HUB_MARK.href}
               target="_blank"
               rel="noopener"
-              style={{ display: 'inline-flex', textDecoration: 'none' }}
+              className="proto-footer-badge"
+              style={BADGE}
             >
               <Image
                 src={AI_HUB_MARK.src}
                 alt={t('footer.linkAiHub')}
                 width={AI_HUB_MARK.width}
                 height={AI_HUB_MARK.height}
-                style={{
-                  maxHeight: 46,
-                  maxWidth: 210,
-                  width: 'auto',
-                  height: 'auto',
-                  objectFit: 'contain',
-                  display: 'block',
-                }}
+                style={BADGE_IMAGE}
               />
             </a>
             {/* `alt` is empty because the name sits beside it in the same
@@ -273,14 +258,14 @@ export default function SiteFooter() {
                 target="_blank"
                 rel="noopener"
                 className="proto-footer-badge"
-                style={PILL}
+                style={BADGE}
               >
                 <Image
                   src={link.src}
                   alt={t(link.key)}
                   width={link.width}
                   height={link.height}
-                  style={PILL_IMAGE}
+                  style={BADGE_IMAGE}
                 />
               </a>
             ))}
@@ -351,7 +336,7 @@ export default function SiteFooter() {
                   target="_blank"
                   rel="noopener"
                   className="proto-footer-badge"
-                  style={SOCIAL_BOX}
+                  style={BADGE}
                 >
                   <Image
                     src={link.src}
@@ -359,8 +344,8 @@ export default function SiteFooter() {
                     width={link.width}
                     height={link.height}
                     style={{
-                      maxHeight: link.glyphSize,
-                      maxWidth: link.glyphSize,
+                      maxHeight: link.displaySize,
+                      maxWidth: link.displaySize,
                       width: 'auto',
                       height: 'auto',
                       objectFit: 'contain',
