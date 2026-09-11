@@ -152,6 +152,7 @@ function resourceContentFields(r: SeedResource) {
     stages_eligible: r.stages_eligible,
     geo_scope: r.geo_scope,
     added_date: r.added_date,
+    sort_order: r.sort_order,
   };
 }
 

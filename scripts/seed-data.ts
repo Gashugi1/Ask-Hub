@@ -345,11 +345,13 @@ export interface SeedResource {
   is_featured: boolean;
   exclusivity: Exclusivity | null;
   added_date: string;
+  sort_order: number;
 }
 
 export const RESOURCES: readonly SeedResource[] = [
   {
     name: 'Microsoft for Startups Founders Hub',
+    sort_order: 1,
     partner: 'Microsoft',
     partner_tier: 'strategic',
     resource_type: 'Credits',
@@ -373,6 +375,7 @@ export const RESOURCES: readonly SeedResource[] = [
   },
   {
     name: 'AWS Activate',
+    sort_order: 7,
     partner: 'Amazon Web Services',
     partner_tier: 'strategic',
     resource_type: 'Credits',
@@ -396,6 +399,7 @@ export const RESOURCES: readonly SeedResource[] = [
   },
   {
     name: 'CINECA Leonardo',
+    sort_order: 2,
     partner: 'CINECA',
     partner_tier: 'strategic',
     resource_type: 'Programme',
@@ -420,6 +424,7 @@ export const RESOURCES: readonly SeedResource[] = [
   },
   {
     name: 'Microsoft AI Fluency',
+    sort_order: 4,
     partner: 'Microsoft',
     partner_tier: 'strategic',
     resource_type: 'Course',
@@ -443,6 +448,7 @@ export const RESOURCES: readonly SeedResource[] = [
   },
   {
     name: 'AfriLabs Talent Hub & AI Community',
+    sort_order: 8,
     partner: 'AfriLabs',
     partner_tier: 'network',
     resource_type: 'Programme',
@@ -466,6 +472,7 @@ export const RESOURCES: readonly SeedResource[] = [
   },
   {
     name: 'NVIDIA Inception',
+    sort_order: 3,
     partner: 'NVIDIA',
     partner_tier: 'strategic',
     resource_type: 'Programme',
@@ -503,6 +510,7 @@ export const RESOURCES: readonly SeedResource[] = [
     // A pipeline resource is admin-visible but not public, so this is the
     // safe default until the client confirms the real programme URL.
     name: 'Cyber4Africa Programme',
+    sort_order: 12,
     partner: 'Cyber 4.0 and Cisco',
     partner_tier: 'strategic',
     resource_type: 'Programme',
@@ -530,6 +538,7 @@ export const RESOURCES: readonly SeedResource[] = [
   },
   {
     name: 'Zindi Community',
+    sort_order: 6,
     partner: 'Zindi',
     partner_tier: 'network',
     resource_type: 'Community',
@@ -553,6 +562,7 @@ export const RESOURCES: readonly SeedResource[] = [
   },
   {
     name: 'Google AI Essentials',
+    sort_order: 5,
     partner: 'Google',
     partner_tier: 'strategic',
     resource_type: 'Course',
@@ -576,6 +586,7 @@ export const RESOURCES: readonly SeedResource[] = [
   },
   {
     name: 'Stanford Machine Learning Specialisation',
+    sort_order: 9,
     partner: 'Stanford / Coursera',
     partner_tier: 'academic',
     resource_type: 'Course',
@@ -599,6 +610,7 @@ export const RESOURCES: readonly SeedResource[] = [
   },
   {
     name: 'Kaggle Datasets & Competitions',
+    sort_order: 10,
     partner: 'Google / Kaggle',
     partner_tier: 'network',
     resource_type: 'Community',
@@ -621,6 +633,7 @@ export const RESOURCES: readonly SeedResource[] = [
   },
   {
     name: 'AfDB Digital Jobs Programme',
+    sort_order: 11,
     partner: 'African Development Bank',
     partner_tier: 'development_partner',
     resource_type: 'Programme',
@@ -645,6 +658,7 @@ export const RESOURCES: readonly SeedResource[] = [
   },
   {
     name: 'Google for Startups Africa',
+    sort_order: 13,
     partner: 'Google',
     partner_tier: 'strategic',
     resource_type: 'Programme',
@@ -669,6 +683,7 @@ export const RESOURCES: readonly SeedResource[] = [
   },
   {
     name: 'Meta Llama Impact Grants',
+    sort_order: 14,
     partner: 'Meta',
     partner_tier: 'strategic',
     resource_type: 'Programme',
@@ -692,6 +707,7 @@ export const RESOURCES: readonly SeedResource[] = [
   },
   {
     name: 'Mercy Corps Ventures',
+    sort_order: 15,
     partner: 'Mercy Corps',
     partner_tier: 'development_partner',
     resource_type: 'Fund',
@@ -715,6 +731,7 @@ export const RESOURCES: readonly SeedResource[] = [
   },
   {
     name: 'Orange Ventures Africa',
+    sort_order: 16,
     partner: 'Orange',
     partner_tier: 'strategic',
     resource_type: 'Fund',
@@ -748,6 +765,7 @@ export const RESOURCES: readonly SeedResource[] = [
   },
   {
     name: 'Safaricom Spark Venture Fund',
+    sort_order: 17,
     partner: 'Safaricom',
     partner_tier: 'strategic',
     resource_type: 'Fund',
@@ -771,6 +789,7 @@ export const RESOURCES: readonly SeedResource[] = [
   },
   {
     name: 'GSMA Innovation Fund — Africa',
+    sort_order: 18,
     partner: 'GSMA',
     partner_tier: 'strategic',
     resource_type: 'Programme',
@@ -793,6 +812,7 @@ export const RESOURCES: readonly SeedResource[] = [
   },
   {
     name: 'State of AI Report',
+    sort_order: 19,
     partner: 'Air Street Capital',
     partner_tier: 'network',
     resource_type: 'Report',
@@ -819,6 +839,7 @@ export const RESOURCES: readonly SeedResource[] = [
   },
   {
     name: 'EU AI Act Summary',
+    sort_order: 20,
     partner: 'European Commission',
     partner_tier: 'government',
     resource_type: 'Report',
@@ -863,6 +884,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 21,
   },
   {
     name: 'Introduction to AI & Entrepreneurship',
@@ -886,6 +908,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 22,
   },
   {
     name: 'AI Agents Course',
@@ -896,7 +919,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: null,
     sub_category: null,
     description:
-      'A free self-paced course on building AI agents \\— fundamentals, the smolagents, LangGraph and LlamaIndex frameworks, real-world use cases and a final project, with two free certificates. Delivery: Online. Cost: free. Eligibility: beginner to advanced; basic Python and LLM knowledge, with a recap in the first unit.',
+      'A free self-paced course on building AI agents — fundamentals, the smolagents, LangGraph and LlamaIndex frameworks, real-world use cases and a final project, with two free certificates. Delivery: Online. Cost: free. Eligibility: beginner to advanced; basic Python and LLM knowledge, with a recap in the first unit.',
     action_label: 'Start the course',
     external_url: 'https://huggingface.co/learn/agents-course/unit0/introduction',
     banner_image_url: null,
@@ -909,6 +932,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 23,
   },
   {
     name: 'GenAI for Executives & Business Leaders: An Introduction',
@@ -919,7 +943,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: null,
     sub_category: null,
     description:
-      'A short course on generative AI for business decision-makers \\— AI history, foundation models, trust and governance, and applications \\— with a shareable certificate. Delivery: Online. Cost: free to enrol and audit; financial aid available. Eligibility: beginner, no prior AI experience required.',
+      'A short course on generative AI for business decision-makers — AI history, foundation models, trust and governance, and applications — with a shareable certificate. Delivery: Online. Cost: free to enrol and audit; financial aid available. Eligibility: beginner, no prior AI experience required.',
     action_label: 'Enrol on Coursera',
     external_url: 'https://www.coursera.org/learn/generative-ai-for-executives-business-leaders-introduction',
     banner_image_url: null,
@@ -932,6 +956,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 24,
   },
   {
     name: 'Supporting STISA 2034: SGCI Multilateral Research Call',
@@ -942,7 +967,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: null,
     sub_category: null,
     description:
-      'Multi-country research grants for STISA-2034, including an Artificial Intelligence & Digital Technologies stream. CAD 50,000\\–300,000 per project, up to 36 months. Eligibility: African research-performing institutions; consortia of 3\\–5 institutions across three SGCI countries; some country rules also allow SMEs and startups. Delivery: Online. Cost: no fee to apply.',
+      'Multi-country research grants for STISA-2034, including an Artificial Intelligence & Digital Technologies stream. CAD 50,000–300,000 per project, up to 36 months. Eligibility: African research-performing institutions; consortia of 3–5 institutions across three SGCI countries; some country rules also allow SMEs and startups. Delivery: Online. Cost: no fee to apply.',
     action_label: 'Apply now',
     external_url: 'https://idrc-crdi.smapply.io/prog/supporting_stisa_2034_sgci_multilateral_research_call_advancing_africas_science_technology_and_innovation_priorities/',
     banner_image_url: null,
@@ -955,6 +980,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 25,
   },
   {
     name: 'AI Fluency: Framework & Foundations',
@@ -965,7 +991,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: null,
     sub_category: null,
     description:
-      'A free self-paced course teaching the 4D framework for working with AI \\— Delegation, Description, Discernment and Diligence \\— alongside generative AI fundamentals, prompting techniques and planning projects with AI. Certificate of completion. Delivery: Online. Cost: free. Eligibility: beginners through experienced practitioners.',
+      'A free self-paced course teaching the 4D framework for working with AI — Delegation, Description, Discernment and Diligence — alongside generative AI fundamentals, prompting techniques and planning projects with AI. Certificate of completion. Delivery: Online. Cost: free. Eligibility: beginners through experienced practitioners.',
     action_label: 'Start the course',
     external_url: 'https://anthropic.skilljar.com/ai-fluency-framework-foundations',
     banner_image_url: null,
@@ -978,6 +1004,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 26,
   },
   {
     name: 'How to Build an Entrepreneurial AI Strategy',
@@ -1001,6 +1028,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 27,
   },
   {
     name: 'Transform your business with AI',
@@ -1011,7 +1039,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: null,
     sub_category: null,
     description:
-      'A four-module learning path for business leaders on adopting AI \\— AI tooling, measurable business value, responsible AI principles and scaling AI across teams. Delivery: Online. Cost: free. Eligibility: business leaders and owners, no technical background required.',
+      'A four-module learning path for business leaders on adopting AI — AI tooling, measurable business value, responsible AI principles and scaling AI across teams. Delivery: Online. Cost: free. Eligibility: business leaders and owners, no technical background required.',
     action_label: 'Start the path',
     external_url: 'https://learn.microsoft.com/en-us/training/paths/transform-your-business-with-microsoft-ai/',
     banner_image_url: null,
@@ -1024,6 +1052,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 28,
   },
   {
     name: 'Gain The AI Skills You Need To Succeed',
@@ -1047,6 +1076,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 29,
   },
   {
     name: 'AI Engineering: Agents',
@@ -1057,7 +1087,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: null,
     sub_category: null,
     description:
-      'A self-paced course on building production-grade AI agents \\— deterministic LLM workflows, single- and multi-agent systems, context and memory, evaluation and benchmarking, and the Model Context Protocol. Delivery: Online. Cost: free. Eligibility: developers already familiar with language models.',
+      'A self-paced course on building production-grade AI agents — deterministic LLM workflows, single- and multi-agent systems, context and memory, evaluation and benchmarking, and the Model Context Protocol. Delivery: Online. Cost: free. Eligibility: developers already familiar with language models.',
     action_label: 'Start the course',
     external_url: 'https://wandb.ai/site/courses/agents/',
     banner_image_url: null,
@@ -1070,6 +1100,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 30,
   },
   {
     name: 'Get Started With Generative AI',
@@ -1093,6 +1124,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 31,
   },
   {
     name: 'Learn Prompt Engineering',
@@ -1116,6 +1148,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 32,
   },
   {
     name: 'AI Foundations',
@@ -1126,7 +1159,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: null,
     sub_category: null,
     description:
-      'An introductory course on AI, large language models and ChatGPT \\— writing clear instructions, supplying context, reviewing outputs and applying AI responsibly. Delivery: Online. Cost: free. Eligibility: beginners; a free ChatGPT account is required.',
+      'An introductory course on AI, large language models and ChatGPT — writing clear instructions, supplying context, reviewing outputs and applying AI responsibly. Delivery: Online. Cost: free. Eligibility: beginners; a free ChatGPT account is required.',
     action_label: 'Start the course',
     external_url: 'https://academy.openai.com/public/courses/ai-foundations-juzjs',
     banner_image_url: null,
@@ -1139,6 +1172,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 33,
   },
   {
     name: 'LLM Fine-Tuning, Prompt Engineering & Model Evaluation',
@@ -1149,7 +1183,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: null,
     sub_category: null,
     description:
-      'An advanced six-module course on LLM foundations, prompt engineering, instruction dataset preparation, supervised fine-tuning, retrieval-augmented generation and model evaluation \\— built for African domain tasks. Delivery: Online. Cost: free. Eligibility: practitioners with intermediate Python and basic ML.',
+      'An advanced six-module course on LLM foundations, prompt engineering, instruction dataset preparation, supervised fine-tuning, retrieval-augmented generation and model evaluation — built for African domain tasks. Delivery: Online. Cost: free. Eligibility: practitioners with intermediate Python and basic ML.',
     action_label: 'View the course',
     external_url: 'https://academy.datalens.africa/courses/llm-fine-tuning-prompt-engineering',
     banner_image_url: null,
@@ -1162,6 +1196,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 34,
   },
   {
     name: 'AI 4 Everyone',
@@ -1185,6 +1220,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 35,
   },
   {
     name: 'Google for Startups Cloud Program',
@@ -1195,7 +1231,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: null,
     sub_category: 'Cloud credits',
     description:
-      'Google Cloud\\’s credit programme for startups \\— tiered Google Cloud and training credits with technical support, from USD 2,000 for early teams to larger allocations for funded startups. Delivery: Online. Cost: free to apply; usage beyond credits at standard rates.',
+      'Google Cloud’s credit programme for startups — tiered Google Cloud and training credits with technical support, from USD 2,000 for early teams to larger allocations for funded startups. Delivery: Online. Cost: free to apply; usage beyond credits at standard rates.',
     action_label: 'Apply now',
     external_url: 'https://cloud.google.com/startup/apply',
     banner_image_url: null,
@@ -1208,6 +1244,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 36,
   },
   {
     name: 'Cloudflare for Startups',
@@ -1218,7 +1255,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: null,
     sub_category: 'Cloud credits',
     description:
-      'Tiered credits \\— up to USD 350,000 for one year \\— against usage-based compute, AI, storage and delivery services on Cloudflare\\’s developer platform. Delivery: Online. Cost: free to apply. Eligibility: for-profit companies up to Series B, incorporated within 10 years.',
+      'Tiered credits — up to USD 350,000 for one year — against usage-based compute, AI, storage and delivery services on Cloudflare’s developer platform. Delivery: Online. Cost: free to apply. Eligibility: for-profit companies up to Series B, incorporated within 10 years.',
     action_label: 'Apply now',
     external_url: 'https://www.cloudflare.com/lp/startups',
     banner_image_url: null,
@@ -1231,6 +1268,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 37,
   },
   {
     name: 'DigitalOcean Startups',
@@ -1254,6 +1292,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 38,
   },
   {
     name: 'Intel Liftoff for Startups',
@@ -1277,6 +1316,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 39,
   },
   {
     name: 'Huawei Cloud Startup Program',
@@ -1300,6 +1340,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 40,
   },
   {
     name: 'TPU Research Cloud (TRC)',
@@ -1323,6 +1364,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 41,
   },
   {
     name: 'Toubkal supercomputer access',
@@ -1333,7 +1375,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: null,
     sub_category: 'HPC access',
     description:
-      'Africa\\’s most powerful supercomputer, hosted at Mohammed VI Polytechnic University in Morocco \\— HPC and GPU access for AI, data analytics, genomics, agriculture and materials research, serving researchers and entrepreneurs within Africa and internationally. Cost: application-based access.',
+      'Africa’s most powerful supercomputer, hosted at Mohammed VI Polytechnic University in Morocco — HPC and GPU access for AI, data analytics, genomics, agriculture and materials research, serving researchers and entrepreneurs within Africa and internationally. Cost: application-based access.',
     action_label: 'Request access',
     external_url: 'https://toubkal.um6p.ma',
     banner_image_url: null,
@@ -1346,6 +1388,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 42,
   },
   {
     name: 'Centre for High Performance Computing access',
@@ -1356,7 +1399,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: null,
     sub_category: 'HPC access',
     description:
-      'South Africa\\’s national supercomputing facility \\— access to the Lengau system plus SANReN networking and DIRISA data services for researchers in academia and industry. Cost: application-based access; primarily South African researchers.',
+      'South Africa’s national supercomputing facility — access to the Lengau system plus SANReN networking and DIRISA data services for researchers in academia and industry. Cost: application-based access; primarily South African researchers.',
     action_label: 'Request access',
     external_url: 'https://www.nicis.ac.za',
     banner_image_url: null,
@@ -1369,6 +1412,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 43,
   },
   {
     name: 'Schmidt AI in Science African Faculty Fellowship (2027 cohort)',
@@ -1392,9 +1436,10 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 44,
   },
   {
-    name: 'Grand Challenges Africa \\— Round 15 AI call',
+    name: 'Grand Challenges Africa — Round 15 AI call',
     partner: 'Science for Africa Foundation',
     partner_tier: 'strategic',
     resource_type: 'Fund',
@@ -1415,6 +1460,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 45,
   },
   {
     name: 'Lacuna Fund dataset creation grants',
@@ -1425,7 +1471,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: 'data',
     sub_category: null,
     description:
-      'Grants \\— typically USD 100,000\\–300,000 per project \\— for creating, augmenting and maintaining open labelled ML datasets for underserved populations and languages, across agriculture, language, health and climate cohorts.',
+      'Grants — typically USD 100,000–300,000 per project — for creating, augmenting and maintaining open labelled ML datasets for underserved populations and languages, across agriculture, language, health and climate cohorts.',
     action_label: 'View funding calls',
     external_url: 'https://lacunafund.org',
     banner_image_url: null,
@@ -1438,9 +1484,10 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 46,
   },
   {
-    name: 'AI for Science Master\\’s Programme',
+    name: 'AI for Science Master’s Programme',
     partner: 'AIMS South Africa and Google DeepMind',
     partner_tier: 'strategic',
     resource_type: 'Fund',
@@ -1448,7 +1495,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: 'training',
     sub_category: null,
     description:
-      'A fully funded one-year residential master\\’s combining AI and ML with cosmology, epidemiology and ecology \\— full scholarship covering tuition, equipment and computation, with 40 scholars funded per year. Eligibility: students from across Africa meeting degree requirements.',
+      'A fully funded one-year residential master’s combining AI and ML with cosmology, epidemiology and ecology — full scholarship covering tuition, equipment and computation, with 40 scholars funded per year. Eligibility: students from across Africa meeting degree requirements.',
     action_label: 'Apply now',
     external_url: 'https://ai.aims.ac.za',
     banner_image_url: null,
@@ -1461,6 +1508,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 47,
   },
   {
     name: 'Digital Africa Seed Fund',
@@ -1471,7 +1519,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: null,
     sub_category: null,
     description:
-      'A seed fund investing up to \\u20ac2M per startup across AI, fintech, healthtech, climate tech and digital infrastructure \\— deliberately beyond the Nigeria, Kenya, South Africa and Egypt hubs, with a francophone-Africa focus.',
+      'A seed fund investing up to €2M per startup across AI, fintech, healthtech, climate tech and digital infrastructure — deliberately beyond the Nigeria, Kenya, South Africa and Egypt hubs, with a francophone-Africa focus.',
     action_label: 'View the programme',
     external_url: 'https://www.digital-africa.co/en/key-program',
     banner_image_url: null,
@@ -1484,6 +1532,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 48,
   },
   {
     name: 'Accelerate Africa',
@@ -1494,7 +1543,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: null,
     sub_category: null,
     description:
-      'A 12-week programme for early-stage African companies connecting founders to mentors, investors and potential funding \\— product, go-to-market, operations, storytelling and fundraising readiness. Delivery: Hybrid (Lagos). Cost: no fee to apply.',
+      'A 12-week programme for early-stage African companies connecting founders to mentors, investors and potential funding — product, go-to-market, operations, storytelling and fundraising readiness. Delivery: Hybrid (Lagos). Cost: no fee to apply.',
     action_label: 'Apply now',
     external_url: 'https://acceler8.africa/',
     banner_image_url: null,
@@ -1507,6 +1556,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 49,
   },
   {
     name: 'Baobab Network Accelerator',
@@ -1530,6 +1580,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 50,
   },
   {
     name: 'AI for Education Venture Builder & Incubation Program',
@@ -1553,6 +1604,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 51,
   },
   {
     name: 'Lacuna Fund open dataset repository',
@@ -1563,7 +1615,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: null,
     sub_category: null,
     description:
-      'Openly accessible labelled ML datasets across agriculture, language, health and climate, developed in and for the Global South \\— including 29+ African languages. Cost: free, openly licensed.',
+      'Openly accessible labelled ML datasets across agriculture, language, health and climate, developed in and for the Global South — including 29+ African languages. Cost: free, openly licensed.',
     action_label: 'Browse datasets',
     external_url: 'https://lacunafund.org/datasets/language/',
     banner_image_url: null,
@@ -1576,9 +1628,10 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 52,
   },
   {
-    name: 'Masakhane \\— African language NLP datasets & benchmarks',
+    name: 'Masakhane — African language NLP datasets & benchmarks',
     partner: 'Masakhane',
     partner_tier: 'strategic',
     resource_type: 'Dataset',
@@ -1586,7 +1639,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: null,
     sub_category: null,
     description:
-      'A participatory research community building African language technologies \\— open datasets and benchmarks including MasakhaNER, MAFAND-MT, MasakhaPOS and AfriIntent across 20+ African languages. Cost: free, open access.',
+      'A participatory research community building African language technologies — open datasets and benchmarks including MasakhaNER, MAFAND-MT, MasakhaPOS and AfriIntent across 20+ African languages. Cost: free, open access.',
     action_label: 'Explore Masakhane',
     external_url: 'https://www.masakhane.io',
     banner_image_url: null,
@@ -1599,6 +1652,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 53,
   },
   {
     name: 'African Datasets initiative',
@@ -1609,7 +1663,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: null,
     sub_category: null,
     description:
-      'A repository of Africa-relevant datasets positioned as digital public infrastructure for equitable AI \\— open to African dataset contributors and users, with contributor visibility across the pan-African AI community.',
+      'A repository of Africa-relevant datasets positioned as digital public infrastructure for equitable AI — open to African dataset contributors and users, with contributor visibility across the pan-African AI community.',
     action_label: 'View the initiative',
     external_url: 'https://deeplearningindaba.com/2026/african-datasets/',
     banner_image_url: null,
@@ -1622,6 +1676,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 54,
   },
   {
     name: 'NaijaVoices dataset',
@@ -1632,7 +1687,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: null,
     sub_category: null,
     description:
-      'A community-built Nigerian language voice dataset produced under Lacuna Fund support \\— open speech data for Nigerian languages. Cost: free, open access.',
+      'A community-built Nigerian language voice dataset produced under Lacuna Fund support — open speech data for Nigerian languages. Cost: free, open access.',
     action_label: 'View the dataset',
     external_url: 'https://naijavoices.com/dataset',
     banner_image_url: null,
@@ -1645,6 +1700,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 55,
   },
   {
     name: 'Indaba Hackathon',
@@ -1655,7 +1711,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: null,
     sub_category: null,
     description:
-      'The hackathon run alongside the annual Deep Learning Indaba gathering \\— competition experience and visibility with sponsors and partners for Indaba participants. Cost: free.',
+      'The hackathon run alongside the annual Deep Learning Indaba gathering — competition experience and visibility with sponsors and partners for Indaba participants. Cost: free.',
     action_label: 'View the Indaba',
     external_url: 'https://deeplearningindaba.com/2026/',
     banner_image_url: null,
@@ -1668,6 +1724,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-05-12',
+    sort_order: 56,
   },
   {
     name: 'International Cooperation in AI (Horizon Europe)',
@@ -1678,7 +1735,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: null,
     sub_category: null,
     description:
-      'A Horizon Europe call funding international cooperation in AI between Europe, Africa and other LMICs \\— for research institutions and growth-stage organisations. Opens on a known date; closes 18 Mar 2027. Primary language: English. Cross-sector.',
+      'A Horizon Europe call funding international cooperation in AI between Europe, Africa and other LMICs — for research institutions and growth-stage organisations. Opens on a known date; closes 18 Mar 2027. Primary language: English. Cross-sector.',
     action_label: 'View the call',
     external_url: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search',
     banner_image_url: null,
@@ -1691,6 +1748,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-09-10',
+    sort_order: 57,
   },
   {
     name: 'Deep Learning Indaba 2027 annual gathering',
@@ -1701,7 +1759,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: null,
     sub_category: null,
     description:
-      'The annual gathering of the African machine learning community \\— workshops, research training, mentorship and networking across the continent. Currently closed; expected to reopen for the 2027 edition. Open to all. Cross-sector.',
+      'The annual gathering of the African machine learning community — workshops, research training, mentorship and networking across the continent. Currently closed; expected to reopen for the 2027 edition. Open to all. Cross-sector.',
     action_label: 'View the Indaba',
     external_url: 'https://deeplearningindaba.com',
     banner_image_url: null,
@@ -1714,6 +1772,7 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-09-10',
+    sort_order: 58,
   },
   {
     name: 'IndabaX country chapters',
@@ -1724,7 +1783,7 @@ export const RESOURCES: readonly SeedResource[] = [
     need_secondary: null,
     sub_category: null,
     description:
-      'Locally-organised IndabaX events bringing the Deep Learning Indaba experience to individual countries \\— community meetups, talks and hands-on sessions. Chapter applications currently closed; expected to reopen. Open to all. Cross-sector.',
+      'Locally-organised IndabaX events bringing the Deep Learning Indaba experience to individual countries — community meetups, talks and hands-on sessions. Chapter applications currently closed; expected to reopen. Open to all. Cross-sector.',
     action_label: 'Find a chapter',
     external_url: 'https://deeplearningindaba.com/indabax/',
     banner_image_url: null,
@@ -1737,8 +1796,8 @@ export const RESOURCES: readonly SeedResource[] = [
     is_featured: false,
     exclusivity: null,
     added_date: '2026-09-10',
+    sort_order: 59,
   },
-
 ];
 
 // ============================================================================
