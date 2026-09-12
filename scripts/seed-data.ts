@@ -1613,7 +1613,7 @@ export const RESOURCES: readonly SeedResource[] = [
     resource_type: 'Dataset',
     need_primary: 'data',
     need_secondary: null,
-    sub_category: null,
+    sub_category: 'Open datasets',
     description:
       'Openly accessible labelled ML datasets across agriculture, language, health and climate, developed in and for the Global South — including 29+ African languages. Cost: free, openly licensed.',
     action_label: 'Browse datasets',
@@ -1637,7 +1637,7 @@ export const RESOURCES: readonly SeedResource[] = [
     resource_type: 'Dataset',
     need_primary: 'data',
     need_secondary: null,
-    sub_category: null,
+    sub_category: 'Language datasets',
     description:
       'A participatory research community building African language technologies — open datasets and benchmarks including MasakhaNER, MAFAND-MT, MasakhaPOS and AfriIntent across 20+ African languages. Cost: free, open access.',
     action_label: 'Explore Masakhane',
@@ -1661,7 +1661,7 @@ export const RESOURCES: readonly SeedResource[] = [
     resource_type: 'Dataset',
     need_primary: 'data',
     need_secondary: null,
-    sub_category: null,
+    sub_category: 'Open datasets',
     description:
       'A repository of Africa-relevant datasets positioned as digital public infrastructure for equitable AI — open to African dataset contributors and users, with contributor visibility across the pan-African AI community.',
     action_label: 'View the initiative',
@@ -1685,7 +1685,7 @@ export const RESOURCES: readonly SeedResource[] = [
     resource_type: 'Dataset',
     need_primary: 'data',
     need_secondary: null,
-    sub_category: null,
+    sub_category: 'Voice & speech datasets',
     description:
       'A community-built Nigerian language voice dataset produced under Lacuna Fund support — open speech data for Nigerian languages. Cost: free, open access.',
     action_label: 'View the dataset',
@@ -1709,7 +1709,7 @@ export const RESOURCES: readonly SeedResource[] = [
     resource_type: 'Competition',
     need_primary: 'challenges',
     need_secondary: null,
-    sub_category: null,
+    sub_category: 'Hackathons',
     description:
       'The hackathon run alongside the annual Deep Learning Indaba gathering — competition experience and visibility with sponsors and partners for Indaba participants. Cost: free.',
     action_label: 'View the Indaba',
@@ -1757,7 +1757,7 @@ export const RESOURCES: readonly SeedResource[] = [
     resource_type: 'Community',
     need_primary: 'community',
     need_secondary: null,
-    sub_category: null,
+    sub_category: 'Conferences',
     description:
       'The annual gathering of the African machine learning community — workshops, research training, mentorship and networking across the continent. Currently closed; expected to reopen for the 2027 edition. Open to all. Cross-sector.',
     action_label: 'View the Indaba',
@@ -1781,7 +1781,7 @@ export const RESOURCES: readonly SeedResource[] = [
     resource_type: 'Community',
     need_primary: 'community',
     need_secondary: null,
-    sub_category: null,
+    sub_category: 'Local chapters',
     description:
       'Locally-organised IndabaX events bringing the Deep Learning Indaba experience to individual countries — community meetups, talks and hands-on sessions. Chapter applications currently closed; expected to reopen. Open to all. Cross-sector.',
     action_label: 'Find a chapter',
