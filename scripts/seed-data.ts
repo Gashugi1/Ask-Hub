@@ -453,7 +453,7 @@ export const RESOURCES: readonly SeedResource[] = [
     partner_tier: 'network',
     resource_type: 'Programme',
     need_primary: 'training',
-    need_secondary: 'partners',
+    need_secondary: null,
     sub_category: 'Training pathway',
     description:
       'A 10-week training pathway delivered through 450+ innovation hubs across 53 African countries.',
@@ -542,7 +542,7 @@ export const RESOURCES: readonly SeedResource[] = [
     partner: 'Zindi',
     partner_tier: 'network',
     resource_type: 'Community',
-    need_primary: 'partners',
+    need_primary: 'challenges',
     need_secondary: 'training',
     sub_category: 'Data science community',
     description:
@@ -615,7 +615,7 @@ export const RESOURCES: readonly SeedResource[] = [
     partner_tier: 'network',
     resource_type: 'Community',
     need_primary: 'training',
-    need_secondary: 'partners',
+    need_secondary: null,
     sub_category: 'Datasets & competitions',
     description: 'Datasets, competitions, notebooks, and a global data science community.',
     action_label: 'Explore Kaggle',
