@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseResourceQuery, filterAdminResources } from '@/lib/admin/resource-view';
+import { parseResourceQuery, filterAdminResources, tabCounts } from '@/lib/admin/resource-view';
 import type { AdminResource } from '@/lib/admin/types';
 
 function res(overrides: Partial<AdminResource> = {}): AdminResource {
@@ -84,5 +84,22 @@ describe('filterAdminResources', () => {
     expect(
       filterAdminResources(all, parseResourceQuery(new URLSearchParams('status=pipeline'))).map((r) => r.id),
     ).toEqual(['f']);
+  });
+});
+
+describe('tabCounts', () => {
+  it('counts every row for All and splits the rest by deadline state', () => {
+    const rows = [
+      res({ id: 'a', deadline: null }),
+      res({ id: 'b', deadline: inDays(60) }),
+      res({ id: 'c', deadline: inDays(5) }),
+      res({ id: 'd', deadline: inDays(-5) }),
+      res({ id: 'e', deadline: inDays(-40), status: 'pipeline' }),
+    ];
+    expect(tabCounts(rows)).toEqual({ all: 5, expiring: 1, closed: 2 });
+  });
+
+  it('is zero everywhere for an empty table', () => {
+    expect(tabCounts([])).toEqual({ all: 0, expiring: 0, closed: 0 });
   });
 });

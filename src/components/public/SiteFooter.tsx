@@ -49,7 +49,9 @@ const COLUMN_LIST = {
 const FOOTER_TEXT = '#C6D2F2';
 
 const COLUMN_LINK = {
-  color: FOOTER_TEXT,
+  // No `color` here: it is set by `.proto-footer-link` in globals.css so the
+  // prototype's hover colour can apply -- an inline colour would beat the
+  // `:hover` rule and the link would never change.
   fontSize: 13.5,
   fontWeight: 600,
   textDecoration: 'none',

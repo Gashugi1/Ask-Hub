@@ -281,6 +281,7 @@
   "admin.resources.tab.all": "All",
   "admin.resources.tab.expiring": "Expiring soon",
   "admin.resources.tab.closed": "Closed",
+  "admin.resources.tabWithCount": "{label} ({count})",
   "admin.resources.search": "Search by name or partner",
   "admin.resources.filterStatus": "Status",
   "admin.resources.filterNeed": "Need",

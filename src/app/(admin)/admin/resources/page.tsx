@@ -7,6 +7,7 @@ import {
   filterAdminResources,
   TABS,
   STATUSES,
+  tabCounts,
   type ResourceQuery,
   type ResourceTab,
 } from '@/lib/admin/resource-view';
@@ -44,7 +45,9 @@ export default async function AdminResourcesPage({
     ),
   );
   const query = parseResourceQuery(params);
-  const rows = filterAdminResources(await readAdminResources(), query);
+  const allRows = await readAdminResources();
+  const rows = filterAdminResources(allRows, query);
+  const counts = tabCounts(allRows);
   const userCanWrite = canWrite(user.role);
 
   return (
@@ -109,7 +112,10 @@ export default async function AdminResourcesPage({
                 whiteSpace: 'nowrap',
               }}
             >
-              {t(`admin.resources.tab.${tab}`)}
+              {t('admin.resources.tabWithCount', {
+                label: t(`admin.resources.tab.${tab}`),
+                count: counts[tab],
+              })}
             </Link>
           );
         })}

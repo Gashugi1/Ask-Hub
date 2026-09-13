@@ -218,6 +218,10 @@ button {
 
 /* Footer, prototype lines 595-631: links warm to the accent, the outlined
    partner badges take an accent border and full-white text. */
+.proto-footer-link {
+  color: #c6d2f2;
+}
+
 .proto-footer-link:hover {
   color: #f06428;
 }
