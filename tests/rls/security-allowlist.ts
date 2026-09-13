@@ -217,6 +217,10 @@ export const ANON_EXECUTABLE: Record<string, Exception> = {
     approvedIn: 'SP2a-T9',
     why: 'PRD 9.1s public contact form, which by design has no caller to authenticate. Grants EXECUTE only: anon holds no grant and no insert policy on contact_messages, the function exposes no SELECT so the inbox cannot be read back, and its three typed parameters reach only name/email/message -- source_ip_hash, delivered_at and delivery_error are unreachable, so a submitter cannot mark their own message delivered. Bounds are re-checked in the function body, so they hold for a caller holding the anon key who never touches the application.',
   },
+  'submit_resource_suggestion(p_resource_name text, p_organisation text, p_need text, p_link text, p_description text, p_programme_contact_email text, p_submitter_name text, p_submitter_email text, p_source_ip_hash text)': {
+    approvedIn: 'SP2b-T1',
+    why: 'PRD 4.5s public Suggest a resource form, the second anonymous-facing write 0020 anticipated. Grants EXECUTE only: anon holds no grant and no insert policy on submissions, the function exposes no SELECT so the queue cannot be read back, and it inserts type = new_resource only -- status, reviewed_by, reviewed_at, rejection_reason and target_resource_id have no parameter, so a submitter can neither approve their own suggestion nor file an update against a resource of their choosing. Rate-limited in the body (3 per address and 5 per IP hash per hour, 60 in total per 10 minutes; migration 0024 states the numbers) as errcode 54000, so the limit holds for a caller who never touches the application.',
+  },
 };
 
 // Base tables that legitimately carry no audit trigger (G15).
@@ -239,5 +243,5 @@ export const AUDIT_EXEMPT: Record<string, Exception> = {
 };
 
 export const EXPECTED_ANON_SELECTABLE = 9;
-export const EXPECTED_ANON_EXECUTABLE = 1;
+export const EXPECTED_ANON_EXECUTABLE = 2;
 export const EXPECTED_AUDIT_EXEMPT = 2;
