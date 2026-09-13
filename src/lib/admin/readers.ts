@@ -120,6 +120,26 @@ export async function readPartnerNames(): Promise<string[]> {
 }
 
 /**
+ * Every resource's title and partner, for the bulk import's duplicate check.
+ *
+ * Two columns and no filter: the import has to compare against everything,
+ * including `pipeline` and `reference` rows, because re-importing a row that
+ * is already staged would collide with `unique (partner, name)` just the same.
+ *
+ * Uncached, like every reader here. It is also the snapshot the *preview*
+ * compares against, so the commit reads it again — the two can be minutes
+ * apart, and the database is the only authority on what already exists.
+ */
+export async function readResourceDedupeIndex(): Promise<
+  { name: string; partner: string }[]
+> {
+  const supabase = await createAdminReadClient();
+  const { data, error } = await supabase.from('resources').select('name, partner');
+  if (error) throw new Error(`admin read failed (resources): ${error.message}`);
+  return data ?? [];
+}
+
+/**
  * PRD 6.9's audit table, one page at a time. `diff`, `ip_hash` and
  * `user_agent` are `@sensitive` and this screen never displays them, so the
  * select list below is exactly the five columns the table shows plus `id` —

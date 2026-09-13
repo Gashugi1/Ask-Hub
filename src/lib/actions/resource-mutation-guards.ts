@@ -39,6 +39,9 @@ const FOREIGN_KEY_VIOLATION = '23503';
 
 /** The constraint 0014_partner_logos.sql put on `resources.partner`. */
 const PARTNER_FK = 'resources_partner_fkey';
+const UNIQUE_VIOLATION = '23505';
+/** `unique (partner, name)`, from 0013_reconcile_partners.sql. */
+const PARTNER_NAME_KEY = 'resources_partner_name_key';
 
 /**
  * What a caller is told when the partner they submitted is not in `partners`.
@@ -133,11 +136,42 @@ export function resourceWriteError(
   action: string,
   error: { code?: string | null; message: string; details?: string | null },
   partner: string,
+  name?: string,
 ): Error {
   const mentionsPartnerFk =
     (error.message ?? '').includes(PARTNER_FK) || (error.details ?? '').includes(PARTNER_FK);
   if (error.code === FOREIGN_KEY_VIOLATION && mentionsPartnerFk) {
     return new Error(unknownPartnerMessage(partner));
   }
+  if (isDuplicateResource(error)) {
+    return new Error(duplicateResourceMessage(partner, name ?? ''));
+  }
   return new Error(`${action} failed: ${error.message}`);
+}
+
+/**
+ * Whether a failed write collided with `unique (partner, name)`.
+ *
+ * Matched on the code *and* the constraint name for the same reason
+ * `resourceWriteError` matches the foreign key that way: `resources` may grow
+ * a second unique constraint, and the pair is what stops this reporting an
+ * unrelated collision as "this resource already exists".
+ *
+ * Returns a boolean rather than a message because the bulk import needs to
+ * decide per row -- it reports a *code* the client renders through `t()`,
+ * since Next replaces a thrown message with an opaque digest in production.
+ */
+export function isDuplicateResource(error: {
+  code?: string | null;
+  message: string;
+  details?: string | null;
+}): boolean {
+  const mentionsKey =
+    (error.message ?? '').includes(PARTNER_NAME_KEY) ||
+    (error.details ?? '').includes(PARTNER_NAME_KEY);
+  return error.code === UNIQUE_VIOLATION && mentionsKey;
+}
+
+export function duplicateResourceMessage(partner: string, name: string): string {
+  return `"${name}" already exists for ${partner}`;
 }

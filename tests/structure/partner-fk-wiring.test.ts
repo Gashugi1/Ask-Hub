@@ -136,7 +136,7 @@ describe('the partner FK check is wired into every path that writes it', () => {
     expect(
       writers.map((w) => w.name).sort(),
       'no exported action was found writing to resources — the guard below would be vacuous',
-    ).toEqual(['createResource', 'updateResource']);
+    ).toEqual(['createResource', 'importTrackerResources', 'updateResource']);
   });
 
   it('calls assertKnownPartner from every action that writes resources', () => {

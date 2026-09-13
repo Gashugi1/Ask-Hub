@@ -12,7 +12,13 @@ import {
 } from '@/lib/admin/resource-view';
 import { NEED_KEYS } from '@/lib/reference';
 import ResourceTable from '@/components/admin/ResourceTable';
-import { ADMIN_H1, ADMIN_SUB, ADMIN_PRIMARY, ADMIN_FIELD } from '@/components/admin/chrome';
+import {
+  ADMIN_H1,
+  ADMIN_SUB,
+  ADMIN_PRIMARY,
+  ADMIN_SECONDARY,
+  ADMIN_FIELD,
+} from '@/components/admin/chrome';
 import { t } from '@/lib/i18n';
 
 /** A tab link keeps the current search, status and need — switching tabs narrows the deadline view, not the filters. */
@@ -59,13 +65,21 @@ export default async function AdminResourcesPage({
         {/* CLAUDE.md: a viewer sees no write affordance at all, not a disabled
             one — so this is absent rather than greyed out. */}
         {userCanWrite ? (
-          <Link
-            href="/admin/resources/new"
-            className="proto-primary-button"
-            style={{ ...ADMIN_PRIMARY, padding: '11px 20px', fontSize: 13.5 }}
-          >
-            {t('admin.resources.addNew')}
-          </Link>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Link
+              href="/admin/resources/import"
+              style={{ ...ADMIN_SECONDARY, padding: '11px 18px', fontSize: 13.5 }}
+            >
+              {t('admin.resources.import')}
+            </Link>
+            <Link
+              href="/admin/resources/new"
+              className="proto-primary-button"
+              style={{ ...ADMIN_PRIMARY, padding: '11px 20px', fontSize: 13.5 }}
+            >
+              {t('admin.resources.addNew')}
+            </Link>
+          </div>
         ) : null}
       </div>
 

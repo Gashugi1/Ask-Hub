@@ -2,6 +2,18 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   /**
+   * The bulk import posts the uploaded file to a server action, and a
+   * spreadsheet travels base64-encoded because it is a zip archive rather than
+   * text — about a third larger than the 512 KB the importer accepts. The
+   * default body limit is 1 MB, which that clears only just; 2 MB leaves the
+   * cap in one place (IMPORT_MAX_BYTES) instead of having a framework default
+   * quietly become the real limit.
+   */
+  experimental: {
+    serverActions: { bodySizeLimit: '2mb' },
+  },
+
+  /**
    * `/about` is gone: this release points people at the AI Hub website for
    * anything broader than the directory. A permanent redirect rather than a
    * 404 because the route was live and linked from the header and footer, so

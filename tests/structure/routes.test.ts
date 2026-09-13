@@ -85,6 +85,12 @@ describe('route structure', () => {
     expect(routes()['/(admin)/admin/resources/new/page']).toBe('/admin/resources/new');
   });
 
+  it('serves the bulk import at /admin/resources/import', () => {
+    // A sibling of /new rather than a query on the table: it is its own screen
+    // with its own role gate.
+    expect(routes()['/(admin)/admin/resources/import/page']).toBe('/admin/resources/import');
+  });
+
   it('serves the site content screen at /admin/content', () => {
     expect(routes()['/(admin)/admin/content/page']).toBe('/admin/content');
   });
