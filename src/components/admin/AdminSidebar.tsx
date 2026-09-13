@@ -41,18 +41,13 @@ export default function AdminSidebar({
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px' }}>
+        {/* The prototype sets an accent bead beside the wordmark here. It is
+            not transcribed, with the rest of the dot device -- see
+            WelcomeBand, which holds the note for every surface that
+            carried one. */}
         <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em' }}>
           {t('site.wordmark')}
         </span>
-        <span
-          aria-hidden="true"
-          style={{
-            width: 7,
-            height: 7,
-            borderRadius: 99,
-            background: 'var(--acc, #F06428)',
-          }}
-        />
         <span
           style={{
             fontSize: 11,

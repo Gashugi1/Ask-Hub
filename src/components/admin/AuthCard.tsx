@@ -60,15 +60,8 @@ export default function AuthCard({
           >
             {t('site.wordmark')}
           </span>
-          <span
-            aria-hidden="true"
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: 99,
-              background: 'var(--acc, #F06428)',
-            }}
-          />
+          {/* No accent bead between the wordmark and this label: the dot
+              device is not transcribed anywhere -- see WelcomeBand. */}
           <span style={{ fontSize: 12, color: '#5B6B8C' }}>{t('admin.login.teamAdmin')}</span>
         </Link>
 
