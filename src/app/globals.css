@@ -269,6 +269,10 @@ button {
   background: #174a99;
 }
 
+.proto-publish-button:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
 .proto-outline-button:hover:not(:disabled) {
   border-color: #1f5fbf;
 }

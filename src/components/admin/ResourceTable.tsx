@@ -5,13 +5,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { t } from '@/lib/i18n';
 import { deadlineInfo } from '@/lib/deadline';
-import { publishResources, deleteResource } from '@/lib/actions/resources';
+import { deleteResource } from '@/lib/actions/resources';
+import { useResourceSelection } from './ResourceSelection';
 import type { AdminResource } from '@/lib/admin/types';
 import EmptyState from './EmptyState';
 import StatusSelect from './StatusSelect';
 import FeaturedToggle from './FeaturedToggle';
 import ConfirmDeleteButton from './ConfirmDeleteButton';
-import { ADMIN_PRIMARY, ADMIN_LINK_DANGER, ADMIN_ERROR, ADMIN_HELP } from './chrome';
+import { ADMIN_LINK_DANGER, ADMIN_ERROR } from './chrome';
 
 /**
  * One row's worth of eligibility, labelled by which array it came from —
@@ -98,25 +99,18 @@ function DeleteRowButton({ row }: { row: AdminResource }) {
 }
 
 /**
- * A row per resource, with the prototype's bulk publish and row delete.
+ * A row per resource, with the prototype's checkbox column and row delete.
  *
- * The write affordances -- the checkbox column, the Publish selected
- * button, the Status control, the featured toggle, Edit and Delete -- are
- * all inside the `canWrite` branch, per CLAUDE.md: a viewer sees no write
- * affordance at all, not a disabled one. That is why the checkbox and
- * Actions columns are conditional entries in the header and row rather than
- * always-rendered cells with disabled controls inside.
+ * The write affordances -- the checkbox column, the Status control, the
+ * featured toggle, Edit and Delete -- are all inside the `canWrite` branch,
+ * per CLAUDE.md: a viewer sees no write affordance at all, not a disabled
+ * one. That is why the checkbox and Actions columns are conditional entries
+ * in the header and row rather than always-rendered cells with disabled
+ * controls inside.
  *
- * Selection is page state, not URL state: it is the operator's working set
- * for one action, not a view anyone would share. It is cleared after a
- * publish and pruned whenever the rows change under it, so a filter change
- * cannot leave a hidden row selected and then published.
- *
- * "Publish selected (n)" counts what the click would do -- the selected
- * rows not already live -- rather than everything ticked, so the number on
- * the button is the number of `published` audit rows the click writes. A
- * selection that is entirely live gets the prototype's note instead of a
- * button that would do nothing.
+ * Selection lives in `ResourceSelectionProvider`, above this table, because
+ * the prototype's "Publish selected" button is in the page header rather
+ * than on the table; `PublishSelectedButton` reads the same context.
  */
 export default function ResourceTable({
   rows,
@@ -125,57 +119,16 @@ export default function ResourceTable({
   rows: AdminResource[];
   canWrite: boolean;
 }) {
-  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
-  const [published, setPublished] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-  const router = useRouter();
+  const { selected, toggle, toggleAll } = useResourceSelection();
   const selectAllRef = useRef<HTMLInputElement>(null);
 
-  // Selection is read through the listed rows, never raw: an id ticked before
-  // a filter change or a refresh stays in state but counts for nothing until
-  // its row is listed again, so a hidden row can never be published.
-  const listed = new Set(rows.map((row) => row.id));
-  const selectedListed = new Set([...selected].filter((id) => listed.has(id)));
-
-  const allSelected = rows.length > 0 && rows.every((row) => selectedListed.has(row.id));
-  const someSelected = selectedListed.size > 0 && !allSelected;
-  const publishable = rows.filter((row) => selectedListed.has(row.id) && row.status !== 'live');
+  const allSelected = rows.length > 0 && rows.every((row) => selected.has(row.id));
+  const someSelected = selected.size > 0 && !allSelected;
 
   // `indeterminate` is a DOM property with no attribute, so it is set by hand.
   useEffect(() => {
     if (selectAllRef.current) selectAllRef.current.indeterminate = someSelected;
   }, [someSelected]);
-
-  function toggleAll() {
-    setSelected(allSelected ? new Set() : new Set(rows.map((row) => row.id)));
-  }
-
-  function toggleRow(id: string) {
-    setSelected((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function publishSelected() {
-    const ids = publishable.map((row) => row.id);
-    if (ids.length === 0) return;
-    setError(null);
-    setPublished(null);
-    startTransition(async () => {
-      try {
-        const result = await publishResources(ids);
-        setPublished(result.published);
-        setSelected(new Set());
-        router.refresh();
-      } catch {
-        setError(t('admin.error.generic'));
-      }
-    });
-  }
 
   if (rows.length === 0) {
     return <EmptyState heading={t('admin.resources.empty')} />;
@@ -183,37 +136,6 @@ export default function ResourceTable({
 
   return (
     <>
-      {canWrite ? (
-        <div
-          style={{
-            marginTop: 16,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            flexWrap: 'wrap',
-            minHeight: 20,
-          }}
-        >
-          {publishable.length > 0 ? (
-            <button
-              type="button"
-              disabled={pending}
-              onClick={publishSelected}
-              className="proto-primary-button"
-              style={{ ...ADMIN_PRIMARY, padding: '9px 16px', fontSize: 12.5 }}
-            >
-              {t('admin.resources.publishSelected', { count: publishable.length })}
-            </button>
-          ) : selectedListed.size > 0 ? (
-            <span style={ADMIN_HELP}>{t('admin.resources.alreadyLive')}</span>
-          ) : null}
-          <span role="status" aria-live="polite" style={{ ...ADMIN_HELP, color: '#0E7A54', fontWeight: 700 }}>
-            {published !== null ? t('admin.resources.publishedCount', { count: published }) : ''}
-          </span>
-          {error ? <span style={ADMIN_ERROR}>{error}</span> : null}
-        </div>
-      ) : null}
-
       {/* The prototype builds this from CSS grid rows (reference lines 803-838).
           A real <table> is kept: the grid would cost row and column semantics
           for assistive technology and buy nothing visually that the table
@@ -222,7 +144,7 @@ export default function ResourceTable({
           hairline row rules -- is the prototype's. */}
       <div
         style={{
-          marginTop: canWrite ? 10 : 16,
+          marginTop: 16,
           background: '#fff',
           border: '1px solid #DDE5EE',
           borderRadius: 13,
@@ -264,8 +186,8 @@ export default function ResourceTable({
                     <input
                       type="checkbox"
                       aria-label={t('admin.resources.selectRow', { name: row.name })}
-                      checked={selectedListed.has(row.id)}
-                      onChange={() => toggleRow(row.id)}
+                      checked={selected.has(row.id)}
+                      onChange={() => toggle(row.id)}
                     />
                   </td>
                 ) : null}

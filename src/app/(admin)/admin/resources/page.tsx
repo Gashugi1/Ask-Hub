@@ -14,6 +14,10 @@ import {
 import { NEED_KEYS } from '@/lib/reference';
 import ResourceTable from '@/components/admin/ResourceTable';
 import {
+  ResourceSelectionProvider,
+  PublishSelectedButton,
+} from '@/components/admin/ResourceSelection';
+import {
   ADMIN_H1,
   ADMIN_SUB,
   ADMIN_PRIMARY,
@@ -51,6 +55,7 @@ export default async function AdminResourcesPage({
   const userCanWrite = canWrite(user.role);
 
   return (
+    <ResourceSelectionProvider rows={rows}>
     <main data-route="/admin/resources">
       <div
         style={{
@@ -69,6 +74,9 @@ export default async function AdminResourcesPage({
             one — so this is absent rather than greyed out. */}
         {userCanWrite ? (
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* The prototype's bulk publish sits here, first in the action row,
+                and only while something in the table is selected. */}
+            <PublishSelectedButton />
             <Link
               href="/admin/resources/import"
               style={{ ...ADMIN_SECONDARY, padding: '11px 18px', fontSize: 13.5 }}
@@ -168,6 +176,7 @@ export default async function AdminResourcesPage({
 
       <ResourceTable rows={rows} canWrite={userCanWrite} />
     </main>
+    </ResourceSelectionProvider>
   );
 }
 
