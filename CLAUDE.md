@@ -36,7 +36,7 @@ Next.js (App Router, TypeScript strict), Supabase (Postgres + Auth + RLS), Tailw
 - **Accessibility outranks prototype fidelity.** The prototype's `need-training` (`#0E7A8A`) and `need-funding` (`#B4691F`) fail WCAG AA on badge text, so they are deliberately darkened to `#0E7685` and `#9E5C1B`. `tests/unit/tokens.test.ts` computes the contrast ratios and must never be relaxed to make a transcription match.
 - Public pages are cached and revalidated on write (`revalidateTag` / `revalidatePath`). Site Content edits must appear without a rebuild.
 - GA4 event names are fixed: `resource_view`, `apply_click`, `search_performed`, `filter_used`, `export_clicked`. Every event also writes to `engagement_events`.
-- Deadline past means the resource displays as Closed and is flagged in admin. Its `status` does not change.
+- Deadline past means the resource leaves the public listings — directory, search, browse counts, rail and export — but keeps its own detail page, which shows it as Closed so shared links still resolve. It stays visible in admin under the Closed tab, flagged "Auto-closed, past deadline". Its `status` does not change: auto-close is still a display state, not a status transition.
 - Feature flags `feature_innovator_profiles` and `feature_public_impact_page` are both off at launch. Build the flag, not the innovator profiles feature.
 
 ## Testing

@@ -3,9 +3,8 @@ import Link from 'next/link';
 import { t } from '@/lib/i18n';
 
 /**
- * The four-column footer of the approved prototype: brand and mission, Quick
- * Links, Programmes, Contact, over a hairline rule with a thin copyright bar
- * beneath.
+ * The footer of the approved prototype: brand and mission, Programmes, Contact,
+ * over a hairline rule with a thin copyright bar beneath.
  *
  * **Only the placement is the prototype's; the marks are this product's own.**
  * The prototype draws every mark inline -- a conic-gradient circle for the AI
@@ -16,15 +15,9 @@ import { t } from '@/lib/i18n';
  * carries its own contrast, so the outlines are deliberately not transcribed
  * and the marks sit unboxed where the prototype puts them.
  *
- * **The brand marks stack rather than sitting in one wrapping row.** The
- * prototype writes them as a single `flex-wrap` row that happens to wrap,
- * because its inline AI Hub lockup is wide enough to force the break at every
- * realistic column width. The asset pack's lockup is narrower and would not
- * wrap, so the break is written rather than left to chance -- the left-hand
- * rule beside AskHub reads as a deliberate divider either way.
- *
  * **The co-led sentence is not repeated here.** PRD content rule 10.1 is
- * satisfied by the copyright bar's "Co-led by MIMIT and UNDP", and the full
+ * satisfied by the tagline's "MIMIT-UNDP co-led initiative" -- the copyright
+ * line matches the AI Hub website's and names no co-lead -- and the full
  * sentence `site.footer` pins is carried by /contact.
  *
  * **The year is interpolated, not written.** The prototype hardcodes "2026".
@@ -48,8 +41,15 @@ const COLUMN_LIST = {
   gap: 10,
 } as const;
 
+/**
+ * The footer's body-text colour, used by the column links and by the closing
+ * band below them. Named because those two were set independently once and
+ * drifted -- the band arrived carrying the AI Hub website's near-white.
+ */
+const FOOTER_TEXT = '#C6D2F2';
+
 const COLUMN_LINK = {
-  color: '#C6D2F2',
+  color: FOOTER_TEXT,
   fontSize: 13.5,
   fontWeight: 600,
   textDecoration: 'none',
@@ -149,6 +149,19 @@ const PROGRAMME_LINKS = [
 ] as const;
 
 /**
+ * The programme's hashtags, closing the footer opposite the copyright, in the
+ * order the AI Hub website lists them. That site emits an empty paragraph
+ * between the third and fourth, which widens the gap before the last one; it
+ * is an authoring artifact of its page builder and is not reproduced.
+ */
+const HASHTAGS = [
+  'footer.hashtagAiHub',
+  'footer.hashtagMattei',
+  'footer.hashtagAi4Africa',
+  'footer.hashtagAi',
+] as const;
+
+/**
  * The AI Hub's own social accounts, at the foot of the Contact column. White
  * glyphs on transparent background, like the marks above, so they read on the
  * same dark ground with nothing behind them.
@@ -199,49 +212,21 @@ export default function SiteFooter() {
         }}
       >
         <div style={{ flex: 1.4, minWidth: 280 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 14 }}>
-            <a
-              href={AI_HUB_MARK.href}
-              target="_blank"
-              rel="noopener"
-              className="proto-footer-badge"
-              style={BADGE}
-            >
-              <Image
-                src={AI_HUB_MARK.src}
-                alt={t('footer.linkAiHub')}
-                width={AI_HUB_MARK.width}
-                height={AI_HUB_MARK.height}
-                style={BADGE_IMAGE}
-              />
-            </a>
-            {/* `alt` is empty because the name sits beside it in the same
-                block -- describing the image too would make a screen reader
-                announce the product twice. */}
-            <Link
-              href="/"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 10,
-                textDecoration: 'none',
-                color: '#fff',
-                borderLeft: '1px solid rgba(255,255,255,0.18)',
-                paddingLeft: 16,
-              }}
-            >
-              <Image
-                src="/partners/askhub-wordmark.png"
-                alt=""
-                width={165}
-                height={165}
-                style={{ height: 34, width: 34, objectFit: 'contain', display: 'block' }}
-              />
-              <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.02em' }}>
-                {t('site.wordmark')}
-              </span>
-            </Link>
-          </div>
+          <a
+            href={AI_HUB_MARK.href}
+            target="_blank"
+            rel="noopener"
+            className="proto-footer-badge"
+            style={BADGE}
+          >
+            <Image
+              src={AI_HUB_MARK.src}
+              alt={t('footer.linkAiHub')}
+              width={AI_HUB_MARK.width}
+              height={AI_HUB_MARK.height}
+              style={BADGE_IMAGE}
+            />
+          </a>
 
           <div
             style={{
@@ -282,19 +267,6 @@ export default function SiteFooter() {
             }}
           >
             {t('footer.tagline')}
-          </div>
-        </div>
-
-        <div style={{ flex: 1, minWidth: 180 }}>
-          <div style={COLUMN_HEADING}>{t('footer.quickLinks')}</div>
-          <div style={COLUMN_LIST}>
-            {/* One entry, as the prototype has it: the directory itself. Its
-                other public routes reach a reader from the header and from
-                the Contact column, and the impact page is unreachable by
-                design while its feature flag is off. */}
-            <Link href="/" className="proto-footer-link" style={COLUMN_LINK}>
-              {t('site.wordmark')}
-            </Link>
           </div>
         </div>
 
@@ -360,17 +332,47 @@ export default function SiteFooter() {
         </div>
       </div>
 
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.12)' }}>
+      {/* The AI Hub website's own closing band, transcribed from it rather
+          than from the prototype: a full-width rule, the translation
+          disclaimer, then the copyright with the programme's hashtags opposite.
+          Its type is that site's -- a 1px rule, 12px italic for the disclaimer
+          and 14px for the row -- but the text takes this footer's own
+          FOOTER_TEXT rather than that site's near-white, so the band reads as
+          part of the columns above it and not as a strip borrowed from
+          somewhere else. */}
+      <div
+        style={{
+          maxWidth: 1180,
+          margin: '0 auto',
+          padding: '0 32px 40px 32px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 32,
+        }}
+      >
+        <div style={{ height: 1, width: '100%', background: '#fff' }} />
+        <p style={{ margin: 0, fontSize: 12, fontStyle: 'italic', color: FOOTER_TEXT }}>
+          {t('footer.disclaimer')}
+        </p>
         <div
           style={{
-            maxWidth: 1180,
-            margin: '0 auto',
-            padding: '16px 32px',
-            fontSize: 12,
-            color: '#A9B8E0',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: 32,
+            flexWrap: 'wrap',
           }}
         >
-          {t('footer.copyright', { year: new Date().getFullYear() })}
+          <p style={{ margin: 0, fontSize: 14, color: FOOTER_TEXT }}>
+            {t('footer.copyright', { year: new Date().getFullYear() })}
+          </p>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            {HASHTAGS.map((key) => (
+              <p key={key} style={{ margin: 0, fontSize: 14, color: FOOTER_TEXT }}>
+                {t(key)}
+              </p>
+            ))}
+          </div>
         </div>
       </div>
     </footer>

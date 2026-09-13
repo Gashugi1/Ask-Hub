@@ -85,16 +85,15 @@ function inNeed(row: PublicResource, need: NeedKey): boolean {
  * category out from under a returning visitor's cursor. A stated order stays
  * put.
  *
- * **Partners is absent, deliberately, and is now the only need hidden here.**
- * The four original categories are joined by `data`, `challenges` and
- * `community` (added with the expanded catalogue). `partners` stays out of
- * this menu only: it remains a valid need everywhere else -- the directory's
- * filter chips, the pill on a card, exports, and the admin form -- so the
- * resources under it keep their category and stay findable by filtering.
- * Nothing is stranded, and nothing had to be re-categorised.
+ * **Every need appears, `partners` included.** It was held out of this menu
+ * for a while, on the reasoning that a category nobody had published into was
+ * not worth a row; the menu is now the product's statement of what the
+ * directory covers, so leaving one category out made the coverage look
+ * narrower than it is. Its position mirrors `NEED_KEYS`, between `accelerator`
+ * and `data`.
  */
 const BROWSE_ORDER: readonly NeedKey[] = [
-  'training', 'compute', 'funding', 'accelerator', 'data', 'challenges', 'community',
+  'training', 'compute', 'funding', 'accelerator', 'partners', 'data', 'challenges', 'community',
 ];
 
 export function buildNeedMenu(
@@ -102,19 +101,18 @@ export function buildNeedMenu(
   resources: readonly PublicResource[],
 ): NeedMenuEntry[] {
   const byNeed = new Map(counts.map((count) => [count.need, count]));
-  return BROWSE_ORDER.flatMap((need) => {
-    const count = byNeed.get(need);
-    // A category with nothing live in it still renders no entry: a row
-    // reading "0" is a click through to an empty directory.
-    if (!count || count.liveCount <= 0) return [];
-    return [
-      {
-        need,
-        liveCount: count.liveCount,
-        subCategories: subCategoriesFor(resources, need),
-      },
-    ];
-  });
+  // Every category renders, including the ones with nothing live in them yet.
+  // They used to be dropped, because a row reading "0" is a click through to
+  // an empty directory -- but a menu that shows only what is already published
+  // describes the catalogue rather than the directory's scope, and a category
+  // silently missing is harder to explain than an honest zero. A need absent
+  // from `counts` is absent because Postgres counts live rows and found none,
+  // which is the same thing as zero.
+  return BROWSE_ORDER.map((need) => ({
+    need,
+    liveCount: byNeed.get(need)?.liveCount ?? 0,
+    subCategories: subCategoriesFor(resources, need),
+  }));
 }
 
 /**

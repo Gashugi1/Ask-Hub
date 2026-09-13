@@ -81,7 +81,7 @@ The core entity.
 
 Derived behaviour, computed and not stored:
 
-- A resource whose `deadline` is in the past displays as **Closed** on the public site and is flagged in admin as "Auto-closed, past deadline". Its `status` is unchanged: auto-close is a display state, not a status transition.
+- A resource whose `deadline` is in the past is **removed from the public listings** — the directory, search, the recently-added rail, the browse counts and the export — because it is no longer something a visitor can act on. Its detail page still resolves and displays it as **Closed**, so a link shared before the deadline does not become a 404. In admin it remains listed under the Closed tab and is flagged "Auto-closed, past deadline". Its `status` is unchanged: auto-close is a display and listing state, not a status transition.
 - Resources with a `deadline` within 14 days surface in the admin "Expiring soon" view and show a "N days left" indicator.
 - Only `status = 'live'` resources appear publicly.
 - `geo_scope` of `global`, `all_africa` or `partner_countries` matches any country filter selection. There is no "Global programmes" option in the country filter (content rule 10.6).
@@ -173,7 +173,7 @@ Immediately usable on landing, in this order:
 1. Welcome and orientation band (heading, body, CTA), copy editable from admin
 2. Headline reach strip, first four hero stats
 3. Prominent search
-4. Persistent browse by need (five need types with live counts)
+4. Persistent browse by need — every need type, each with its live count, including the ones currently at zero
 5. Featured opportunities carousel
 6. Scrolling partner logo row, each logo linking to the partner's official site
 7. Recently added rail
@@ -404,7 +404,7 @@ Supabase Auth covers only authentication email (invite, password reset). A trans
 
 ## 10. Content rules (non-negotiable, set by K&S)
 
-1. Attribution is always "co-led by MIMIT and UNDP". Never "powered by" or "implemented by". The footer carries it in the copyright bar — "Co-led by MIMIT and UNDP" — and the full sentence, "Co-led by the Ministry of Enterprises and Made in Italy and the United Nations Development Programme.", is carried by the Contact page.
+1. Attribution is always "co-led by MIMIT and UNDP". Never "powered by" or "implemented by". The footer carries it in the tagline — "A G7-endorsed, MIMIT-UNDP co-led initiative…" — and the full sentence, "Co-led by the Ministry of Enterprises and Made in Italy and the United Nations Development Programme.", is carried by the Contact page. The copyright line matches the AI Hub website's and names no co-lead.
 2. Always "AI Hub" or "AI Hub for Sustainable Development". Never "the Hub" alone.
 3. One mailbox only: `aihubfordevelopment@undp.org`.
 4. "Democratic Republic of the Congo" written in full.

@@ -126,6 +126,7 @@ export default function BrowseByNeed({
       </div>
 
       <ul
+        className="proto-browse-scroller"
         style={{
           marginTop: 10,
           display: 'flex',
@@ -133,9 +134,11 @@ export default function BrowseByNeed({
           gap: 2,
           listStyle: 'none',
           padding: 0,
-          // The scroll region inside the 440px card (globals.css
-          // .proto-browse-rail): the "Browse" label stays put while the
-          // category list scrolls, matching the prototype's department menu.
+          // The scroll region inside the card (globals.css
+          // .proto-browse-rail sets its height): the "Browse" label stays put
+          // while the category list scrolls, matching the prototype's
+          // department menu. The class carries the scrollbar and the edge
+          // fade that say the list continues.
           overflowY: 'auto',
           flex: 1,
           minHeight: 0,

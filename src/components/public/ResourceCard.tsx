@@ -180,12 +180,25 @@ export default function ResourceCard({ resource }: { resource: PublicResource })
         </div>
 
         {resource.description ? (
+          // Clamped to three lines, as the recently-added rail clamps its own.
+          // Descriptions are partner copy of no fixed length -- an imported
+          // tracker row assembles one from a dozen columns and can run to a
+          // thousand characters -- and the directory is a grid, so every card
+          // in a row stretches to the tallest. Unclamped, a single long
+          // description pushes its neighbours' action links a screen down and
+          // leaves them sitting above that much empty white. The full text is
+          // still in the DOM for a reader and a crawler, and the detail page
+          // is where it is meant to be read.
           <p
             style={{
               fontSize: 13.5,
               lineHeight: 1.55,
               color: '#42506E',
               margin: 0,
+              overflow: 'hidden',
+              display: '-webkit-box',
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical',
             }}
           >
             {resource.description}

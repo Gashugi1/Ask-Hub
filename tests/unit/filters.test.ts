@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  openResources,
   parseFilters,
   toSearchParams,
   directoryHref,
@@ -155,6 +156,35 @@ describe('toSearchParams', () => {
   });
 });
 
+describe('openResources', () => {
+  const open = resource({ id: 'open', isClosed: false });
+  const closed = resource({ id: 'closed', isClosed: true, deadline: '2020-01-01', daysLeft: -1 });
+
+  it('drops what a visitor can no longer apply to', () => {
+    expect(openResources([open, closed]).map((r) => r.id)).toEqual(['open']);
+  });
+
+  it('keeps a rolling resource, which has no deadline to pass', () => {
+    const rolling = resource({ id: 'rolling', deadline: null, daysLeft: null, isClosed: false });
+    expect(openResources([rolling]).map((r) => r.id)).toEqual(['rolling']);
+  });
+
+  it('reads is_closed rather than forming its own opinion about dates', () => {
+    // resources_public computes is_closed in SQL, and the boundary it uses --
+    // a deadline of exactly today is still open -- is not repeated here. A row
+    // flagged closed goes, whatever its date says, so the two cannot drift
+    // apart over the day a deadline expires.
+    const contradictory = resource({ id: 'x', isClosed: true, deadline: '2099-01-01', daysLeft: 9999 });
+    expect(openResources([contradictory])).toEqual([]);
+  });
+
+  it('does not mutate what it is given', () => {
+    const rows = [open, closed];
+    openResources(rows);
+    expect(rows).toHaveLength(2);
+  });
+});
+
 describe('filterResources', () => {
   const rows = [
     resource({ id: 'a', needPrimary: 'compute', name: 'Cloud credits programme' }),
@@ -272,7 +302,12 @@ describe('filterResources', () => {
   });
 
   it('keeps closed resources in the results', () => {
-    // PRD 4.2: a past deadline changes the display, never the listing.
+    // Still true at *this* layer, and deliberately so: a closed resource is
+    // dropped from the public listings by `openResources` before the criteria
+    // are applied, so `filterResources` never needs an opinion about
+    // deadlines. Keeping one here would mean two places deciding the same
+    // thing, and the detail page -- which reads the unfiltered list -- would
+    // be the one to break.
     const closed = [resource({ id: 'z', isClosed: true, deadline: '2020-01-01', daysLeft: -1 })];
     expect(filterResources(closed, EMPTY_CRITERIA)).toHaveLength(1);
   });

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { t } from '@/lib/i18n';
 import FilterControls from '@/components/public/FilterControls';
 import { EMPTY_CRITERIA, filterResources } from '@/lib/public/filters';
 import type { PublicResource } from '@/lib/public/types';
@@ -160,10 +161,11 @@ describe('FilterControls facets', () => {
     );
 
     expect((screen.getByLabelText('Need') as HTMLSelectElement).value).toBe('');
-    expect(screen.getByRole('option', { name: 'All categories' })).toBeTruthy();
-    expect(screen.getByRole('option', { name: 'All sectors' })).toBeTruthy();
-    expect(screen.getByRole('option', { name: 'All stages' })).toBeTruthy();
-    expect(screen.getByRole('option', { name: 'All countries' })).toBeTruthy();
+    // Read through t() rather than pinning the English: these labels are copy
+    // and have already been reworded once.
+    for (const key of ['anyNeed', 'anySector', 'anyStage', 'anyCountry']) {
+      expect(screen.getByRole('option', { name: t(`filter.${key}`) }), key).toBeTruthy();
+    }
   });
 
   it('renders no toggle chips — the facet panel is gone', () => {

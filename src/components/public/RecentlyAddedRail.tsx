@@ -50,6 +50,7 @@ export default function RecentlyAddedRail({ resources }: { resources: PublicReso
       </h2>
 
       <ul
+        className="proto-rail-scroller"
         style={{
           display: 'flex',
           gap: 14,
@@ -74,7 +75,10 @@ export default function RecentlyAddedRail({ resources }: { resources: PublicReso
                 background: '#fff',
                 display: 'flex',
                 flexDirection: 'column',
-                minHeight: 378,
+                // A floor, not the working height: the row's height comes
+                // from .proto-browse-rail beside it and these cards stretch to
+                // it. Low enough never to push that row taller.
+                minHeight: 240,
                 height: '100%',
               }}
             >

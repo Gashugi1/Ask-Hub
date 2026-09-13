@@ -276,6 +276,27 @@ function matchesQuery(row: PublicResource, query: string): boolean {
     .every((word) => haystack.includes(word));
 }
 
+/**
+ * The resources a visitor should be offered: everything live whose deadline
+ * has not passed.
+ *
+ * A closed opportunity leaves the public listings -- the directory, search,
+ * the recently-added rail and the browse menu -- because it is something
+ * nobody can act on any more, and a directory of things you cannot apply to
+ * is a directory that wastes the reader's time. It keeps its own page, so a
+ * link shared in a newsletter still resolves and says Closed rather than
+ * 404ing at whoever follows it months later.
+ *
+ * Reads `isClosed` rather than comparing dates: `resources_public` computes
+ * it in SQL, and a second opinion in TypeScript is how the two come to
+ * disagree about the day a deadline expires.
+ */
+export function openResources(
+  rows: readonly PublicResource[],
+): PublicResource[] {
+  return rows.filter((row) => !row.isClosed);
+}
+
 export function filterResources(
   rows: readonly PublicResource[],
   criteria: FilterCriteria,
