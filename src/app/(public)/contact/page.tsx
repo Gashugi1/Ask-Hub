@@ -70,7 +70,6 @@ export default function ContactPage() {
         <SuggestResourceModal />
       </section>
 
-      <p style={{ marginTop: 36, fontSize: 13, color: '#5B6B8C' }}>{t('site.footer')}</p>
     </div>
   );
 }

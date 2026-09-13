@@ -15,10 +15,11 @@ import { t } from '@/lib/i18n';
  * carries its own contrast, so the outlines are deliberately not transcribed
  * and the marks sit unboxed where the prototype puts them.
  *
- * **The co-led sentence is not repeated here.** PRD content rule 10.1 is
- * satisfied by the tagline's "MIMIT-UNDP co-led initiative" -- the copyright
- * line matches the AI Hub website's and names no co-lead -- and the full
- * sentence `site.footer` pins is carried by /contact.
+ * **The co-led sentence is not here.** PRD content rule 10.1 is satisfied
+ * by the tagline's "MIMIT-UNDP co-led initiative" and the welcome band's
+ * "co-led by MIMIT and UNDP"; the copyright line matches the AI Hub
+ * website's and names no co-lead. The full sentence `site.footer` pins is
+ * kept in en.json as the canonical wording but no page renders it.
  *
  * **The year is interpolated, not written.** The prototype hardcodes "2026".
  * `t()` substitutes `{year}` at render, and this page is statically
