@@ -452,13 +452,20 @@ button {
  * playing at them. Everywhere else the same fade is simply static, which still
  * says "more this way".
  */
-.proto-rail-scroller,
-.proto-browse-scroller {
-  scrollbar-width: thin;
-  scrollbar-color: #c9d3e8 transparent;
+/* The standard properties only where the WebKit pseudo-elements are absent
+   (Firefox). Chromium honours both, and once `scrollbar-width` is set it
+   discards the `::-webkit-scrollbar` rules below -- leaving macOS's overlay
+   bar, which hides itself until you are already scrolling. The
+   pseudo-element route is what forces a classic, always-drawn bar. */
+@supports not selector(::-webkit-scrollbar) {
+  .proto-rail-scroller,
+  .proto-browse-scroller {
+    scrollbar-width: thin;
+    scrollbar-color: #c9d3e8 transparent;
+  }
 }
 
-/* WebKit and Chromium before they honoured the two standard properties. */
+/* WebKit and Chromium: a slim bar that is always drawn. */
 .proto-rail-scroller::-webkit-scrollbar,
 .proto-browse-scroller::-webkit-scrollbar {
   width: 8px;

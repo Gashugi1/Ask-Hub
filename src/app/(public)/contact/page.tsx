@@ -50,15 +50,19 @@ export default function ContactPage() {
         </a>
       </p>
 
-      {/* The prototype's bordered panel (reference lines 430-438), holding
-          the suggest-a-resource invitation and the button that opens the form. */}
+      {/* The prototype's bordered #F4F6F9 panel (reference lines 430-438),
+          holding the suggest-a-resource invitation and the button that opens
+          the form -- centred in the page, as the one thing this page asks a
+          visitor to do. */}
       <section
         style={{
-          marginTop: 32,
+          margin: '32px auto 0 auto',
           border: '1px solid #DDE5EE',
           borderRadius: 14,
           padding: 28,
           maxWidth: 560,
+          background: '#F4F6F9',
+          textAlign: 'center',
         }}
       >
         <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>
