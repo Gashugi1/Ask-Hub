@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { requireRole } from '@/lib/auth';
 import { createAdminReadClient } from '@/lib/admin/client';
 import { readPartnerNames, readResourceDedupeIndex } from '@/lib/admin/readers';
-import { resourceInput } from '@/lib/schemas/resource';
+import { resourceInput, toRow } from '@/lib/schemas/resource';
 import { CACHE_TAGS } from '@/lib/public/cache';
 import { parseCsv } from '@/lib/admin/import-csv';
 import { pickSheetTable } from '@/lib/admin/import-sheet';
@@ -66,30 +66,6 @@ function revalidatePartners(): void {
  * write that failed would evict a correct cached page and replace it with an
  * identical one, hiding the failure behind a cache miss.
  */
-function toRow(input: ReturnType<typeof resourceInput.parse>) {
-  return {
-    name: input.name,
-    partner: input.partner,
-    partner_tier: input.partnerTier,
-    resource_type: input.resourceType,
-    need_primary: input.needPrimary,
-    need_secondary: input.needSecondary,
-    sub_category: input.subCategory,
-    description: input.description,
-    action_label: input.actionLabel,
-    external_url: input.externalUrl,
-    banner_image_url: input.bannerImageUrl,
-    countries_eligible: input.countriesEligible,
-    sectors_eligible: input.sectorsEligible,
-    stages_eligible: input.stagesEligible,
-    geo_scope: input.geoScope,
-    deadline: input.deadline,
-    status: input.status,
-    is_featured: input.isFeatured,
-    exclusivity: input.exclusivity,
-    sort_order: input.sortOrder,
-  };
-}
 
 export async function createResource(input: unknown): Promise<{ id: string }> {
   await requireRole(['admin', 'editor']);

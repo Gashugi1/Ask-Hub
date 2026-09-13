@@ -5,6 +5,7 @@ import type { FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { resourceInput, type ResourceInput } from '@/lib/schemas/resource';
 import { createResource, updateResource, deleteResource } from '@/lib/actions/resources';
+import { createResourceFromSubmission, markSubmissionApproved } from '@/lib/actions/submissions';
 import { COUNTRIES, SECTORS, STAGES, NEED_KEYS } from '@/lib/reference';
 import { STATUSES } from '@/lib/admin/resource-view';
 import { Constants } from '@/lib/supabase/database.types';
@@ -137,12 +138,26 @@ function partnerOptions(known: readonly string[], stored: string): string[] {
 export default function ResourceForm({
   initial,
   partners,
+  prefill,
+  submissionId,
 }: {
   initial?: ResourceInput & { id: string };
   /** From `readPartnerNames()`; the create and edit routes both supply it. */
   partners: readonly string[];
+  /**
+   * A suggestion's draft, for "Edit first": the fields start from it rather
+   * than blank. Ignored when `initial` is set.
+   */
+  prefill?: ResourceInput;
+  /**
+   * The submission this save completes. On create the write goes through
+   * `createResourceFromSubmission`, which may create the partner and marks
+   * the suggestion approved; on edit, `markSubmissionApproved` follows the
+   * update. Either way the suggestion leaves the Review Queue.
+   */
+  submissionId?: string;
 }) {
-  const [raw, setRaw] = useState<RawValues>(() => toRaw(initial));
+  const [raw, setRaw] = useState<RawValues>(() => toRaw(initial ?? prefill));
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof RawValues, string>>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -178,7 +193,10 @@ export default function ResourceForm({
     // generic form error a thrown server action produces. Next replaces a
     // server action's error message with an opaque digest in production, so
     // the specific wording has to be produced on this side.
-    if (!partners.includes(parsed.data.partner)) {
+    // Skipped when completing a suggestion: its organisation is usually a
+    // partner the table has never seen, and createResourceFromSubmission
+    // creates it name-only before the insert, as Approve & publish does.
+    if (!submissionId && !partners.includes(parsed.data.partner)) {
       setFieldErrors({
         partner: t('admin.resources.form.partnerUnknown', { partner: parsed.data.partner }),
       });
@@ -191,6 +209,13 @@ export default function ResourceForm({
       try {
         if (initial) {
           await updateResource(initial.id, parsed.data);
+          if (submissionId) await markSubmissionApproved(submissionId);
+        } else if (submissionId) {
+          const outcome = await createResourceFromSubmission(submissionId, parsed.data);
+          if (!outcome.ok) {
+            setFormError(t(`admin.review.refused.${outcome.reason}`));
+            return;
+          }
         } else {
           await createResource(parsed.data);
         }

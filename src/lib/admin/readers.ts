@@ -14,6 +14,9 @@ import {
   type ComputeMetric,
   type Programme,
   type ImpactStory,
+  REVIEW_SUBMISSION_COLUMNS,
+  toReviewSubmission,
+  type ReviewSubmission,
 } from './types';
 import { AUDIT_PAGE_SIZE, type AuditFilters } from './audit-view';
 import type { CoverageRow } from './dashboard-view';
@@ -93,6 +96,42 @@ export async function readPendingSubmissionCount(): Promise<number> {
     .eq('status', 'pending');
   if (error) throw new Error(`admin read failed (submissions): ${error.message}`);
   return count ?? 0;
+}
+
+/**
+ * The review queue, oldest first so the longest wait is at the top.
+ *
+ * An explicit column list, never `*`: `rejection_reason` and
+ * `source_ip_hash` are `@sensitive` and the screen has no use for either.
+ * The target resource's current name is embedded for update suggestions,
+ * so the card can say which resource the visitor meant.
+ */
+export async function readPendingSubmissions(): Promise<ReviewSubmission[]> {
+  const supabase = await createAdminReadClient();
+  const { data, error } = await supabase
+    .from('submissions')
+    .select(REVIEW_SUBMISSION_COLUMNS)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true });
+  if (error) throw new Error(`admin read failed (submissions): ${error.message}`);
+  return (data ?? []).map(toReviewSubmission);
+}
+
+/**
+ * One submission by id, in any status -- the actions check the status
+ * themselves, and the prefilled form must still load a suggestion that
+ * has just been approved from another tab. `null` when there is no such
+ * row.
+ */
+export async function readSubmissionForReview(id: string): Promise<ReviewSubmission | null> {
+  const supabase = await createAdminReadClient();
+  const { data, error } = await supabase
+    .from('submissions')
+    .select(REVIEW_SUBMISSION_COLUMNS)
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw new Error(`admin read failed (submissions): ${error.message}`);
+  return data ? toReviewSubmission(data) : null;
 }
 
 /**

@@ -91,6 +91,10 @@ describe('route structure', () => {
     expect(routes()['/(admin)/admin/resources/import/page']).toBe('/admin/resources/import');
   });
 
+  it('serves the review queue at /admin/review', () => {
+    expect(routes()['/(admin)/admin/review/page']).toBe('/admin/review');
+  });
+
   it('serves the settings screen at /admin/settings', () => {
     expect(routes()['/(admin)/admin/settings/page']).toBe('/admin/settings');
   });
