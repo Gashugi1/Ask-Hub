@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { ensureTestUsers, anonClient, roleClient, serviceClient } from '../helpers/clients';
 import { fixtureStamp } from '../helpers/fixtures';
+import { submissionToResourceInput } from '@/lib/admin/submission-to-resource';
+import { resourceInput, toRow } from '@/lib/schemas/resource';
 
 /**
  * The public suggestion form's database boundary: `submit_resource_suggestion`
@@ -21,6 +23,8 @@ describe('submit_resource_suggestion as anon', () => {
   afterAll(async () => {
     const svc = serviceClient();
     await svc.from('submissions').delete().like('resource_name', `%${stamp}%`);
+    await svc.from('resources').delete().like('name', `%${stamp}%`);
+    await svc.from('partners').delete().like('name', `%${stamp}%`);
     await svc.from('audit_log').delete().like('entity_label', `%${stamp}%`);
   });
 
@@ -147,5 +151,64 @@ describe('submit_resource_suggestion as anon', () => {
       .eq('status', 'pending')
       .select('id');
     expect(again.data ?? []).toEqual([]);
+  });
+
+  it('runs the approve-and-publish sequence as an editor, and logs the decision as approved', async () => {
+    // approveAndPublishSubmission's own statements, on the editor's client:
+    // name-only partner upsert, resource insert from the mapper, then the
+    // pending-only status update. The trigger (0025) classifies the last as
+    // 'approved', and the partner and resource both exist afterwards.
+    const partner = `Suggested Org ${stamp}`;
+    const name = `Approve seq ${stamp}`;
+    const svc = serviceClient();
+    const { data: row } = await svc
+      .from('submissions')
+      .insert({
+        type: 'new_resource',
+        resource_name: name,
+        organisation: partner,
+        need: 'compute',
+        link: 'https://example.org/apply',
+        description: 'Credits for teams.',
+        submitter_email: email,
+        submitter_name: 'Ada Submitter',
+      })
+      .select('id, type, resource_name, organisation, need, link, description')
+      .single();
+
+    const editor = await roleClient('editor');
+    const upsert = await editor.from('partners').upsert({ name: partner }, { onConflict: 'name' });
+    expect(upsert.error).toBeNull();
+
+    const parsed = resourceInput.parse(
+      submissionToResourceInput({
+        resourceName: row!.resource_name,
+        organisation: row!.organisation,
+        need: row!.need,
+        link: row!.link,
+        description: row!.description,
+      }),
+    );
+    const inserted = await editor.from('resources').insert(toRow(parsed)).select('id, status').single();
+    expect(inserted.error).toBeNull();
+    expect(inserted.data!.status).toBe('live');
+
+    const approved = await editor
+      .from('submissions')
+      .update({ status: 'approved', reviewed_at: new Date().toISOString() })
+      .eq('id', row!.id)
+      .eq('status', 'pending')
+      .select('id');
+    expect(approved.error).toBeNull();
+    expect(approved.data).toHaveLength(1);
+
+    const { data: audit } = await svc
+      .from('audit_log')
+      .select('action, actor_name, diff')
+      .eq('entity_id', row!.id)
+      .order('created_at', { ascending: true });
+    expect(audit!.map((entry) => entry.action)).toEqual(['created', 'approved']);
+    expect(audit![1]!.actor_name).not.toBe('system');
+    expect(JSON.stringify(audit)).not.toContain('Ada Submitter');
   });
 });
