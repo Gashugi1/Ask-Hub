@@ -16,6 +16,18 @@ in `src/app/api`, server actions go here.
 - `await requireRole([...])` from `@/lib/auth` as the first statement of every
   mutating action. PRD 3 and 14.4: the proxy redirect is UX, not security, and
   an action reached directly has had no gate applied to it.
+
+  The exceptions are listed, with their reasons, in
+  `tests/structure/admin-guard-allowlist.ts`, and the list is short on
+  purpose: sign-in and sign-out, which are pre-authentication by definition,
+  and `submitResourceSuggestion`, the public form whose caller is a visitor
+  with no session. An anonymous-facing action authorises nothing itself; it
+  runs on the visitor's own `anon` client and calls a `security definer`
+  function that is the only write that role can reach, re-checks every cap
+  in its body, and rate-limits there too, because the function -- not the
+  action -- is what a caller holding the public API key can reach directly.
+  The function must be registered in `tests/rls/security-allowlist.ts`'s
+  `ANON_EXECUTABLE`.
 - Zod parse at the boundary; use the parsed result, never the raw input.
 - Ownership and target checks on every record access, to prevent IDOR.
 - **Do not write an `audit_log` row, and do not pass an actor.** The database

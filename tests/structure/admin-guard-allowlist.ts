@@ -24,12 +24,15 @@ export interface Exception {
 // than a whole module: adding a third action to session.ts does not inherit
 // signIn's exemption.
 //
-// The list is two entries and should stay that way. Both are
-// pre-authentication by definition -- an authentication check cannot be a
-// precondition of authenticating. Every other action in this folder mutates
-// data on behalf of a caller whose role has to be established first, and PRD
-// 14.4 plus src/lib/actions/README.md require that check to be the first
-// statement, before any parse, any client construction and any I/O.
+// Three entries. The first two are pre-authentication by definition -- an
+// authentication check cannot be a precondition of authenticating. The third
+// is the public suggestion form, whose caller is a visitor with no session by
+// definition; its authorisation lives in the database function it calls,
+// which is the only write `anon` can reach and enforces every cap and the
+// rate limit itself. Every other action in this folder mutates data on behalf
+// of a caller whose role has to be established first, and PRD 14.4 plus
+// src/lib/actions/README.md require that check to be the first statement,
+// before any parse, any client construction and any I/O.
 export const ACTION_ROLE_EXEMPT: Record<string, Exception> = {
   'session.ts#signIn': {
     approvedIn: 'SP3-T9',
@@ -38,6 +41,10 @@ export const ACTION_ROLE_EXEMPT: Record<string, Exception> = {
   'session.ts#signOut': {
     approvedIn: 'SP3-T9',
     why: 'Destroys a session and is safe for any caller including one with none; refusing it for a role would strand a signed-in user who may no longer sign out.',
+  },
+  'suggestions.ts#submitResourceSuggestion': {
+    approvedIn: 'SP2b-T1',
+    why: 'The public Suggest a resource form, whose caller is an anonymous visitor by definition. It runs on the visitor own anon client and calls submit_resource_suggestion (migration 0024), the one write that role can reach on submissions; the function re-checks every cap and enforces the rate limit itself, and never the service-role client. Registered in ANON_EXECUTABLE.',
   },
 };
 
@@ -58,5 +65,5 @@ export const PAGE_ROLE_EXEMPT: Record<string, Exception> = {
   },
 };
 
-export const EXPECTED_ACTION_ROLE_EXEMPT = 2;
+export const EXPECTED_ACTION_ROLE_EXEMPT = 3;
 export const EXPECTED_PAGE_ROLE_EXEMPT = 2;

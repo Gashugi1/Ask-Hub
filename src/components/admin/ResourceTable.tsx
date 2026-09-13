@@ -132,18 +132,15 @@ export default function ResourceTable({
   const router = useRouter();
   const selectAllRef = useRef<HTMLInputElement>(null);
 
-  // Prune ids that are no longer listed, after a filter change or a refresh.
-  useEffect(() => {
-    const listed = new Set(rows.map((row) => row.id));
-    setSelected((current) => {
-      const next = new Set([...current].filter((id) => listed.has(id)));
-      return next.size === current.size ? current : next;
-    });
-  }, [rows]);
+  // Selection is read through the listed rows, never raw: an id ticked before
+  // a filter change or a refresh stays in state but counts for nothing until
+  // its row is listed again, so a hidden row can never be published.
+  const listed = new Set(rows.map((row) => row.id));
+  const selectedListed = new Set([...selected].filter((id) => listed.has(id)));
 
-  const allSelected = rows.length > 0 && rows.every((row) => selected.has(row.id));
-  const someSelected = selected.size > 0 && !allSelected;
-  const publishable = rows.filter((row) => selected.has(row.id) && row.status !== 'live');
+  const allSelected = rows.length > 0 && rows.every((row) => selectedListed.has(row.id));
+  const someSelected = selectedListed.size > 0 && !allSelected;
+  const publishable = rows.filter((row) => selectedListed.has(row.id) && row.status !== 'live');
 
   // `indeterminate` is a DOM property with no attribute, so it is set by hand.
   useEffect(() => {
@@ -207,7 +204,7 @@ export default function ResourceTable({
             >
               {t('admin.resources.publishSelected', { count: publishable.length })}
             </button>
-          ) : selected.size > 0 ? (
+          ) : selectedListed.size > 0 ? (
             <span style={ADMIN_HELP}>{t('admin.resources.alreadyLive')}</span>
           ) : null}
           <span role="status" aria-live="polite" style={{ ...ADMIN_HELP, color: '#0E7A54', fontWeight: 700 }}>
@@ -267,7 +264,7 @@ export default function ResourceTable({
                     <input
                       type="checkbox"
                       aria-label={t('admin.resources.selectRow', { name: row.name })}
-                      checked={selected.has(row.id)}
+                      checked={selectedListed.has(row.id)}
                       onChange={() => toggleRow(row.id)}
                     />
                   </td>
