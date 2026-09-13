@@ -175,6 +175,18 @@ body {
   box-sizing: border-box;
 }
 
+/* Tailwind's preflight resets `margin: 0` on every element, which takes the
+   browser's own `margin: auto` off a modal <dialog> and leaves it pinned to
+   the top-left of the viewport. Restored here, once, for every dialog. */
+dialog {
+  margin: auto;
+}
+
+/* The prototype's modal scrim (its suggest and import overlays). */
+dialog::backdrop {
+  background: rgba(16, 24, 48, 0.5);
+}
+
 input,
 select,
 textarea,
