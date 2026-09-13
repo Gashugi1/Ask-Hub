@@ -276,6 +276,7 @@
   "admin.review.refused.duplicate": "A resource with this name already exists for that organisation. Reject this suggestion, or edit the existing resource by hand.",
   "admin.empty.noRows": "Nothing here yet.",
   "admin.error.generic": "Something went wrong. Try again, or sign out and back in.",
+  "admin.loading": "Loading…",
   "admin.resources.heading": "Resources",
   "admin.resources.publicNote": "Resources with status Live appear on the public directory.",
   "admin.resources.tab.all": "All",
