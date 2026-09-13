@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { requireRole } from '@/lib/auth';
+import { requirePageRole } from '@/lib/admin/guard';
 import {
   readResourceForEdit,
   readPartnerNames,
@@ -10,10 +10,11 @@ import SubmissionAside from '@/components/admin/SubmissionAside';
 import { t } from '@/lib/i18n';
 
 /**
- * requireRole runs here too, not only inside updateResource/deleteResource:
+ * requirePageRole runs here too, not only inside updateResource/deleteResource:
  * a page check is UX, the action's own requireRole is the actual gate (PRD
  * 14.4, src/lib/actions/README.md) — this route can be reached directly,
- * with no proxy in front of it, exactly like the actions can.
+ * with no proxy in front of it, exactly like the actions can. A viewer gets
+ * `notFound()`, as on Review and Settings, rather than a FORBIDDEN error.
  *
  * `?submission=<id>` is the Review Queue's "Open resource to edit": the
  * update suggestion is shown beside the form, and saving marks it approved.
@@ -26,7 +27,7 @@ export default async function EditResourcePage({
   params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireRole(['admin', 'editor']);
+  await requirePageRole(['admin', 'editor']);
   const { id } = await params;
   const resource = await readResourceForEdit(id);
   if (!resource) notFound();

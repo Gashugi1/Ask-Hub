@@ -1,4 +1,4 @@
-import { requireRole } from '@/lib/auth';
+import { requirePageRole } from '@/lib/admin/guard';
 import { readPartnerNames, readSubmissionForReview } from '@/lib/admin/readers';
 import { submissionResourceDraft } from '@/lib/admin/submission-to-resource';
 import ResourceForm from '@/components/admin/ResourceForm';
@@ -6,11 +6,12 @@ import SubmissionAside from '@/components/admin/SubmissionAside';
 import { t } from '@/lib/i18n';
 
 /**
- * requireRole runs here too, not only inside createResource: a page check is
+ * requirePageRole runs here too, not only inside createResource: a page check is
  * UX (an editor should never see the form flash before a redirect), the
  * action's own requireRole is the actual gate (PRD 14.4, src/lib/actions/
  * README.md) — this route can be reached directly, with no proxy in front of
- * it, exactly like the action can.
+ * it, exactly like the action can. A viewer gets `notFound()`, as on Review
+ * and Settings, rather than the FORBIDDEN error `requireRole` would throw.
  *
  * `?submission=<id>` is the Review Queue's "Edit first": the form starts
  * from the suggestion's draft with the suggestion shown beside it, and
@@ -23,7 +24,7 @@ export default async function NewResourcePage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireRole(['admin', 'editor']);
+  await requirePageRole(['admin', 'editor']);
   const { submission: submissionParam } = await searchParams;
   const submission =
     typeof submissionParam === 'string' && /^[0-9a-f-]{36}$/i.test(submissionParam)
