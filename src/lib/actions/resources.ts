@@ -158,14 +158,64 @@ export async function setResourceFeatured(rawId: unknown, rawFeatured: unknown):
   revalidateResources();
 }
 
-export async function deleteResource(rawId: unknown): Promise<void> {
+export type DeleteOutcome = { ok: true } | { ok: false; reason: 'referenced' };
+
+/** Postgres's foreign_key_violation. */
+const FOREIGN_KEY_VIOLATION = '23503';
+
+/**
+ * Returns rather than throws for the one refusal the operator can act on. A
+ * submission's `target_resource_id` is `on delete restrict`
+ * (0005_community.sql), so a resource an update suggestion points at cannot
+ * be deleted until that submission is dealt with. Next strips the message
+ * from an error thrown in a production server action, so a thrown Error
+ * would reach the screen as "something went wrong" -- which is exactly the
+ * wrong thing to say about a refusal that has a specific remedy. Any other
+ * failure still throws, as before.
+ */
+export async function deleteResource(rawId: unknown): Promise<DeleteOutcome> {
   await requireRole(['admin', 'editor']);
   const targetId = id.parse(rawId);
   const supabase = await createAdminReadClient();
   const { data, error } = await supabase.from('resources').delete().eq('id', targetId).select('id');
+  if (error?.code === FOREIGN_KEY_VIOLATION) return { ok: false, reason: 'referenced' };
   if (error) throw new Error(`deleteResource failed: ${error.message}`);
   assertRowAffected('deleteResource', data);
   revalidateResources();
+  return { ok: true };
+}
+
+const idList = z.array(id).min(1).max(200);
+
+/**
+ * The resources table's "Publish selected": every listed id that is not
+ * already live becomes live, in one statement.
+ *
+ * One UPDATE with `in` and `neq`, not a loop of `setResourceStatus`: a
+ * batch that fails halfway would leave the operator to work out which of
+ * the twelve rows they selected went through, and one statement either
+ * publishes all of them or none. `neq('status', 'live')` makes an
+ * already-live selection a no-op rather than a spurious `published` audit
+ * row -- the trigger records one per row actually changed. The count
+ * returned is the number of rows that changed, which is what the screen
+ * reports, and the cache is invalidated only when that number is not zero.
+ *
+ * Not a partner writer: status is the only column touched.
+ */
+export async function publishResources(rawIds: unknown): Promise<{ published: number }> {
+  await requireRole(['admin', 'editor']);
+  const ids = idList.parse(rawIds);
+  const supabase = await createAdminReadClient();
+  const { data, error } = await supabase
+    .from('resources')
+    .update({ status: 'live' })
+    .in('id', ids)
+    .neq('status', 'live')
+    .select('id');
+  if (error) throw new Error(`publishResources failed: ${error.message}`);
+  const published = data?.length ?? 0;
+  if (published > 0) revalidateResources();
+  return { published };
 }
 
 /**

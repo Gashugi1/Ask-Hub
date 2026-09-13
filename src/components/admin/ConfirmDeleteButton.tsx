@@ -18,10 +18,13 @@ export default function ConfirmDeleteButton({
   onConfirm,
   disabled,
   label,
+  buttonStyle,
 }: {
   onConfirm: () => void;
   disabled: boolean;
   label: string;
+  /** Overrides the bordered default -- the resources table wants its inline link treatment. */
+  buttonStyle?: React.CSSProperties;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -31,7 +34,20 @@ export default function ConfirmDeleteButton({
         type="button"
         disabled={disabled}
         onClick={() => dialogRef.current?.showModal()}
-        style={{ display: "block", width: "100%", border: "1px solid #C0392B", color: "#C0392B", background: "#fff", borderRadius: 8, padding: "7px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+        style={
+          buttonStyle ?? {
+            display: 'block',
+            width: '100%',
+            border: '1px solid #C0392B',
+            color: '#C0392B',
+            background: '#fff',
+            borderRadius: 8,
+            padding: '7px 12px',
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: 'pointer',
+          }
+        }
       >
         {label}
       </button>

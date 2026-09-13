@@ -206,7 +206,11 @@ export default function ResourceForm({
     if (!initial) return;
     startTransition(async () => {
       try {
-        await deleteResource(initial.id);
+        const outcome = await deleteResource(initial.id);
+        if (!outcome.ok) {
+          setFormError(t('admin.resources.deleteBlocked'));
+          return;
+        }
         router.push('/admin/resources');
         router.refresh();
       } catch {

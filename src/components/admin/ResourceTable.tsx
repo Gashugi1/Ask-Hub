@@ -1,10 +1,17 @@
+'use client';
+
+import { useEffect, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { t } from '@/lib/i18n';
 import { deadlineInfo } from '@/lib/deadline';
+import { publishResources, deleteResource } from '@/lib/actions/resources';
 import type { AdminResource } from '@/lib/admin/types';
 import EmptyState from './EmptyState';
 import StatusSelect from './StatusSelect';
 import FeaturedToggle from './FeaturedToggle';
+import ConfirmDeleteButton from './ConfirmDeleteButton';
+import { ADMIN_PRIMARY, ADMIN_LINK_DANGER, ADMIN_ERROR, ADMIN_HELP } from './chrome';
 
 /**
  * One row's worth of eligibility, labelled by which array it came from —
@@ -50,13 +57,66 @@ function DeadlineCell({ deadline }: { deadline: string | null }) {
 }
 
 /**
- * A row per resource. Task 3 built the read-only version; Task 4 adds the
- * Actions column and turns the Status cell into a live control — both
- * strictly gated on `canWrite`, per CLAUDE.md: a viewer sees no write
- * affordance at all, not a disabled one. That is why the Actions column is
- * a conditional entry in the header/row arrays rather than always-rendered
- * cells with disabled controls inside — an empty column kept only to avoid
- * a layout shift is exactly the thing CLAUDE.md rules out.
+ * The row's delete, as the prototype's red Delete beside Edit: a two-step
+ * control, and a refusal with a remedy when a submission still points at
+ * the resource. Rendered only inside the `canWrite` branch.
+ */
+function DeleteRowButton({ row }: { row: AdminResource }) {
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  return (
+    <>
+      <ConfirmDeleteButton
+        label={t('admin.resources.actions.delete')}
+        disabled={pending}
+        buttonStyle={ADMIN_LINK_DANGER}
+        onConfirm={() => {
+          setError(null);
+          startTransition(async () => {
+            try {
+              const outcome = await deleteResource(row.id);
+              if (!outcome.ok) {
+                setError(t('admin.resources.deleteBlocked'));
+                return;
+              }
+              router.refresh();
+            } catch {
+              setError(t('admin.error.generic'));
+            }
+          });
+        }}
+      />
+      {error ? (
+        <p role="alert" style={{ ...ADMIN_ERROR, margin: '6px 0 0 0' }}>
+          {error}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * A row per resource, with the prototype's bulk publish and row delete.
+ *
+ * The write affordances -- the checkbox column, the Publish selected
+ * button, the Status control, the featured toggle, Edit and Delete -- are
+ * all inside the `canWrite` branch, per CLAUDE.md: a viewer sees no write
+ * affordance at all, not a disabled one. That is why the checkbox and
+ * Actions columns are conditional entries in the header and row rather than
+ * always-rendered cells with disabled controls inside.
+ *
+ * Selection is page state, not URL state: it is the operator's working set
+ * for one action, not a view anyone would share. It is cleared after a
+ * publish and pruned whenever the rows change under it, so a filter change
+ * cannot leave a hidden row selected and then published.
+ *
+ * "Publish selected (n)" counts what the click would do -- the selected
+ * rows not already live -- rather than everything ticked, so the number on
+ * the button is the number of `published` audit rows the click writes. A
+ * selection that is entirely live gets the prototype's note instead of a
+ * button that would do nothing.
  */
 export default function ResourceTable({
   rows,
@@ -65,96 +125,206 @@ export default function ResourceTable({
   rows: AdminResource[];
   canWrite: boolean;
 }) {
+  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
+  const [published, setPublished] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+  const selectAllRef = useRef<HTMLInputElement>(null);
+
+  // Prune ids that are no longer listed, after a filter change or a refresh.
+  useEffect(() => {
+    const listed = new Set(rows.map((row) => row.id));
+    setSelected((current) => {
+      const next = new Set([...current].filter((id) => listed.has(id)));
+      return next.size === current.size ? current : next;
+    });
+  }, [rows]);
+
+  const allSelected = rows.length > 0 && rows.every((row) => selected.has(row.id));
+  const someSelected = selected.size > 0 && !allSelected;
+  const publishable = rows.filter((row) => selected.has(row.id) && row.status !== 'live');
+
+  // `indeterminate` is a DOM property with no attribute, so it is set by hand.
+  useEffect(() => {
+    if (selectAllRef.current) selectAllRef.current.indeterminate = someSelected;
+  }, [someSelected]);
+
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(rows.map((row) => row.id)));
+  }
+
+  function toggleRow(id: string) {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function publishSelected() {
+    const ids = publishable.map((row) => row.id);
+    if (ids.length === 0) return;
+    setError(null);
+    setPublished(null);
+    startTransition(async () => {
+      try {
+        const result = await publishResources(ids);
+        setPublished(result.published);
+        setSelected(new Set());
+        router.refresh();
+      } catch {
+        setError(t('admin.error.generic'));
+      }
+    });
+  }
+
   if (rows.length === 0) {
     return <EmptyState heading={t('admin.resources.empty')} />;
   }
 
   return (
-    // The prototype builds this from CSS grid rows (reference lines 803-838).
-    // A real <table> is kept: the grid would cost row and column semantics for
-    // assistive technology and buy nothing visually that the table cannot do.
-    // Everything else -- the 13px-radius white panel, the #F4F6F9 header
-    // strip, the 11.5px uppercase column labels and the hairline row rules --
-    // is the prototype's.
-    <div
-      style={{
-        marginTop: 16,
-        background: '#fff',
-        border: '1px solid #DDE5EE',
-        borderRadius: 13,
-        overflowX: 'auto',
-      }}
-    >
-      <table style={{ width: '100%', minWidth: 720, borderCollapse: 'collapse' }}>
-        <thead>
-          <tr
-            style={{
-              background: '#F4F6F9',
-              borderBottom: '1px solid #DDE5EE',
-            }}
-          >
-            <th style={TH}>{t('admin.resources.col.resource')}</th>
-            <th style={TH}>{t('admin.resources.col.need')}</th>
-            <th style={TH}>{t('admin.resources.col.eligibility')}</th>
-            <th style={TH}>{t('admin.resources.col.deadline')}</th>
-            <th style={TH}>{t('admin.resources.col.status')}</th>
-            {canWrite ? <th style={TH}>{t('admin.resources.col.actions')}</th> : null}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.id} style={{ borderBottom: '1px solid #F1F4FA' }}>
-              <td style={TD}>
-                <div style={{ fontSize: 13.5, fontWeight: 800, lineHeight: 1.3 }}>
-                  {row.name}
-                </div>
-                <div style={{ fontSize: 12, color: '#5B6B8C', marginTop: 2 }}>
-                  {row.partner} · {row.resourceType}
-                  {row.subCategory ? ` · ${row.subCategory}` : ''}
-                </div>
-              </td>
-              <td style={{ ...TD, fontSize: 12.5, fontWeight: 700, color: '#42506E' }}>
-                <div>{t(`need.${row.needPrimary}`)}</div>
-                {row.needSecondary ? (
-                  <div style={{ color: '#5B6B8C', fontWeight: 600, marginTop: 2 }}>
-                    {t(`need.${row.needSecondary}`)}
-                  </div>
-                ) : null}
-              </td>
-              <td style={{ ...TD, fontSize: 12, color: '#5B6B8C', lineHeight: 1.45 }}>
-                {eligibilitySummary(row)}
-              </td>
-              <td style={TD}>
-                <DeadlineCell deadline={row.deadline} />
-              </td>
-              <td style={TD}>
-                {canWrite ? (
-                  <StatusSelect id={row.id} status={row.status} />
-                ) : (
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#42506E' }}>
-                    {t(`status.${row.status}`)}
-                  </span>
-                )}
-              </td>
+    <>
+      {canWrite ? (
+        <div
+          style={{
+            marginTop: 16,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            flexWrap: 'wrap',
+            minHeight: 20,
+          }}
+        >
+          {publishable.length > 0 ? (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={publishSelected}
+              className="proto-primary-button"
+              style={{ ...ADMIN_PRIMARY, padding: '9px 16px', fontSize: 12.5 }}
+            >
+              {t('admin.resources.publishSelected', { count: publishable.length })}
+            </button>
+          ) : selected.size > 0 ? (
+            <span style={ADMIN_HELP}>{t('admin.resources.alreadyLive')}</span>
+          ) : null}
+          <span role="status" aria-live="polite" style={{ ...ADMIN_HELP, color: '#0E7A54', fontWeight: 700 }}>
+            {published !== null ? t('admin.resources.publishedCount', { count: published }) : ''}
+          </span>
+          {error ? <span style={ADMIN_ERROR}>{error}</span> : null}
+        </div>
+      ) : null}
+
+      {/* The prototype builds this from CSS grid rows (reference lines 803-838).
+          A real <table> is kept: the grid would cost row and column semantics
+          for assistive technology and buy nothing visually that the table
+          cannot do. Everything else -- the 13px-radius white panel, the
+          #F4F6F9 header strip, the 11.5px uppercase column labels and the
+          hairline row rules -- is the prototype's. */}
+      <div
+        style={{
+          marginTop: canWrite ? 10 : 16,
+          background: '#fff',
+          border: '1px solid #DDE5EE',
+          borderRadius: 13,
+          overflowX: 'auto',
+        }}
+      >
+        <table style={{ width: '100%', minWidth: 720, borderCollapse: 'collapse' }}>
+          <thead>
+            <tr
+              style={{
+                background: '#F4F6F9',
+                borderBottom: '1px solid #DDE5EE',
+              }}
+            >
               {canWrite ? (
+                <th style={{ ...TH, width: 36, paddingRight: 0 }}>
+                  <input
+                    ref={selectAllRef}
+                    type="checkbox"
+                    aria-label={t('admin.resources.selectAll')}
+                    checked={allSelected}
+                    onChange={toggleAll}
+                  />
+                </th>
+              ) : null}
+              <th style={TH}>{t('admin.resources.col.resource')}</th>
+              <th style={TH}>{t('admin.resources.col.need')}</th>
+              <th style={TH}>{t('admin.resources.col.eligibility')}</th>
+              <th style={TH}>{t('admin.resources.col.deadline')}</th>
+              <th style={TH}>{t('admin.resources.col.status')}</th>
+              {canWrite ? <th style={TH}>{t('admin.resources.col.actions')}</th> : null}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.id} style={{ borderBottom: '1px solid #F1F4FA' }}>
+                {canWrite ? (
+                  <td style={{ ...TD, width: 36, paddingRight: 0 }}>
+                    <input
+                      type="checkbox"
+                      aria-label={t('admin.resources.selectRow', { name: row.name })}
+                      checked={selected.has(row.id)}
+                      onChange={() => toggleRow(row.id)}
+                    />
+                  </td>
+                ) : null}
                 <td style={TD}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <FeaturedToggle id={row.id} isFeatured={row.isFeatured} />
-                    <Link
-                      href={`/admin/resources/${row.id}`}
-                      className="proto-admin-action"
-                      style={{ fontSize: 12.5, fontWeight: 800, color: '#1F5FBF' }}
-                    >
-                      {t('admin.resources.actions.edit')}
-                    </Link>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, lineHeight: 1.3 }}>
+                    {row.name}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#5B6B8C', marginTop: 2 }}>
+                    {row.partner} · {row.resourceType}
+                    {row.subCategory ? ` · ${row.subCategory}` : ''}
                   </div>
                 </td>
-              ) : null}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+                <td style={{ ...TD, fontSize: 12.5, fontWeight: 700, color: '#42506E' }}>
+                  <div>{t(`need.${row.needPrimary}`)}</div>
+                  {row.needSecondary ? (
+                    <div style={{ color: '#5B6B8C', fontWeight: 600, marginTop: 2 }}>
+                      {t(`need.${row.needSecondary}`)}
+                    </div>
+                  ) : null}
+                </td>
+                <td style={{ ...TD, fontSize: 12, color: '#5B6B8C', lineHeight: 1.45 }}>
+                  {eligibilitySummary(row)}
+                </td>
+                <td style={TD}>
+                  <DeadlineCell deadline={row.deadline} />
+                </td>
+                <td style={TD}>
+                  {canWrite ? (
+                    <StatusSelect id={row.id} status={row.status} />
+                  ) : (
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: '#42506E' }}>
+                      {t(`status.${row.status}`)}
+                    </span>
+                  )}
+                </td>
+                {canWrite ? (
+                  <td style={TD}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <FeaturedToggle id={row.id} isFeatured={row.isFeatured} />
+                      <Link
+                        href={`/admin/resources/${row.id}`}
+                        className="proto-admin-action"
+                        style={{ fontSize: 12.5, fontWeight: 800, color: '#1F5FBF' }}
+                      >
+                        {t('admin.resources.actions.edit')}
+                      </Link>
+                      <DeleteRowButton row={row} />
+                    </div>
+                  </td>
+                ) : null}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 

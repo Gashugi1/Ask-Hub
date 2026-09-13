@@ -19,7 +19,7 @@ import type { ResourceInput } from '@/lib/schemas/resource';
 const actions = vi.hoisted(() => ({
   createResource: vi.fn(async () => ({ id: 'created' })),
   updateResource: vi.fn(async () => {}),
-  deleteResource: vi.fn(async () => {}),
+  deleteResource: vi.fn(async () => ({ ok: true })),
 }));
 
 vi.mock('@/lib/actions/resources', () => actions);
