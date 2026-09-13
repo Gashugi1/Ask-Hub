@@ -5,19 +5,14 @@ import { t } from '@/lib/i18n';
 import { ADMIN_PANEL_COL, ADMIN_PRIMARY, ADMIN_HELP, ADMIN_LINK_ACTION } from './chrome';
 
 /**
- * The two-step delete control from `ResourceForm.tsx`, extracted so
- * `StatRows.tsx` and `EntityRows.tsx` can reuse it for all four
- * provenance-/curation-bearing row editors (headline stats, compute metrics,
- * programmes, impact stories) rather than each wiring its own `<dialog>`.
+ * A two-step delete control: a button that opens a native `<dialog>` and
+ * fires `onConfirm` only from the dialog's own confirm button.
  *
- * A single click no longer deletes the row: `headline_stats` and
- * `compute_metrics` carry a source, an attester and a date that the schema
- * goes to real lengths to guarantee (0015_stat_provenance.sql), and the
- * audit trigger recording the deleted values is not the same thing as an
- * accidental click being undoable — recovering a deleted figure means an
- * admin reading raw audit JSON and retyping it by hand. Programmes and
- * impact stories are curated copy with the same one-click exposure, so the
- * same confirm step applies to all four, not only the attested two.
+ * A single click never deletes a row. The audit trigger recording the
+ * deleted values is not the same thing as an accidental click being
+ * undoable -- recovering a deleted row means an admin reading raw audit JSON
+ * and retyping it by hand. Extracted from `ResourceForm`'s own dialog so the
+ * resources table's row delete wears the same two steps.
  */
 export default function ConfirmDeleteButton({
   onConfirm,

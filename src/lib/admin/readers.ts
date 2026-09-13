@@ -16,6 +16,7 @@ import {
   type ImpactStory,
 } from './types';
 import { AUDIT_PAGE_SIZE, type AuditFilters } from './audit-view';
+import type { CoverageRow } from './dashboard-view';
 import { rowToResourceInput, type ResourceInput } from '@/lib/schemas/resource';
 import { CONTENT_KEYS, type ContentKey } from '@/lib/schemas/content';
 import { SETTING_KEYS, type SettingKey } from '@/lib/schemas/settings';
@@ -52,6 +53,46 @@ export async function readResourceCounts(): Promise<ResourceCounts> {
     // Use it; do not re-implement the 14-day rule here.
     expiringSoon: rows.filter((r) => deadlineInfo(r.deadline).state === 'expiring').length,
   };
+}
+
+/**
+ * The five columns `computeCoverage` reads, for every live resource whose
+ * deadline has not passed -- the same rows the public site counts, so the
+ * dashboard's by-need bars and the public browse menu agree. The date
+ * boundary is `deadlineInfo`'s, the one every other surface uses; a
+ * deadline of today is still open.
+ */
+export async function readLiveCoverage(): Promise<CoverageRow[]> {
+  const supabase = await createAdminReadClient();
+  const { data, error } = await supabase
+    .from('resources')
+    .select('need_primary, need_secondary, geo_scope, countries_eligible, sectors_eligible, deadline')
+    .eq('status', 'live');
+  if (error) throw new Error(`admin read failed (resources): ${error.message}`);
+  return (data ?? [])
+    .filter((row) => deadlineInfo(row.deadline).state !== 'closed')
+    .map((row) => ({
+      needPrimary: row.need_primary,
+      needSecondary: row.need_secondary,
+      geoScope: row.geo_scope,
+      countriesEligible: row.countries_eligible,
+      sectorsEligible: row.sectors_eligible,
+    }));
+}
+
+/**
+ * How many submissions await a reviewer. A head request with an exact
+ * count: the dashboard shows the number and nothing else about the rows, so
+ * none of their columns -- several of them `@sensitive` -- are fetched.
+ */
+export async function readPendingSubmissionCount(): Promise<number> {
+  const supabase = await createAdminReadClient();
+  const { count, error } = await supabase
+    .from('submissions')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'pending');
+  if (error) throw new Error(`admin read failed (submissions): ${error.message}`);
+  return count ?? 0;
 }
 
 /**
@@ -262,7 +303,7 @@ export async function readSettings(): Promise<Record<string, string | boolean>> 
 }
 
 /**
- * One row of the Users screen (PRD 4.1). `invited_by` and `user_id` have no
+ * One row of the Team access card on Settings (PRD 4.1). `invited_by` and `user_id` have no
  * field here and are never selected: the screen shows neither, and a
  * `select('*')` would carry the auth-side identifier into the render layer
  * for no reason — same discipline as `readAuditPage`'s explicit column list.
@@ -280,6 +321,8 @@ export interface AdminUser {
   displayLabel: string;
   role: Role;
   isActive: boolean;
+  /** When the profile row was created -- the Team access card's Added column. */
+  createdAt: string;
   lastSignInAt: string | null;
 }
 
@@ -300,7 +343,7 @@ export async function readUsers(): Promise<AdminUser[]> {
   const supabase = await createAdminReadClient();
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, email, full_name, display_label, role, is_active, last_sign_in_at')
+    .select('id, email, full_name, display_label, role, is_active, created_at, last_sign_in_at')
     .order('full_name', { ascending: true })
     .order('email', { ascending: true });
   if (error) throw new Error(`admin read failed (profiles): ${error.message}`);
@@ -312,6 +355,7 @@ export async function readUsers(): Promise<AdminUser[]> {
     displayLabel: row.display_label,
     role: row.role,
     isActive: row.is_active,
+    createdAt: row.created_at,
     lastSignInAt: row.last_sign_in_at,
   }));
 }

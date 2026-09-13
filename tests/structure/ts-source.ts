@@ -11,9 +11,8 @@ import { join } from 'node:path';
  * this folder, in two further forms that matter here:
  *
  * - A regex cannot tell a *comment* from code. `src/app/(admin)/admin/
- *   settings/page.tsx` explains `requireRole(['admin'])` in its docstring;
- *   `src/app/(admin)/admin/users/page.tsx` names `requireRole(['admin'])` in
- *   prose too. A grep-based "does this page call requireRole" guard would be
+ *   settings/page.tsx` names the role checks its actions perform in its
+ *   docstring, in prose. A grep-based "does this page call requireRole" guard would be
  *   satisfied by the prose alone and would therefore stay green for a page
  *   that deleted the call and kept the comment — the exact regression the
  *   guard exists to catch.

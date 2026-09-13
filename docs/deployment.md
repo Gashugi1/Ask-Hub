@@ -108,14 +108,14 @@ committed or if a required name goes missing):
 | --- | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Public | **Yes** — Preview and Production | Supabase project URL. `NEXT_PUBLIC_`-prefixed variables are inlined into the client bundle by Next.js at build time — public by definition, per PRD 13.5. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public | **Yes** — Preview and Production | Supabase anonymous key. Also inlined into the client bundle; it only ever grants what RLS policies allow the `anon` role. |
-| `SUPABASE_SERVICE_ROLE_KEY` | **Secret** | **Yes** — SP3's Users screen has shipped, so a build off this branch needs it | Bypasses Row Level Security entirely. Server-only. **Not needed by a build scoped to the SP2a public read surface**, and needed by exactly one code path in any build that includes SP3's Users screen — `src/lib/actions/users.ts`, the sole caller of `createAdminSupabase()` under `src/`; see the note below. **Must never be given a `NEXT_PUBLIC_` prefix** — `tests/structure/env-contract.test.ts` asserts `.env.example` contains no such name, and that assertion is what makes this invariant structural rather than a matter of discipline. |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Secret** | **Yes** — the Team access card on `/admin/settings` has shipped, so a build off this branch needs it | Bypasses Row Level Security entirely. Server-only. **Not needed by a build scoped to the SP2a public read surface**, and needed by exactly one code path in any build that includes the Team access card — `src/lib/actions/users.ts`, the sole caller of `createAdminSupabase()` under `src/`; see the note below. **Must never be given a `NEXT_PUBLIC_` prefix** — `tests/structure/env-contract.test.ts` asserts `.env.example` contains no such name, and that assertion is what makes this invariant structural rather than a matter of discipline. |
 | `SUPABASE_URL` | Test-only | **No, never.** | Read directly by test helpers and `tests/smoke.test.ts` from `.env.test`, against the local Supabase CLI stack. Not a deployment variable under any circumstance. |
 | `SUPABASE_ANON_KEY` | Test-only | **No, never.** | Same as above — a local-stack test credential, not something a Vercel project ever needs. |
 
 Set the two `NEXT_PUBLIC_` variables on Vercel for both the Preview and
 Production environments (see "Operator steps"), and
 `SUPABASE_SERVICE_ROLE_KEY` for any deployment whose build includes SP3's
-Users screen — it has shipped, so a build off this branch does. `.env.example`'s
+Team access card — it has shipped, so a build off this branch does. `.env.example`'s
 remaining two names, `SUPABASE_URL` and `SUPABASE_ANON_KEY`, are test-only —
 read directly by test helpers and `tests/smoke.test.ts` from `.env.test`
 against the local Supabase CLI stack — and have no place in a Vercel project.
@@ -137,7 +137,7 @@ What is left:
 
 | Caller | Needs it because | Where |
 |---|---|---|
-| The Users screen's invite action | Creating a Supabase Auth user is a GoTrue Admin API call, not a table write. No RLS policy can grant it, and there is no public sign-up route to do it instead (PRD §3, §14.3) | `src/lib/actions/users.ts` (SP3, shipped — `inviteUser` wraps only the `auth.admin.inviteUserByEmail` call in it) |
+| The Team access card's invite action | Creating a Supabase Auth user is a GoTrue Admin API call, not a table write. No RLS policy can grant it, and there is no public sign-up route to do it instead (PRD §3, §14.3) | `src/lib/actions/users.ts` (SP3, shipped — `inviteUser` wraps only the `auth.admin.inviteUserByEmail` call in it) |
 | `scripts/provision-admins.ts` | Bootstraps the first admin accounts before any admin exists to invite them. Operator-run, never deployed | already in the repository |
 | `scripts/seed.ts` | Writes seed content across tables no single role may write | already in the repository |
 | `tests/helpers/clients.ts` | Creates and role-assigns the RLS fixture users, and reads what a given role must *not* see | already in the repository |
@@ -145,7 +145,7 @@ What is left:
 
 Only the first of those runs on Vercel. Three consequences for this runbook:
 
-- If a deployment is scoped without the Users screen, this variable can be
+- If a deployment is scoped without the Team access card, this variable can be
   omitted entirely and nothing else in the application will look for it.
 - The role, name, label and deactivation controls on that screen are ordinary
   `profiles` updates made as the signed-in admin — they are *not* reasons for
@@ -229,14 +229,17 @@ this list; do not remove protection with any box unchecked.
       content rule 9 states privacy copy stays "minimal and factual pending
       legal review" — that review has to have happened, and the reviewed
       copy has to be the copy actually stored under the `privacy_body` and
-      `terms_body` keys (editor-maintained through the Site Content screen),
+      `terms_body` keys (set by the seed or by SQL -- the admin portal's Settings
+      screen carries only the prototype's four cards, and legal copy is not one
+      of them),
       not the placeholder that shipped with the seed.
 - [ ] **At least two admin accounts are provisioned, and the client team's
       roles are assigned.** PRD §3 requires two admins so that a single
       lockout does not lock out the team, and it is the one launch requirement
       that cannot be fixed after the fact by an operator who is themselves
       locked out. Run `scripts/provision-admins.ts` for the first two; every
-      account after that is invited from `/admin/users` (SP3). Confirm no
+      account after that is invited from the Team access card on
+      `/admin/settings`. Confirm no
       account is still sitting at the default `viewer` role that was meant to
       be an editor — `handle_new_user()` mints every profile as `viewer` by
       design, so an unassigned invitation looks like a deliberate viewer.

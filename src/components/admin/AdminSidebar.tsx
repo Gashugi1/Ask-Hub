@@ -15,12 +15,14 @@ import type { Role, CurrentUser } from '@/lib/auth';
  * still owns that block -- it is rendered at the end of this column rather
  * than deleted, because what it renders and why is unchanged.
  *
- * PRD 6's sidebar, reduced to the launch screens (spec 1) and filtered by
- * role. Settings and Users are absent for non-admins, matching the routes,
- * which return notFound() for them. The prototype lists several screens this
- * application does not have -- review queue, reach, subscribers, updates,
- * partnerships -- and they are not added here: a nav item leading nowhere is
- * worse than an absent one.
+ * PRD 6's sidebar in the prototype's order -- Dashboard, Reach &
+ * Engagement, Resources, Review Queue, Settings, Audit Log -- filtered by
+ * role in `visibleNavItems`, so a viewer's column lists only the three
+ * read-only screens. Whichever screens a role cannot see also `notFound()`
+ * for it, so the sidebar never advertises a route the reader would be
+ * refused. The prototype's subscribers, updates and partnerships screens
+ * are not in this application and are not listed: a nav item leading
+ * nowhere is worse than an absent one.
  */
 export default function AdminSidebar({
   role,

@@ -91,11 +91,7 @@ describe('route structure', () => {
     expect(routes()['/(admin)/admin/resources/import/page']).toBe('/admin/resources/import');
   });
 
-  it('serves the site content screen at /admin/content', () => {
-    expect(routes()['/(admin)/admin/content/page']).toBe('/admin/content');
-  });
-
-  it('serves the admin-only settings screen at /admin/settings', () => {
+  it('serves the settings screen at /admin/settings', () => {
     expect(routes()['/(admin)/admin/settings/page']).toBe('/admin/settings');
   });
 
@@ -103,8 +99,8 @@ describe('route structure', () => {
     expect(routes()['/(admin)/admin/resources/[id]/page']).toBe('/admin/resources/[id]');
   });
 
-  it('serves the admin-only users screen at /admin/users', () => {
-    expect(routes()['/(admin)/admin/users/page']).toBe('/admin/users');
+  it('serves the reach and engagement placeholder at /admin/reach', () => {
+    expect(routes()['/(admin)/admin/reach/page']).toBe('/admin/reach');
   });
 
   it('serves the admin audit log at /admin/audit', () => {

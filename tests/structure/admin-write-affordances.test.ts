@@ -64,7 +64,7 @@ describe('admin write affordances', () => {
         'viewer sees no write affordance at all, not a greyed-out one — a disabled button ' +
         'tells a viewer the product has a capability they are being denied. Render the ' +
         'control inside the same branch that already decides the role may write (see ' +
-        'ResourceTable and ContentPanel), and leave `disabled` for transient states such ' +
+        'ResourceTable and the Settings page), and leave `disabled` for transient states such ' +
         `as \`pending\`. Offenders:\n${offenders.join('\n')}`,
     ).toEqual([]);
   });

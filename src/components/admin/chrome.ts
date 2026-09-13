@@ -196,3 +196,17 @@ export const ADMIN_LINK_DANGER = {
   ...ADMIN_LINK_ACTION,
   color: '#C0392B',
 } as const;
+
+/** A settings card's title, the prototype's Settings screen: 14px/800. */
+export const ADMIN_CARD_TITLE = {
+  margin: 0,
+  fontSize: 14,
+  fontWeight: 800,
+} as const;
+
+/** The line beneath a settings card's title. */
+export const ADMIN_CARD_SUB = {
+  fontSize: 12,
+  color: '#5B6B8C',
+  marginTop: 3,
+} as const;
