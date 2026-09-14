@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
+import Link from 'next/link';
 import { signIn } from '@/lib/actions/session';
 import { t } from '@/lib/i18n';
 import AuthCard, { FIELD, FIELD_LABEL, CARD_BUTTON } from './AuthCard';
@@ -91,6 +92,11 @@ export default function SignInForm() {
         >
           {t('admin.login.submit')}
         </button>
+        <p style={{ textAlign: 'center', margin: '12px 0 0 0', fontSize: 12.5 }}>
+          <Link href="/admin/forgot-password" style={{ fontWeight: 700, color: '#1F5FBF' }}>
+            {t('admin.login.forgot')}
+          </Link>
+        </p>
       </form>
     </AuthCard>
   );

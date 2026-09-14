@@ -30,6 +30,7 @@ const LOGIN_PATH = '/admin/login';
 const SESSION_OPTIONAL_PATHS: ReadonlySet<string> = new Set([
   LOGIN_PATH,
   '/admin/set-password',
+  '/admin/forgot-password',
 ]);
 
 /**

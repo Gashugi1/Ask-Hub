@@ -77,6 +77,10 @@ describe('route structure', () => {
     expect(routes()['/(admin)/admin/login/page']).toBe('/admin/login');
   });
 
+  it('serves the password reset request at /admin/forgot-password', () => {
+    expect(routes()['/(admin)/admin/forgot-password/page']).toBe('/admin/forgot-password');
+  });
+
   it('serves the admin resources table at /admin/resources', () => {
     expect(routes()['/(admin)/admin/resources/page']).toBe('/admin/resources');
   });

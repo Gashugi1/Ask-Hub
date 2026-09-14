@@ -3,8 +3,9 @@ import AuthCard from '@/components/admin/AuthCard';
 import { t } from '@/lib/i18n';
 
 /**
- * Where an invitation link lands, and where a signed-in operator changes their
- * password.
+ * Where an invitation link and a password-recovery link both land, and where
+ * a signed-in operator changes their password. Supabase delivers both links
+ * the same way, so one screen serves both.
  *
  * **This page deliberately does not call `requireRole`,** which is why it
  * carries an entry in `PAGE_ROLE_EXEMPT`. An invited operator arrives here
