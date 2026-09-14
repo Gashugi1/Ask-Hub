@@ -17,6 +17,6 @@
 -- No grant or RLS work: adding an enum label touches neither. need_counts_public
 -- (0017) is a dynamic GROUP BY, so the new needs surface automatically once a
 -- live resource carries one.
-alter type public.need_type add value 'data';
-alter type public.need_type add value 'challenges';
-alter type public.need_type add value 'community';
+alter type public.need_type add value if not exists 'data';
+alter type public.need_type add value if not exists 'challenges';
+alter type public.need_type add value if not exists 'community';
