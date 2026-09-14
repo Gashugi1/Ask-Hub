@@ -17,6 +17,7 @@ import type { CurrentUser } from '@/lib/auth';
 export default function AdminFooter({ user }: { user: CurrentUser }) {
   return (
     <div
+      className="admin-rail-foot"
       style={{
         marginTop: 'auto',
         padding: '14px 10px',

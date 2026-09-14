@@ -389,6 +389,15 @@ button {
     height: auto;
   }
 
+  /* With the rail no longer full-height, `margin-top: auto` has nothing to
+     push against and the signed-in block lands straight under the last nav
+     item with only its hairline between them. Give it the gap the desktop
+     rail's spare height provided. */
+  .admin-rail-foot {
+    margin-top: 28px;
+    padding-top: 18px;
+  }
+
   .admin-content {
     padding: 22px 18px 48px 18px;
   }
