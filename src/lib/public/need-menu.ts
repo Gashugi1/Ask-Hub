@@ -22,7 +22,7 @@ import type { NeedCount, NeedKey, PublicResource } from './types';
  * The prototype's `subs.slice(0, 4)`.
  *
  * The menu is a 232px rail beside the whole storefront; an unbounded list
- * would push the featured band and the partner row below the fold on a need
+ * would push the recently-added rail below the fold on a need
  * that happens to have twenty distinct sub-categories. What the cap hides is
  * reachable through the entry's own "More" link, which drops the
  * sub-category and shows every resource in the need.

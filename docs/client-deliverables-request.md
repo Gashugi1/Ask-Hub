@@ -183,7 +183,7 @@ launch, and neither is a code change.
 | --- | --- |
 | Resource dataset | **Launch.** Placeholder opportunities cannot be shown to real innovators. |
 | Privacy and terms copy | **Launch.** The site collects email addresses. |
-| Partner logos + URLs | The partner band. Site works without them; partners show as names. |
+| Provider logos + URLs | Nothing yet: no public surface renders provider logos. Send them when convenient. |
 | The fifteen figures + sources | The figures section. **Partial is fine** — send them as they are confirmed. |
 | GA4 identifiers | Reporting only. Ungathered traffic cannot be recovered later. |
 | Partnership stage labels | Nothing yet. Cheaper to change now than later. |

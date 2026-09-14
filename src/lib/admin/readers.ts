@@ -119,10 +119,10 @@ export async function readPendingSubmissions(): Promise<ReviewSubmission[]> {
 }
 
 /**
- * One submission by id, in any status -- the actions check the status
- * themselves, and the prefilled form must still load a suggestion that
- * has just been approved from another tab. `null` when there is no such
- * row.
+ * One submission by id, in any status -- the actions that read it check the
+ * status themselves, so a suggestion approved a moment ago from another tab
+ * is refused by them with a reason rather than by this reader with nothing.
+ * `null` when there is no such row.
  */
 export async function readSubmissionForReview(id: string): Promise<ReviewSubmission | null> {
   const supabase = await createAdminReadClient();
@@ -166,12 +166,14 @@ export async function readAdminResourceRows(): Promise<ResourceRow[]> {
 }
 
 /**
- * One full resource row, for the edit form. Unlike `readAdminResources`,
- * this is not narrowed through `toAdminResource` — the edit form needs every
+ * One full resource row, for the edit modal -- the Review Queue reads the
+ * target of an update suggestion through this. Unlike `readAdminResources`,
+ * this is not narrowed through `toAdminResource`: the form needs every
  * editable column (`description`, `action_label`, `external_url`,
  * `banner_image_url`, `exclusivity`), which `AdminResource` deliberately
  * omits because the table view never shows them. `null` means no row with
- * that id, which the route turns into `notFound()` rather than an error.
+ * that id, which the caller turns into an absent control rather than an
+ * empty form.
  */
 export async function readResourceForEdit(id: string): Promise<ResourceInput | null> {
   const supabase = await createAdminReadClient();

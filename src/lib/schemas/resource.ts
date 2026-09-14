@@ -99,7 +99,7 @@ export function toRow(input: ResourceInput) {
 /**
  * The inverse of `toRow`: a full base-table row, back
  * into the camelCase shape `resourceInput` and `ResourceForm` use. Exists
- * for the edit route, which needs every editable column — `AdminResource`
+ * for the edit modal, which needs every editable column — `AdminResource`
  * (src/lib/admin/types.ts) deliberately carries only the table view's
  * columns, not `description`, `action_label`, `external_url`,
  * `banner_image_url` or `exclusivity`, so it is not enough on its own to
