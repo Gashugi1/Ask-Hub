@@ -4,7 +4,7 @@ import type { PublicResource } from '@/lib/public/types';
 
 /**
  * The directory's outer measure, from the prototype's directory screen
- * (docs/prototype/prototype.html line 177): 1180px, not the 1280px the
+ * (the approved prototype): 1180px, not the 1280px the
  * storefront above it uses. Exported because the server-rendered fallback and
  * the hydrated client directory must be identical down to the padding -- they
  * swap places on hydration, and any difference shows up as the page jumping.
@@ -16,7 +16,7 @@ export const DIRECTORY_SECTION = {
   padding: '44px 32px 80px 32px',
 } as const;
 
-/** The directory's h1, prototype line 180. */
+/** The directory's h1: */
 export const DIRECTORY_HEADING = {
   margin: 0,
   fontSize: 32,
@@ -43,10 +43,10 @@ export const DIRECTORY_HEADING = {
  * version does, and which PRD 5.8 ("fully mobile-responsive at every
  * breakpoint") rules out.
  *
- * The empty states take the prototype's dashed panel (reference lines
- * 281-287) but not its "Clear all filters" button: the removable chips and
- * the Clear filters control already sit directly above this, so a third route
- * to the same action would be noise.
+ * The empty states take the prototype's dashed panel but not its "Clear all
+ * filters" button: the removable chips and the Clear filters control already
+ * sit directly above this, so a third route to the same action would be
+ * noise.
  */
 export default function ResourceGrid({
   resources,

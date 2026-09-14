@@ -1,6 +1,6 @@
 /**
  * Shared admin-screen chrome, transcribed from the approved prototype
- * (docs/prototype/prototype.html).
+ * (the approved prototype).
  *
  * Unlike the public pages -- whose titles run 30, 34, 36 and 40px depending on
  * the page -- every admin screen in the prototype uses one title size, one
@@ -10,7 +10,7 @@
  * the first.
  */
 
-/** Admin page title, reference line 694: 24px/800 at -0.01em. */
+/** Admin page title: 24px/800 at -0.01em. */
 export const ADMIN_H1 = {
   margin: 0,
   fontSize: 24,
@@ -18,14 +18,14 @@ export const ADMIN_H1 = {
   letterSpacing: '-0.01em',
 } as const;
 
-/** The line beneath an admin title, reference line 695. */
+/** The line beneath an admin title. */
 export const ADMIN_SUB = {
   fontSize: 13,
   color: '#5B6B8C',
   marginTop: 4,
 } as const;
 
-/** Section heading within an admin screen, reference line 914: 18px/800. */
+/** Section heading within an admin screen: 18px/800. */
 export const ADMIN_H2 = {
   margin: 0,
   fontSize: 18,
@@ -33,7 +33,7 @@ export const ADMIN_H2 = {
   letterSpacing: '-0.01em',
 } as const;
 
-/** The white panel every admin screen groups content into, reference line 697. */
+/** The white panel every admin screen groups content into. */
 export const ADMIN_PANEL = {
   background: '#fff',
   border: '1px solid #DDE5EE',
@@ -41,7 +41,7 @@ export const ADMIN_PANEL = {
   padding: 22,
 } as const;
 
-/** Uppercase micro-label above a control, reference line 1698. */
+/** Uppercase micro-label above a control. */
 export const ADMIN_LABEL = {
   fontSize: 11.5,
   fontWeight: 800,
@@ -52,7 +52,7 @@ export const ADMIN_LABEL = {
   marginBottom: 6,
 } as const;
 
-/** Text input / select, reference line 1247. */
+/** Text input / select. */
 export const ADMIN_FIELD = {
   width: '100%',
   padding: '10px 12px',
@@ -64,7 +64,7 @@ export const ADMIN_FIELD = {
   outline: 'none',
 } as const;
 
-/** Solid primary action, reference line 1263. */
+/** Solid primary action. */
 export const ADMIN_PRIMARY = {
   background: '#1F5FBF',
   color: '#fff',
@@ -76,7 +76,7 @@ export const ADMIN_PRIMARY = {
   cursor: 'pointer',
 } as const;
 
-/** Outlined secondary action, reference line 183. */
+/** Outlined secondary action. */
 export const ADMIN_SECONDARY = {
   border: '1.5px solid #C9D3E8',
   color: '#1F5FBF',
@@ -88,7 +88,7 @@ export const ADMIN_SECONDARY = {
   cursor: 'pointer',
 } as const;
 
-/** Table header cell, reference line 1267. */
+/** Table header cell. */
 export const ADMIN_TH = {
   textAlign: 'left',
   fontSize: 11.5,
@@ -99,7 +99,7 @@ export const ADMIN_TH = {
   padding: '0 0 10px 0',
 } as const;
 
-/** Table body cell, reference line 1276. */
+/** Table body cell. */
 export const ADMIN_TD = {
   fontSize: 13,
   padding: '12px 20px',
@@ -114,7 +114,7 @@ export const ADMIN_TABLE = {
   textAlign: 'left',
 } as const;
 
-/** The 13px-radius white panel a table sits in, reference line 803. */
+/** The 13px-radius white panel a table sits in. */
 export const ADMIN_TABLE_PANEL = {
   marginTop: 16,
   background: '#fff',
@@ -123,13 +123,13 @@ export const ADMIN_TABLE_PANEL = {
   overflowX: 'auto',
 } as const;
 
-/** The #F4F6F9 strip behind a table's column labels, reference line 804. */
+/** The #F4F6F9 strip behind a table's column labels. */
 export const ADMIN_THEAD_ROW = {
   background: '#F4F6F9',
   borderBottom: '1px solid #DDE5EE',
 } as const;
 
-/** A body row's hairline rule, reference line 812. */
+/** A body row's hairline rule. */
 export const ADMIN_TR = {
   borderBottom: '1px solid #F1F4FA',
 } as const;
@@ -180,7 +180,7 @@ export const ADMIN_PANEL_COL = {
   gap: 14,
 } as const;
 
-/** A small inline action, reference line 834. */
+/** A small inline action. */
 export const ADMIN_LINK_ACTION = {
   background: 'none',
   border: 'none',
@@ -191,7 +191,7 @@ export const ADMIN_LINK_ACTION = {
   padding: 0,
 } as const;
 
-/** The destructive twin of ADMIN_LINK_ACTION, reference line 835. */
+/** The destructive twin of ADMIN_LINK_ACTION. */
 export const ADMIN_LINK_DANGER = {
   ...ADMIN_LINK_ACTION,
   color: '#C0392B',

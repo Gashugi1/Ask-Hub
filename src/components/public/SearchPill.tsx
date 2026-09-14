@@ -7,8 +7,7 @@ import { directoryHref, parseFilters } from '@/lib/public/filters';
 import { applyParsedQuery } from '@/lib/public/search-parse';
 
 /**
- * The prototype's rounded search control (docs/prototype/prototype.html lines
- * 11-16), transcribed verbatim: a 1.5px hairline pill with a flush primary
+ * The prototype's rounded search control (the approved prototype* 11-16), transcribed verbatim: a 1.5px hairline pill with a flush primary
  * button, the input at 13.5px and the button at 13px/800.
  *
  * It lives in its own file because the prototype uses the same control in two

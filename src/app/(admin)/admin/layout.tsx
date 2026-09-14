@@ -37,7 +37,7 @@ export default async function AdminLayout({
   // every other /admin path.
   if (!user) return <div className="min-h-full">{children}</div>;
 
-  // The prototype's admin shell (reference line 668): a fixed 232px rail
+  // The prototype's admin shell: a fixed 232px rail
   // beside the content, on a #F4F6F9 field.
   //
   // The grid and the rail's own sticky full-height behaviour live in

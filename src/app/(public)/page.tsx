@@ -78,7 +78,7 @@ export default async function PublicHomePage() {
       <WelcomeBand content={content} />
       <StatsBand stats={stats} />
 
-      {/* The prototype's storefront is two columns (reference lines 49-174):
+      {/* The prototype's storefront is two columns:
           a sticky department menu on the left and a single scrolling column
           on the right, inside a 1280px measure. `flex-wrap` collapses it to
           one column on a narrow screen, with no breakpoint needed.

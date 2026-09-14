@@ -42,7 +42,7 @@ function DeadlineCell({ deadline }: { deadline: string | null }) {
   // deadline.closed instead, so the closed case is the one state this
   // overrides rather than reads straight off `info.label`.
   const label = info.state === 'closed' ? t('deadline.autoClosed') : info.label;
-  // Prototype line 823: the note under a deadline is 11px/800 and takes its
+  // Prototype: the note under a deadline is 11px/800 and takes its
   // colour from the state. Expiring uses the funding amber, which is the
   // token deliberately darkened for contrast (spec D9), not the prototype's
   // lighter literal.
@@ -157,7 +157,7 @@ export default function ResourceTable({
 
   return (
     <>
-      {/* The prototype builds this from CSS grid rows (reference lines 803-838).
+      {/* The prototype builds this from CSS grid rows.
           A real <table> is kept: the grid would cost row and column semantics
           for assistive technology and buy nothing visually that the table
           cannot do. Everything else -- the 13px-radius white panel, the
@@ -262,7 +262,7 @@ export default function ResourceTable({
   );
 }
 
-/** Prototype line 804: the header strip's column labels. */
+/** Prototype: the header strip's column labels. */
 const TH = {
   textAlign: 'left',
   padding: '12px 20px',
@@ -273,7 +273,7 @@ const TH = {
   letterSpacing: '0.05em',
 } as const;
 
-/** Prototype line 812: a body cell. */
+/** Prototype: a body cell. */
 const TD = {
   padding: '14px 20px',
   verticalAlign: 'top',

@@ -15,7 +15,7 @@ export default async function TermsPage() {
   const content = await getSiteContent();
   return (
     // Same 720px measure and padding as Privacy: the prototype treats the two
-    // legal pages as one layout (reference lines 583-593).
+    // legal pages as one layout.
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '56px 32px 90px 32px' }}>
       <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800 }}>{t('terms.title')}</h1>
       <p

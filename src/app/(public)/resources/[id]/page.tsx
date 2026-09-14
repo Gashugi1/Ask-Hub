@@ -79,14 +79,13 @@ export default async function ResourceDetailPage({
         {t('detail.backToDirectory')}
       </Link>
 
-      {/* The prototype's 170px hero band (reference lines 294-309). A partner
+      {/* The prototype's 170px hero band. A partner
           banner image, when one exists, sits in the same place at the same
           size rather than being appended above it -- two banners stacked was
           never the design.
 
           The prototype opens this band with the same decorative three-dot
-          marker the welcome band carries (reference line 296, at 7px against
-          the home page's 8px). It is removed here on the client's
+          marker the welcome band carries. It is removed here on the client's
           instruction, together with the home one -- see WelcomeBand, which
           holds the note for both. Nothing is lost: the marker was
           `aria-hidden` and carried no information. That was also this file's
@@ -261,7 +260,7 @@ export default async function ResourceDetailPage({
         <ShareModal url={canonicalUrl(resource.id)} title={resource.name} />
       </div>
 
-      {/* "Who it's for", prototype lines 343-364. auto-fit rather than the
+      {/* "Who it's for": auto-fit rather than the
           prototype's fixed four columns, so the four facts reflow instead of
           shrinking to unreadable slivers on a narrow screen. */}
       <section

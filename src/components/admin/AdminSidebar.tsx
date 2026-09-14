@@ -5,8 +5,8 @@ import AdminFooter from './AdminFooter';
 import type { Role, CurrentUser } from '@/lib/auth';
 
 /**
- * Transcribed from the approved prototype, docs/prototype/prototype.html
- * lines 669-687: a 232px #1A2332 column that sticks for the full viewport
+ * Transcribed from the approved prototype
+ * (the approved prototype): a 232px #1A2332 column that sticks for the full viewport
  * height, carrying the wordmark, the screen list, and the signed-in user at
  * its foot.
  *

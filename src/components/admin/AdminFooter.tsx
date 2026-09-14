@@ -6,8 +6,7 @@ import type { CurrentUser } from '@/lib/auth';
 /**
  * PRD 6: signed-in name, display label, View site, Sign out.
  *
- * Transcribed from the prototype's sidebar foot (docs/prototype/prototype.html
- * lines 681-686): name, role beneath it, and the two links side by side above
+ * Transcribed from the prototype's sidebar foot (the approved prototype): name, role beneath it, and the two links side by side above
  * a hairline. It renders inside AdminSidebar rather than as a bar across the
  * bottom of the content area, which is where the prototype puts it and where
  * it stops competing with the screen's own content for the reader's attention.
@@ -40,7 +39,7 @@ export default function AdminFooter({ user }: { user: CurrentUser }) {
   );
 }
 
-/** Prototype line 684. Exported so SignOutButton matches it exactly. */
+/** The prototype's. Exported so SignOutButton matches it exactly. */
 export const FOOT_LINK = {
   background: 'none',
   border: 'none',

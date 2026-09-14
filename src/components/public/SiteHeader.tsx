@@ -4,8 +4,8 @@ import { t } from '@/lib/i18n';
 import SearchPill from './SearchPill';
 
 /**
- * Transcribed from the approved prototype, docs/prototype/prototype.html
- * lines 3-28: a sticky white rail with a 1px hairline, 1180px wide, 68px
+ * Transcribed from the approved prototype
+ * (the approved prototype): a sticky white rail with a 1px hairline, 1180px wide, 68px
  * tall, carrying the roundel and wordmark on the left, the search pill in the
  * middle, and the navigation on the right.
  *

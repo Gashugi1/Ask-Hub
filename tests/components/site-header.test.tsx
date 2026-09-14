@@ -28,7 +28,7 @@ const navItems = () =>
  * The public header is where PRD 5.8's "no login link or admin reference
  * anywhere in public navigation" is either honoured or lost, and nothing
  * asserted it. The prototype's own header ends in an outlined ADMIN button
- * (reference line 26); every future transcription pass will look at that
+ *; every future transcription pass will look at that
  * button and be tempted to bring it across, and the docblock explaining why
  * not is a comment, which no build reads.
  */
@@ -53,7 +53,7 @@ describe('the public header', () => {
   });
 
   it('styles Contact as a nav item, not as an outlined action', () => {
-    // Prototype line 21 styles Contact exactly as the other nav items:
+    // The prototype styles Contact exactly as the other nav items:
     // 14px/600 navy, 8px 12px, 6px radius, #F1F4FA on hover. It had been
     // wearing the ADMIN button's outlined uppercase pill, which gave a
     // Contact link the visual weight of a sign-in -- the one emphasis PRD

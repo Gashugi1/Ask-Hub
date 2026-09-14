@@ -386,7 +386,7 @@ export default function ResourceForm({
           {fieldErrors.externalUrl ? <p style={FIELD_ERROR}>{fieldErrors.externalUrl}</p> : null}
         </div>
 
-        {/* Prototype line 1620: the Featured toggle in its grey box. Its
+        {/* Prototype: the Featured toggle in its grey box. Its
             sibling per-resource check box (line 1624) is not ported --
             curation is stated once, globally (CLAUDE.md content rules). */}
         <label style={{ ...SPAN_2, ...TOGGLE_BOX }}>
@@ -494,7 +494,7 @@ function withStored(known: readonly string[], stored: string): string[] {
  * prototype's single red line kept for errors that are the form's as a whole.
  */
 
-/** Prototype line 1493: the micro-label above each control. */
+/** Prototype: the micro-label above each control. */
 const LABEL = {
   fontSize: 11.5,
   fontWeight: 800,
@@ -505,7 +505,7 @@ const LABEL = {
   marginBottom: 6,
 } as const;
 
-/** Prototype line 1494: text input and textarea. */
+/** Prototype: text input and textarea. */
 const FORM_FIELD = {
   width: '100%',
   padding: '10px 13px',
@@ -517,7 +517,7 @@ const FORM_FIELD = {
   outline: 'none',
 } as const;
 
-/** Prototype line 1502: the selects sit one pixel tighter and take a pointer. */
+/** Prototype: the selects sit one pixel tighter and take a pointer. */
 const FORM_SELECT = { ...FORM_FIELD, padding: '10px 12px', cursor: 'pointer' } as const;
 
 const FIELD_ERROR = {
@@ -527,7 +527,7 @@ const FIELD_ERROR = {
   color: '#C0392B',
 } as const;
 
-/** Prototype line 1630: the form-level error line. */
+/** Prototype: the form-level error line. */
 const FORM_ERROR = {
   margin: '14px 0 0 0',
   fontSize: 13,
@@ -535,10 +535,10 @@ const FORM_ERROR = {
   fontWeight: 700,
 } as const;
 
-/** Prototype line 1608: the deadline's helper text. */
+/** Prototype: the deadline's helper text. */
 const HINT = { margin: '5px 0 0 0', fontSize: 11.5, color: '#5B6B8C' } as const;
 
-/** Prototype line 1492: the form's two-column grid. */
+/** Prototype: the form's two-column grid. */
 const FORM_GRID = {
   display: 'grid',
   gridTemplateColumns: '1fr 1fr',
@@ -551,10 +551,10 @@ const SPAN_2 = { gridColumn: 'span 2' } as const;
 /** A chip group is a fieldset for assistive technology only; visually it is the prototype's plain block. */
 const CHIP_GROUP = { border: 'none', padding: 0, margin: 0, minWidth: 0 } as const;
 
-/** Prototype line 1556: the chip row. */
+/** Prototype: the chip row. */
 const CHIP_ROW = { display: 'flex', gap: 8, flexWrap: 'wrap' } as const;
 
-/** Prototype line 1620: the Featured box. */
+/** Prototype: the Featured box. */
 const TOGGLE_BOX = {
   display: 'flex',
   gap: 10,
@@ -569,10 +569,10 @@ const TOGGLE_BOX = {
 
 const TOGGLE_CHECK = { width: 16, height: 16, accentColor: '#1F5FBF', cursor: 'pointer', flexShrink: 0 } as const;
 
-/** Prototype line 1633: the footer. */
+/** Prototype: the footer. */
 const FOOTER = { display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 22 } as const;
 
-/** Prototype line 1634: the outlined Cancel. */
+/** Prototype: the outlined Cancel. */
 const CANCEL_BUTTON = {
   border: '1.5px solid #C9D3E8',
   background: '#fff',
@@ -584,7 +584,7 @@ const CANCEL_BUTTON = {
   cursor: 'pointer',
 } as const;
 
-/** Prototype line 1635: Save resource. */
+/** Prototype: Save resource. */
 const SAVE_BUTTON = {
   background: '#1F5FBF',
   color: '#fff',

@@ -10,7 +10,7 @@ import type { NeedCount, PublicResource } from '@/lib/public/types';
 /**
  * `buildNeedMenu` is the whole of the browse menu's logic: the component that
  * renders it holds none. Every rule the prototype's `deptMenu` encodes
- * (docs/prototype/prototype.html lines 3242-3253) is asserted here, and each
+ * (the approved prototype) is asserted here, and each
  * assertion is built so that deleting the clause it covers fails it -- a test
  * that still passes with the rule removed is not testing the rule.
  */

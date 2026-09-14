@@ -32,7 +32,7 @@ Next.js (App Router, TypeScript strict), Supabase (Postgres + Auth + RLS), Tailw
 ## Conventions
 
 - No hardcoded user-facing strings. Everything goes to `locales/en.json`. Stubs exist for `fr`, `pt`, `ar`. This rule is **not** relaxed by the prototype port below: styles are transcribed verbatim, copy never is.
-- Colour and type values are transcribed verbatim from the approved prototype; `docs/prototype/prototype.html` is the reference. Design tokens remain in `globals.css` for anything it does not cover.
+- Colour and type values are transcribed verbatim from the approved prototype at https://fluffy-puffpuff-acb4db.netlify.app/ — the sole reference. (An in-repo copy under `docs/prototype/` was removed on 2026-09-14 because it had fallen behind the deployed build and was being transcribed from by mistake.) Design tokens remain in `globals.css` for anything it does not cover.
 - **Accessibility outranks prototype fidelity.** The prototype's `need-training` (`#0E7A8A`) and `need-funding` (`#B4691F`) fail WCAG AA on badge text, so they are deliberately darkened to `#0E7685` and `#9E5C1B`. `tests/unit/tokens.test.ts` computes the contrast ratios and must never be relaxed to make a transcription match.
 - Public pages are cached and revalidated on write (`revalidateTag` / `revalidatePath`). Site Content edits must appear without a rebuild.
 - GA4 event names are fixed: `resource_view`, `apply_click`, `search_performed`, `filter_used`, `export_clicked`. Every event also writes to `engagement_events`.

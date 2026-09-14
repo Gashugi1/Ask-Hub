@@ -234,7 +234,7 @@ export default function ResourceCard({ resource }: { resource: PublicResource })
   );
 }
 
-/** The prototype's neutral tag pill (reference line 270). */
+/** The prototype's neutral tag pill. */
 const TAG_PILL = {
   fontSize: 11.5,
   fontWeight: 600,

@@ -33,7 +33,7 @@ export default function StatusSelect({ id, status }: { id: string; status: Resou
           router.refresh();
         });
       }}
-      // Prototype line 828: the status control sits in the row as a compact
+      // Prototype: the status control sits in the row as a compact
       // 12px/800 select rather than a full-size field.
       style={{
         padding: '6px 8px',

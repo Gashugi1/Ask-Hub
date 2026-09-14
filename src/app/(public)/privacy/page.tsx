@@ -15,7 +15,7 @@ export default async function PrivacyPage() {
   const content = await getSiteContent();
   return (
     // The prototype gives the legal pages a narrower 720px measure than the
-    // 820px it uses for About, and more bottom padding (reference line 584).
+    // 820px it uses for About, and more bottom padding.
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '56px 32px 90px 32px' }}>
       <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800 }}>{t('privacy.title')}</h1>
       <p

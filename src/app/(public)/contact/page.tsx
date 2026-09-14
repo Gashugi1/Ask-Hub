@@ -50,7 +50,7 @@ export default function ContactPage() {
         </a>
       </p>
 
-      {/* The prototype's bordered panel (reference lines 430-438), holding
+      {/* The prototype's bordered panel, holding
           the suggest-a-resource invitation and the button that opens the form. */}
       <section
         style={{

@@ -163,7 +163,7 @@ body {
 
 /*
  * Transcribed from the approved prototype's own global stylesheet
- * (docs/prototype/prototype.html). `fadeUp` is its entrance animation, and
+ * (the approved prototype). `fadeUp` is its entrance animation, and
  * `.askhub-wordmark` hides the header wordmark on narrow screens so the logo
  * and search pill still fit on one row.
  *
@@ -225,7 +225,7 @@ button {
  * `.proto-nav-action` used to sit here for an outlined pill in the header's
  * right-hand slot. The prototype fills that slot with ADMIN, which PRD 5.8
  * forbids in public navigation, and Contact -- which had been standing in it
- * -- is a plain nav item in the prototype (reference line 21). With nothing
+ * -- is a plain nav item in the prototype. With nothing
  * outlined left in the header the rule had no consumer, so it is gone rather
  * than kept as a class nothing applies.
  */
@@ -233,7 +233,7 @@ button {
   background: #f1f4fa;
 }
 
-/* Footer, prototype lines 595-631: links warm to the accent, the outlined
+/* Footer: links warm to the accent, the outlined
    partner badges take an accent border and full-white text. */
 .proto-footer-link {
   color: #c6d2f2;
@@ -248,18 +248,18 @@ button {
   color: #fff;
 }
 
-/* Welcome band CTA, prototype line 45: the accent button brightens on hover
+/* Welcome band CTA: the accent button brightens on hover
    rather than shifting hue, so the navy-on-orange contrast ratio holds. */
 .proto-accent-button:hover {
   filter: brightness(1.06);
 }
 
-/* Storefront department menu, prototype lines 55-62. */
+/* Storefront department menu: */
 .proto-dept-item:hover {
   background: #f1f4fa;
 }
 
-/* The expanded category's sub-items, prototype lines 66-71: each warms to the
+/* The expanded category's sub-items: each warms to the
    nav tint and the primary blue, and the trailing "More" underlines. */
 .proto-dept-sub:hover {
   background: #f1f4fa;
@@ -270,18 +270,18 @@ button {
   text-decoration: underline;
 }
 
-/* Featured card, prototype line 88: the shadow lifts on hover. */
+/* Featured card: the shadow lifts on hover. */
 .proto-feature-card:hover {
   box-shadow: 0 12px 36px rgb(0 60 100 / 0.18);
 }
 
-/* Recently-added rail card, prototype line 148. */
+/* Recently-added rail card: */
 .proto-rail-card:hover {
   border-color: #1f5fbf;
   box-shadow: 0 6px 20px rgb(0 60 100 / 0.1);
 }
 
-/* Directory actions and filter chips, prototype lines 183-184, 194-196. */
+/* Directory actions and filter chips: */
 .proto-primary-button:hover:not(:disabled) {
   background: #174a99;
 }
@@ -308,12 +308,12 @@ button {
   color: #1a2332;
 }
 
-/* Detail page back link, prototype line 293. */
+/* Detail page back link: */
 .proto-back-link:hover {
   color: #1f5fbf;
 }
 
-/* Admin rail, prototype lines 677 and 684. The nav hover is a translucent
+/* Admin rail: The nav hover is a translucent
    white so it reads the same over the dark rail whether or not the item is
    the current one. */
 .proto-admin-nav:hover {
@@ -324,12 +324,12 @@ button {
   color: #fff;
 }
 
-/* Row actions in the admin tables, prototype lines 834-835. */
+/* Row actions in the admin tables: */
 .proto-admin-action:hover {
   text-decoration: underline;
 }
 
-/* Directory card, prototype line 253. */
+/* Directory card: */
 .proto-card:hover {
   border-color: #1f5fbf;
   box-shadow: 0 6px 20px rgb(0 60 100 / 0.1);

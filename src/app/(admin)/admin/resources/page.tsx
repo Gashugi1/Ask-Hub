@@ -103,7 +103,7 @@ export default async function AdminResourcesPage({
       </div>
 
       {/* The prototype's view switcher is a row of pills rather than underlined
-          tabs (reference line 781). These stay links, not buttons: each view is
+          tabs. These stay links, not buttons: each view is
           a distinct URL, which is what makes one shareable and the back button
           work. */}
       <nav
@@ -189,7 +189,7 @@ export default async function AdminResourcesPage({
   );
 }
 
-/** Prototype line 786: the two filter selects beside the search field. */
+/** Prototype: the two filter selects beside the search field. */
 const FILTER_SELECT = {
   padding: '10px 12px',
   borderRadius: 9,

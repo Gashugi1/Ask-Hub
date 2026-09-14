@@ -1,6 +1,6 @@
 /**
- * Transcribed from the approved prototype, docs/prototype/prototype.html
- * lines 29-49: a 120deg navy -> deep-blue gradient, 1280px wide, carrying a
+ * Transcribed from the approved prototype
+ * (the approved prototype): a 120deg navy -> deep-blue gradient, 1280px wide, carrying a
  * 25px/800 title, a 13px tagline, a 14.5px body and a nowrap accent button on
  * the right.
  *

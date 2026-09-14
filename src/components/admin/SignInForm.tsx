@@ -10,8 +10,7 @@ type State = { error: string } | null;
 
 /**
  * Wears the prototype's signed-out shell (see AuthCard, transcribed from
- * docs/prototype/prototype.html lines 632-665). This screen does not use the
- * public header: it is its own shell in the prototype and stays so here -- a
+ * the approved prototype). This screen does not use the public header: it is its own shell in the prototype and stays so here -- a
  * sign-in page carrying a site-wide search box and a Contact button is a page
  * that has not decided what it is for.
  *

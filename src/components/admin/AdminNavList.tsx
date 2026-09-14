@@ -6,7 +6,7 @@ import { t } from '@/lib/i18n';
 
 /**
  * The sidebar's nav items, split out as a client component for one reason:
- * the prototype highlights the current screen (reference line 677), and
+ * the prototype highlights the current screen, and
  * knowing which screen that is means reading the pathname.
  *
  * Only this list is a client component. The sidebar around it, the user block

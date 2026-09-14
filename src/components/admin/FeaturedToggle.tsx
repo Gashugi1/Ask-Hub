@@ -26,7 +26,7 @@ export default function FeaturedToggle({ id, isFeatured }: { id: string; isFeatu
           router.refresh();
         });
       }}
-      // Prototype line 833: a star, coloured when the resource is featured.
+      // Prototype: a star, coloured when the resource is featured.
       // The accessible name still comes from aria-label above, so the control
       // is not reduced to an unlabelled glyph.
       style={{

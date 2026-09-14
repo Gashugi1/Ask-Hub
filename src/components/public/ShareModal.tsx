@@ -58,7 +58,7 @@ export default function ShareModal({ url, title }: { url: string; title: string 
     setCopyState('idle');
   }
 
-  // The trigger wears the prototype's secondary action (reference line 336):
+  // The trigger wears the prototype's secondary action:
   // a 1.5px hairline that takes the primary blue on hover, beside the solid
   // apply button.
   if (!open) {
