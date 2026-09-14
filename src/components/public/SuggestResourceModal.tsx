@@ -35,6 +35,15 @@ const HINT = { fontSize: 11.5, color: '#5B6B8C', marginTop: 5 } as const;
 const ERROR = { fontSize: 12.5, color: '#C0392B', fontWeight: 700, marginTop: 5 } as const;
 const TWO_UP = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 } as const;
 
+/** The admin form's required-field marker: one asterisk, hidden from screen readers. */
+function Required() {
+  return (
+    <span aria-hidden="true" style={{ color: '#C0392B' }}>
+      {' *'}
+    </span>
+  );
+}
+
 /** The prototype's chip: a pill that fills in blue when selected. */
 function Chip({
   label,
@@ -236,19 +245,19 @@ export default function SuggestResourceModal() {
             <p style={{ margin: 0, fontSize: 13, color: '#5B6B8C' }}>{t('suggest.intro')}</p>
 
             <div>
-              <label htmlFor="suggest-name" style={LABEL}>{t('suggest.field.resourceName')}</label>
+              <label htmlFor="suggest-name" style={LABEL}>{t('suggest.field.resourceName')}<Required /></label>
               <input id="suggest-name" value={values.resourceName} onChange={(e) => set('resourceName', e.target.value)} placeholder={t('suggest.placeholder.resourceName')} style={FIELD} />
               {errors.resourceName ? <p style={ERROR}>{errors.resourceName}</p> : null}
             </div>
 
             <div style={TWO_UP}>
               <div>
-                <label htmlFor="suggest-org" style={LABEL}>{t('suggest.field.organisation')}</label>
+                <label htmlFor="suggest-org" style={LABEL}>{t('suggest.field.organisation')}<Required /></label>
                 <input id="suggest-org" value={values.organisation} onChange={(e) => set('organisation', e.target.value)} placeholder={t('suggest.placeholder.organisation')} style={FIELD} />
                 {errors.organisation ? <p style={ERROR}>{errors.organisation}</p> : null}
               </div>
               <div>
-                <label htmlFor="suggest-need" style={LABEL}>{t('suggest.field.need')}</label>
+                <label htmlFor="suggest-need" style={LABEL}>{t('suggest.field.need')}<Required /></label>
                 <select id="suggest-need" value={values.need} onChange={(e) => set('need', e.target.value)} style={{ ...FIELD, padding: '11px 12px', cursor: 'pointer' }}>
                   {NEED_KEYS.map((need) => (
                     <option key={need} value={need}>{t(`need.${need}`)}</option>
@@ -278,14 +287,14 @@ export default function SuggestResourceModal() {
             </fieldset>
 
             <div>
-              <label htmlFor="suggest-description" style={LABEL}>{t('suggest.field.description')}</label>
+              <label htmlFor="suggest-description" style={LABEL}>{t('suggest.field.description')}<Required /></label>
               <textarea id="suggest-description" rows={3} maxLength={SUGGESTION_DESCRIPTION_MAX} value={values.description} onChange={(e) => set('description', e.target.value)} placeholder={t('suggest.placeholder.description')} style={{ ...FIELD, resize: 'vertical' }} />
               {errors.description ? <p style={ERROR}>{errors.description}</p> : null}
             </div>
 
             <div style={TWO_UP}>
               <div>
-                <label htmlFor="suggest-link" style={LABEL}>{t('suggest.field.link')}</label>
+                <label htmlFor="suggest-link" style={LABEL}>{t('suggest.field.link')}<Required /></label>
                 <input id="suggest-link" type="url" value={values.link} onChange={(e) => set('link', e.target.value)} placeholder={t('suggest.placeholder.link')} style={FIELD} />
                 {errors.link ? <p style={ERROR}>{errors.link}</p> : null}
               </div>
@@ -305,12 +314,12 @@ export default function SuggestResourceModal() {
 
             <div style={TWO_UP}>
               <div>
-                <label htmlFor="suggest-your-name" style={LABEL}>{t('suggest.field.submitterName')}</label>
+                <label htmlFor="suggest-your-name" style={LABEL}>{t('suggest.field.submitterName')}<Required /></label>
                 <input id="suggest-your-name" value={values.submitterName} onChange={(e) => set('submitterName', e.target.value)} placeholder={t('suggest.placeholder.submitterName')} style={FIELD} />
                 {errors.submitterName ? <p style={ERROR}>{errors.submitterName}</p> : null}
               </div>
               <div>
-                <label htmlFor="suggest-your-email" style={LABEL}>{t('suggest.field.submitterEmail')}</label>
+                <label htmlFor="suggest-your-email" style={LABEL}>{t('suggest.field.submitterEmail')}<Required /></label>
                 <input id="suggest-your-email" type="email" value={values.submitterEmail} onChange={(e) => set('submitterEmail', e.target.value)} placeholder={t('suggest.placeholder.submitterEmail')} style={FIELD} />
                 {errors.submitterEmail ? <p style={ERROR}>{errors.submitterEmail}</p> : null}
               </div>

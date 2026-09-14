@@ -37,8 +37,16 @@ function openForm() {
   fireEvent.click(screen.getByRole('button', { name: t('contact.suggestAction') }));
 }
 
+/**
+ * Labels are matched on their own text: a required field's label also
+ * carries an aria-hidden " *" marker, which an exact match would trip on.
+ */
+function byLabel(label: string) {
+  return screen.getByLabelText((text) => text.replace(/\s*\*$/, '') === label);
+}
+
 function fill(label: string, value: string) {
-  fireEvent.change(screen.getByLabelText(label), { target: { value } });
+  fireEvent.change(byLabel(label), { target: { value } });
 }
 
 describe('SuggestResourceModal', () => {
@@ -55,7 +63,7 @@ describe('SuggestResourceModal', () => {
       'submitterName',
       'submitterEmail',
     ]) {
-      expect(screen.getByLabelText(t(`suggest.field.${key}`))).toBeTruthy();
+      expect(byLabel(t(`suggest.field.${key}`))).toBeTruthy();
     }
     expect(screen.getByText(t('suggest.field.sectors'))).toBeTruthy();
     expect(screen.getByText(t('suggest.field.countries'))).toBeTruthy();
