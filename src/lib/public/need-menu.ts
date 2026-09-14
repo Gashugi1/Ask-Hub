@@ -93,7 +93,7 @@ function inNeed(row: PublicResource, need: NeedKey): boolean {
  * and `data`.
  */
 const BROWSE_ORDER: readonly NeedKey[] = [
-  'training', 'compute', 'funding', 'accelerator', 'partners', 'data', 'challenges', 'community',
+  'training', 'compute', 'funding', 'accelerator', 'data', 'challenges', 'community',
 ];
 
 export function buildNeedMenu(

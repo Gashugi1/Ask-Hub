@@ -65,6 +65,12 @@
   --color-tint-3: #C9D3E8;
   --color-danger: #C0392B;
   --color-danger-bg: #FBEAE8;
+  /* The "went well" pair -- a published resource, an approved submission --
+     the green twin of danger. Held as its own token rather than borrowed
+     from a need category's colour, so a badge that means "published" does
+     not change colour when the category palette does. */
+  --color-success: #0E7A54;
+  --color-success-bg: #E7F4EE;
 
   /* PRD §11 typography: "Section eyebrow labels: bright cyan-blue, small,
      uppercase, letter-spaced". The PRD names the hue but gives no value, in
@@ -94,8 +100,9 @@
   --color-neutral: #5A6472;
   --color-neutral-bg: #EEF0F3;
 
-  /* PRD §11 fixes the five hues (compute blue, training teal, funding amber,
-     accelerator purple, partners green) but leaves the exact values to be
+  /* PRD §11 fixes the hues (compute blue, training teal, funding amber,
+     accelerator purple, then data green, challenges magenta and community
+     teal-green from 0022) but leaves the exact values to be
      derived here, and requires them to stay consistent between public cards
      and admin charts.
 
@@ -116,8 +123,6 @@
   --color-need-funding-bg: #F9F0E4;
   --color-need-accelerator: #6C3FA8;
   --color-need-accelerator-bg: #F1EAF9;
-  --color-need-partners: #0E7A54;
-  --color-need-partners-bg: #E7F4EE;
   --color-need-data: #0E7A54;
   --color-need-data-bg: #E7F4EE;
   --color-need-challenges: #B4235F;

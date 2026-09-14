@@ -43,7 +43,6 @@ const NEED_SYNONYMS: Record<NeedKey, readonly string[]> = {
   // category list. Ours keeps it -- it is one of the eight the Need dropdown
   // offers -- so the parser has to be able to reach it too, or typing the name
   // of a category you can see would be the one phrase that does nothing.
-  partners: ['partners', 'partner'],
   data: ['datasets', 'dataset', 'benchmarks', 'benchmark'],
   challenges: ['competitions', 'competition', 'hackathons', 'hackathon', 'challenges', 'challenge'],
   community: ['community', 'events', 'event', 'meetup', 'gathering'],

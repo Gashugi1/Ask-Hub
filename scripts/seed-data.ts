@@ -54,7 +54,7 @@
 // src/lib/supabase/database.types.ts.
 export type ResourceStatus = 'live' | 'pipeline' | 'reference';
 export type NeedType =
-  | 'compute' | 'training' | 'funding' | 'accelerator' | 'partners'
+  | 'compute' | 'training' | 'funding' | 'accelerator'
   | 'data' | 'challenges' | 'community';
 export type GeoScope = 'global' | 'all_africa' | 'partner_countries' | 'specific';
 export type PartnerTier =

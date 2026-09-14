@@ -1181,7 +1181,6 @@ export type Database = {
         | "training"
         | "funding"
         | "accelerator"
-        | "partners"
         | "data"
         | "challenges"
         | "community"
@@ -1347,7 +1346,6 @@ export const Constants = {
         "training",
         "funding",
         "accelerator",
-        "partners",
         "data",
         "challenges",
         "community",

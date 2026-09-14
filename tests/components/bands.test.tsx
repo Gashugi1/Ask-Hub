@@ -268,8 +268,8 @@ describe('BrowseByNeed', () => {
     // already applied.
     render(
       <BrowseByNeed
-        entries={[entry({ need: 'partners', subCategories: [] })]}
-        activeNeed="partners"
+        entries={[entry({ need: 'community', subCategories: [] })]}
+        activeNeed="community"
       />,
     );
     expect(screen.queryByRole('link', { name: 'More' })).toBeNull();

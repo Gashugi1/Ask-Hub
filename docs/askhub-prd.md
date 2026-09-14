@@ -72,7 +72,7 @@ Mirrors `auth.users`. Fields: `user_id` (FK to auth.users), `email`, `full_name`
 The core entity.
 
 - Identity: `name`, `partner` (text or FK to `partners`), `partner_tier` (enum: `strategic` | `network` | `institutional` | `other`)
-- Classification: `resource_type` (e.g. Credits, Programme, Course, Network), `need_primary` (enum: `compute` | `training` | `funding` | `accelerator` | `partners`), `need_secondary` (same enum, nullable), `sub_category` (text, e.g. "Cloud credits", "HPC allocation", "Curriculum", "Community")
+- Classification: `resource_type` (e.g. Credits, Programme, Course, Network), `need_primary` (enum: `compute` | `training` | `funding` | `accelerator` | `data` | `challenges` | `community` — `partners` was a category until the client had it removed; partner organisations are who provides a resource, not a kind of resource), `need_secondary` (same enum, nullable), `sub_category` (text, e.g. "Cloud credits", "HPC allocation", "Curriculum", "Community")
 - Content: `description`, `action_label`, `external_url`, `banner_image_url`
 - Eligibility: `countries_eligible` (text array), `sectors_eligible` (text array), `stages_eligible` (text array), `geo_scope` (enum: `global` | `all_africa` | `partner_countries` | `specific`)
 - Lifecycle: `deadline` (date, nullable; null means rolling and displays as "Rolling"), `status` (enum: `live` | `pipeline` | `reference`), `is_featured` (bool), `is_exclusive` (bool)
@@ -441,7 +441,7 @@ Centralise everything below as design tokens. No hardcoded colour or type values
 
 **Buttons.** Primary: solid brand blue, white text. Secondary: white with brand-blue border and text.
 
-**Need colour keys** (used in cards, bars and accents): Compute blue, Training teal, Funding amber, Accelerator purple, Partners green. Derive exact values from the tokens and keep them consistent between public cards and admin charts.
+**Need colour keys** (used in cards, bars and accents): Compute blue, Training teal, Funding amber, Accelerator purple, Data green, Challenges magenta, Community teal-green. Derive exact values from the tokens and keep them consistent between public cards and admin charts.
 
 ---
 

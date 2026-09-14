@@ -13,15 +13,14 @@ import type { NeedKey } from './types';
  * looked flatter than the prototype: same hue, none of the depth.
  *
  * Kept in one module because four surfaces paint this banner -- directory
- * card, recently-added rail, featured card and resource detail -- and five
- * pairs copied four times is five pairs that will disagree.
+ * card, recently-added rail, featured card and resource detail -- and seven
+ * pairs copied four times is seven pairs that will disagree.
  */
 const BANNER_GRADIENT: Record<NeedKey, readonly [string, string]> = {
   compute: ['#1A2332', '#2C4CA8'],
   training: ['#0B4A54', '#177787'],
   funding: ['#6E3D0E', '#A5661F'],
   accelerator: ['#3D2069', '#5F3AA0'],
-  partners: ['#0A4630', '#177052'],
   data: ['#0A4630', '#177052'],
   challenges: ['#5C1230', '#93365B'],
   community: ['#083F38', '#12776B'],

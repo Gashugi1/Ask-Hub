@@ -94,21 +94,20 @@ describe('which entries exist', () => {
       'compute',
       'funding',
       'accelerator',
-      'partners',
       'data',
       'challenges',
       'community',
     ]);
   });
 
-  it('offers every need the product has, Partners included', () => {
-    // Partners was held out of this menu for a while. It is back, because a
-    // menu missing one category understates what the directory covers -- and
-    // the count going in proves the entry carries real data rather than a
-    // placeholder.
-    const menu = buildNeedMenu([count('partners', 3), count('compute', 1)], []);
+  it('offers every need the product has, and no other', () => {
+    // A menu missing a category understates what the directory covers, and
+    // one listing a category the enum no longer has (partners, dropped in
+    // 0026) would link to an empty filter. The count going in proves an
+    // entry carries real data rather than a placeholder.
+    const menu = buildNeedMenu([count('community', 3), count('compute', 1)], []);
     expect([...menu.map((e) => e.need)].sort()).toEqual([...NEED_KEYS].sort());
-    expect(only(menu, 'partners').liveCount).toBe(3);
+    expect(only(menu, 'community').liveCount).toBe(3);
   });
 
   it('takes the count from need_counts_public and never recomputes it', () => {

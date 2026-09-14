@@ -27,17 +27,18 @@ export const STAGES = [
 ] as const;
 
 export const NEED_KEYS = [
-  'compute', 'training', 'funding', 'accelerator', 'partners',
-  // Appended in trailing order to match 0022_need_types_expand.sql, which
-  // adds these to public.need_type after 'partners'. reference.test.ts asserts
-  // this order equals the DB enum element-for-element.
+  'compute', 'training', 'funding', 'accelerator',
+  // Trailing order matches the database enum: 0022_need_types_expand.sql
+  // appended these three, and 0026_drop_partners_need.sql removed the
+  // `partners` category that used to sit before them. reference.test.ts
+  // asserts this order equals the enum element-for-element.
   'data', 'challenges', 'community',
 ] as const;
 
 export type NeedKey = (typeof NEED_KEYS)[number];
 
 /**
- * The five needs as display strings, kept only so `reference.test.ts` can
+ * The needs as display strings, kept only so `reference.test.ts` can
  * assert it stays the same length as the enum. **No component reads it** --
  * every label a visitor sees comes from `need.*` in `en.json`, which is what
  * lets the copy be translated and changed without touching code. Updated in
@@ -45,7 +46,7 @@ export type NeedKey = (typeof NEED_KEYS)[number];
  * consumer, that consumer is the bug.
  */
 export const NEEDS = [
-  'Compute', 'Courses', 'Funding', 'Accelerators', 'Partners',
+  'Compute', 'Courses', 'Funding', 'Accelerators',
   'Data', 'Challenges', 'Community',
 ] as const;
 

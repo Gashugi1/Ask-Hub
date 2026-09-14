@@ -128,7 +128,6 @@ describe('parseQuery', () => {
       training: 'courses',
       funding: 'grants',
       accelerator: 'incubator',
-      partners: 'partners',
       data: 'datasets',
       challenges: 'hackathons',
       community: 'meetup',
