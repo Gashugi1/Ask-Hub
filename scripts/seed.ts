@@ -6,13 +6,12 @@
  * tables, because a full upsert would silently overwrite work a human did in
  * the admin UI between runs. Concretely, a re-run:
  *
- *   - partners: NEVER touches `logo_url` or `website_url` on an existing
- *     row. Only `name` and `is_ai_hub_partner` are written on conflict, so an
- *     admin-uploaded logo and site link survive every re-run. A brand-new
- *     partner still inserts with both URL columns null, exactly as before.
- *     `is_ai_hub_partner` is rewritten every run on purpose — see the
- *     comment on the partner step itself for why it is not protected the way
- *     the two URL columns are.
+ *   - partners: insert-only. A provider the table lacks is inserted with
+ *     both URL columns null; a provider it already has is not touched in any
+ *     column (ON CONFLICT DO NOTHING). Providers are created and edited from
+ *     the admin portal -- the resource modal, the tracker import and the
+ *     review queue all add rows, and a logo or site link can be set on one --
+ *     so a re-run must never revert that work. See the partner step itself.
  *   - resources: refreshes every *content* column (description, external
  *     URL, action label, eligibility arrays, sub-category, resource type,
  *     need, partner_tier, banner image, added_date) on conflict, but NEVER
@@ -67,7 +66,6 @@ import { createClient } from '@supabase/supabase-js';
 import { config as loadEnv } from 'dotenv';
 import type { Database } from '../src/lib/supabase/database.types';
 import {
-  AI_HUB_PARTNERS,
   PARTNER_ASSETS,
   PARTNERS,
   RESOURCES,
@@ -164,37 +162,18 @@ function resourceContentFields(r: SeedResource) {
  */
 export async function seed(): Promise<SeedSummary> {
   // 1. partners — must land first: resources.partner is a foreign key to
-  // partners(name). Payload is `{ name, is_ai_hub_partner }` — logo_url and
-  // website_url are deliberately absent from the object, not merely set to
-  // null. PostgREST's upsert generates its ON CONFLICT DO UPDATE SET clause
-  // from the columns actually present in the request body, so omitting a key
-  // here means the conflict update never touches that column at all: an
-  // admin-uploaded logo_url/website_url on an existing partner survives a
-  // re-run untouched. A brand-new partner still inserts with both columns
-  // null (the table's own column default), identical to before.
-  //
-  // `is_ai_hub_partner` is present, and so IS rewritten on every re-run, on
-  // purpose — the opposite treatment from the two URL columns, because the
-  // reason those are protected does not apply to it. They are protected
-  // because an admin can edit them between runs and a re-seed must not revert
-  // that work. No code path in src/ writes to `partners` at all today -- the
-  // only module there that touches the table is readPartnerNames in
-  // src/lib/admin/readers.ts, which selects `name` alone -- so there is no
-  // human decision here for a re-run to destroy. If a partner-editing screen
-  // is ever built, this key has to move out of the payload for the same
-  // reason the two URL columns already sit outside it. Writing it is also what
-  // makes AI_HUB_PARTNERS the single declaration of the three flagged rows:
-  // omit the key and 0019_ai_hub_partners.sql's UPDATE would be the only
-  // thing that ever set the flag, which on a `db:reset` runs against an empty
-  // table and sets nothing at all.
-  const aiHubPartners = new Set(AI_HUB_PARTNERS);
-  const partnerRows = PARTNERS.map((name) => ({
-    name,
-    is_ai_hub_partner: aiHubPartners.has(name),
-  }));
+  // partners(name). Insert-only: `ignoreDuplicates` makes this ON CONFLICT DO
+  // NOTHING, so a provider the table already has is left exactly as it is, in
+  // every column. That is a structural guarantee rather than a circumstantial
+  // one. An earlier version of this step relied on the observation that
+  // nothing in src/ wrote to `partners`, and rewrote a flag column on every
+  // run; that observation stopped being true when the tracker import and the
+  // review queue started creating providers, and the admin resource modal now
+  // creates them too. A seed that updates existing rows would silently undo
+  // an admin's decision on the next run. It does not, because it cannot.
   const { error: partnersError } = await client
     .from('partners')
-    .upsert(partnerRows, { onConflict: 'name' });
+    .upsert(PARTNERS.map((name) => ({ name })), { onConflict: 'name', ignoreDuplicates: true });
   if (partnersError) throw new Error(`partners upsert failed: ${partnersError.message}`);
   // 1b. partner assets — the logo/site pair, written only where no logo is
   // recorded yet. The `is('logo_url', null)` filter is what reconciles two

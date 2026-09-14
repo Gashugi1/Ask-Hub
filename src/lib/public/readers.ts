@@ -96,18 +96,18 @@ export const listNeedCounts = unstable_cache(
 );
 
 /**
- * The AI Hub's own partners, for the home page partner row -- not every row
- * of `partners`. That table doubles as the provider registry behind
- * `resources.partner`, so most of its rows are organisations that run a
- * listed resource rather than partners of the AI Hub. `partners_public`
- * filters on `is_ai_hub_partner` (0019_ai_hub_partners.sql), which is why
- * `select('*')` below is still correct and still returns only the four
- * columns the anonymous surface has always had -- the flag itself is not
- * projected, so there is nothing here to filter on in TypeScript.
+ * Every provider in the registry, as the public surface may see it: name,
+ * logo, site and sort order, through `partners_public`. Nothing renders it
+ * today -- the home page's provider strip was removed on 1 September -- and
+ * the view no longer filters anything (0027 dropped the "AI Hub partner"
+ * flag: AskHub lists providers and has no partners). The reader and its
+ * cache tag are kept so a strip could return without a migration or a new
+ * query.
  *
- * The admin resource form's partner picker deliberately does NOT come
+ * The admin resource form's provider list deliberately does NOT come
  * through here: it reads `partners` directly (readPartnerNames in
- * src/lib/admin/readers.ts) and must keep offering every provider.
+ * src/lib/admin/readers.ts), uncached, so a provider created a moment ago
+ * is offered at once.
  */
 export const listPublicPartners = unstable_cache(
   async (): Promise<PublicPartner[]> => {

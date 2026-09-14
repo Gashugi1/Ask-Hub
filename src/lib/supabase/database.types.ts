@@ -348,7 +348,6 @@ export type Database = {
       partners: {
         Row: {
           created_at: string
-          is_ai_hub_partner: boolean
           logo_url: string | null
           name: string
           sort_order: number | null
@@ -357,7 +356,6 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          is_ai_hub_partner?: boolean
           logo_url?: string | null
           name: string
           sort_order?: number | null
@@ -366,7 +364,6 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          is_ai_hub_partner?: boolean
           logo_url?: string | null
           name?: string
           sort_order?: number | null

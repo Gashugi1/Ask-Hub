@@ -98,10 +98,11 @@ export type Exclusivity = 'exclusive' | 'early_access';
 // "CINECA" replaces the prototype's "CINECA / AI Hub" on the client's
 // confirmation that the entity is CINECA — the prototype had folded the
 // facility and the programme into one free-text provider string.
-// supabase/migrations/0019_ai_hub_partners.sql carries the same rename as an
-// UPDATE, for a database that already holds rows when it is applied; this
-// array is what performs the rename on a `db:reset` + `npm run seed`, where
-// migrations run against an empty table. Both must stay in step: leaving the
+// supabase/migrations/0019_ai_hub_partners.sql carried the same rename as an
+// UPDATE, for a database that already held rows when it was applied (its
+// partner flag has since been dropped by 0027); this array is what performs
+// the rename on a `db:reset` + `npm run seed`, where migrations run against an
+// empty table. Both must stay in step: leaving the
 // old name here would re-insert it as a 20th partner row on the next seed,
 // and (because the resources upsert key is `partner,name`) would re-insert
 // "CINECA Leonardo" under it as a 21st resource.
@@ -259,29 +260,6 @@ export const PARTNER_ASSETS: readonly {
     logoUrl: '/partners/google.png',
     websiteUrl: 'https://www.kaggle.com/',
   },
-];
-
-/**
- * The subset of `PARTNERS` that `partners.is_ai_hub_partner` is set true for,
- * and therefore the only rows `partners_public` returns and the home page
- * partner row renders (supabase/migrations/0019_ai_hub_partners.sql).
- *
- * Client-confirmed on 2026-08-10 and recorded in
- * .superpowers/sdd/2026-07-30-sp2a-public-read-surface/progress.md, because a
- * claim about a UN programme's partnerships that renders on the public home
- * page should not have a source code comment as its only source.
- * Exactly these three. UNDP is deliberately absent: it
- * co-leads the AI Hub with MIMIT rather than partnering with it, and already
- * appears in the footer attribution (content rule 10.1). There is no UNDP row
- * in `PARTNERS` either, and none should be added to make this list longer.
- *
- * Unlike `logo_url`/`website_url`, this flag IS written on every re-seed —
- * see scripts/seed.ts's partner step for why the two are treated differently.
- */
-export const AI_HUB_PARTNERS: readonly string[] = [
-  'Amazon Web Services',
-  'CINECA',
-  'Microsoft',
 ];
 
 // ============================================================================
@@ -971,7 +949,7 @@ export const RESOURCES: readonly SeedResource[] = [
     action_label: 'Apply now',
     external_url: 'https://idrc-crdi.smapply.io/prog/supporting_stisa_2034_sgci_multilateral_research_call_advancing_africas_science_technology_and_innovation_priorities/',
     banner_image_url: null,
-    countries_eligible: ['Ethiopia', 'Ghana', 'Kenya', 'Mozambique', 'Rwanda', 'Senegal', 'Tanzania', 'Zambia', '"Côte d\'Ivoire"'],
+    countries_eligible: ['Ethiopia', 'Ghana', 'Kenya', 'Mozambique', 'Rwanda', 'Senegal', 'Tanzania', 'Zambia', "Côte d'Ivoire"],
     sectors_eligible: [],
     stages_eligible: ['New to AI', 'Getting started', 'Building', 'Scaling'],
     geo_scope: 'specific',
@@ -1739,7 +1717,7 @@ export const RESOURCES: readonly SeedResource[] = [
     action_label: 'View the call',
     external_url: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-search',
     banner_image_url: null,
-    countries_eligible: ['Ethiopia', 'Ghana', 'Kenya', 'Mozambique', 'Nigeria', 'Rwanda', 'Senegal', 'South Africa', 'Tanzania', 'Zambia', '"Côte d\'Ivoire"'],
+    countries_eligible: ['Ethiopia', 'Ghana', 'Kenya', 'Mozambique', 'Nigeria', 'Rwanda', 'Senegal', 'South Africa', 'Tanzania', 'Zambia', "Côte d'Ivoire"],
     sectors_eligible: [],
     stages_eligible: ['Building', 'Scaling'],
     geo_scope: 'specific',

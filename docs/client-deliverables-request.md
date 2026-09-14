@@ -49,17 +49,20 @@ missing is not.
 
 ---
 
-## 2. Partner logos and website URLs — blocks the partner band
+## 2. Provider logos and website URLs
 
-**Why it blocks:** the home page has a partner row, and the content rule for
-this programme is that **each logo links to that partner's own official site**.
-The database enforces this structurally: a logo cannot be stored without a URL
-to link it to. Until the URLs arrive, partners render as names rather than
-logos — the page works, it is just plainer than intended.
+**Why it matters:** the content rule for this programme is that **each logo
+links to that provider's own official site**, and the database enforces this
+structurally: a logo cannot be stored without a URL to link it to. Nothing on
+the public site renders provider logos today, so this does not block launch;
+it is what would let a provider row carry a logo and a link when a surface
+for them exists. (AskHub lists providers -- organisations whose opportunities
+appear in the directory -- and has no official partners; an earlier draft of
+this section spoke of a "partner band", which no longer exists.)
 
-**What we need,** per partner:
+**What we need,** per provider:
 
-- Exact partner name, spelled as it should appear publicly
+- Exact provider name, spelled as it should appear publicly
 - Official website URL (`https`)
 - Logo file
 
@@ -67,7 +70,7 @@ logos — the page works, it is just plainer than intended.
 rejects it deliberately, because an SVG is an executable document and this is a
 public UN surface. A transparent-background PNG at roughly 400px wide is ideal.
 
-**One name to confirm:** the prototype lists a single partner as
+**One name to confirm:** the prototype lists a single provider as
 "Cyber 4.0 and Cisco". If those are two organisations, we need them as two
 entries with a logo and URL each, since each logo has to link to its own site.
 

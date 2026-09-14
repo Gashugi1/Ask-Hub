@@ -63,6 +63,8 @@ const UNKNOWN_PARTNER = `No Such Partner ${stamp}`;
 
 /** Every id this file writes, recorded at creation and removed unconditionally. */
 const createdIds: string[] = [];
+/** Providers this file creates beyond the fixture, removed after the resources. */
+const createdPartners: string[] = [];
 
 /**
  * A complete, schema-valid payload. Every field is present because
@@ -133,7 +135,10 @@ afterAll(async () => {
   }
   // After the resources: resources.partner is ON DELETE RESTRICT, so a
   // referenced partner cannot be removed.
-  const { error } = await svc.from('partners').delete().eq('name', FIXTURE_PARTNER);
+  const { error } = await svc
+    .from('partners')
+    .delete()
+    .in('name', [FIXTURE_PARTNER, ...createdPartners]);
   if (error) console.warn(`[partner-fk] could not delete ${FIXTURE_PARTNER}: ${error.message}`);
 });
 
@@ -237,5 +242,68 @@ describe('updateResource and the partner foreign key', () => {
       .eq('id', id)
       .single();
     expect(data!.description).toBe('Edited by the action.');
+  });
+});
+
+describe('renaming a partner', () => {
+  /**
+   * 0019_ai_hub_partners.sql renamed `CINECA / AI Hub` to `CINECA` with a
+   * single UPDATE and no second statement for the resource that references
+   * it, on the strength of resources_partner_fkey being `on update cascade`
+   * (0014_partner_logos.sql). That is the assumption this test holds: without
+   * the cascade the UPDATE would fail outright on a populated database.
+   *
+   * Not exercised by a `db:reset` + `npm run seed`: migrations run before any
+   * partner row exists, so that UPDATE matched nothing locally. The cascade
+   * only ever runs on a database that already holds content.
+   */
+  it('carries its resources across via the FK cascade', async () => {
+    const svc = serviceClient();
+    const oldName = `Partner FK rename-from ${stamp}`;
+    const newName = `Partner FK rename-to ${stamp}`;
+    const resourceName = `Partner FK cascade resource ${stamp}`;
+
+    const { error: partnerError } = await svc.from('partners').insert({ name: oldName });
+    expect(partnerError, 'seeding rename fixture').toBeNull();
+    createdPartners.push(oldName, newName);
+
+    const { data: inserted, error: resourceError } = await svc
+      .from('resources')
+      .insert({
+        name: resourceName,
+        partner: oldName,
+        partner_tier: 'strategic',
+        resource_type: 'Credits',
+        need_primary: 'compute',
+        description: 'cascade fixture',
+        external_url: 'https://example.org/cascade',
+        // `pipeline`, not `live`: this row exists only to be pointed at.
+        status: 'pipeline',
+      })
+      .select('id')
+      .single();
+    expect(resourceError, 'seeding cascade resource').toBeNull();
+    createdIds.push(inserted!.id as string);
+
+    const { error: renameError } = await svc
+      .from('partners')
+      .update({ name: newName })
+      .eq('name', oldName);
+    expect(renameError, 'renaming the partner').toBeNull();
+
+    const { data, error } = await svc
+      .from('resources')
+      .select('partner')
+      .eq('name', resourceName)
+      .single();
+    expect(error).toBeNull();
+    expect(data!.partner).toBe(newName);
+
+    const { count, error: oldCountError } = await svc
+      .from('partners')
+      .select('name', { count: 'exact', head: true })
+      .eq('name', oldName);
+    expect(oldCountError).toBeNull();
+    expect(count ?? 0).toBe(0);
   });
 });
