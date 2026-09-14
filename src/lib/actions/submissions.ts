@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { requireRole } from '@/lib/auth';
 import { createAdminReadClient } from '@/lib/admin/client';
 import { readPartnerNames, readSubmissionForReview } from '@/lib/admin/readers';
+import { ensureProvider } from '@/lib/admin/partners';
 import {
   submissionToResourceInput,
   SubmissionIncomplete,
@@ -50,10 +51,10 @@ export type ApproveOutcome =
  * retry surfaces as `duplicate` and the message tells the reviewer to
  * reject the suggestion or edit the resource by hand.
  *
- * An organisation the partners table has never seen is created name-only
- * first, exactly as the tracker importer does (`{ name }` alone, so a
- * re-run can never blank a logo an admin uploaded later), and the partner
- * list is re-read so `assertKnownPartner` judges the post-upsert state.
+ * An organisation the registry has never seen is created name-only first
+ * (`ensureProvider`, the same step every resource writer takes), and the
+ * provider list is re-read so `assertKnownPartner` judges the post-insert
+ * state.
  */
 export async function approveAndPublishSubmission(rawId: unknown): Promise<ApproveOutcome> {
   const actor = await requireRole(['admin', 'editor']);
@@ -72,14 +73,7 @@ export async function approveAndPublishSubmission(rawId: unknown): Promise<Appro
   }
 
   const supabase = await createAdminReadClient();
-  let partnerCreated = false;
-  if (!(await readPartnerNames()).includes(parsed.partner)) {
-    const { error } = await supabase
-      .from('partners')
-      .upsert({ name: parsed.partner }, { onConflict: 'name' });
-    if (error) throw new Error(`approveAndPublishSubmission failed (partners): ${error.message}`);
-    partnerCreated = true;
-  }
+  const { created: partnerCreated } = await ensureProvider(supabase, parsed.partner);
   assertKnownPartner(parsed.partner, await readPartnerNames());
 
   const inserted = await supabase.from('resources').insert(toRow(parsed)).select('id').single();
@@ -104,11 +98,12 @@ export async function approveAndPublishSubmission(rawId: unknown): Promise<Appro
 
 /**
  * "Edit first", completed: the reviewer has corrected the prefilled form and
- * saved it. The same sequence as `approveAndPublishSubmission` -- partner
+ * saved it. The same sequence as `approveAndPublishSubmission` -- provider
  * ensured, resource inserted, submission marked approved -- but over the
- * reviewer's edited fields rather than the suggestion's own, which is why
- * `createResource` is not simply called: that action refuses an unknown
- * partner, and a suggestion's organisation usually is one.
+ * reviewer's edited fields rather than the suggestion's own. Not simply
+ * `createResource` followed by `markSubmissionApproved`: the two writes and
+ * the status predicate belong together so a suggestion cannot be approved
+ * without its resource landing.
  */
 export async function createResourceFromSubmission(
   rawSubmissionId: unknown,
@@ -121,14 +116,7 @@ export async function createResourceFromSubmission(
   if (!submission) return { ok: false, reason: 'notPending' };
 
   const supabase = await createAdminReadClient();
-  let partnerCreated = false;
-  if (!(await readPartnerNames()).includes(parsed.partner)) {
-    const { error } = await supabase
-      .from('partners')
-      .upsert({ name: parsed.partner }, { onConflict: 'name' });
-    if (error) throw new Error(`createResourceFromSubmission failed (partners): ${error.message}`);
-    partnerCreated = true;
-  }
+  const { created: partnerCreated } = await ensureProvider(supabase, parsed.partner);
   assertKnownPartner(parsed.partner, await readPartnerNames());
 
   const inserted = await supabase.from('resources').insert(toRow(parsed)).select('id').single();

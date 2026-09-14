@@ -7,10 +7,11 @@ import { fixtureStamp } from '../helpers/fixtures';
 /**
  * `importTrackerResources` against the real tables, as an editor under RLS.
  *
- * The action is where the two things unit tests cannot reach happen: it is the
- * only code path in this product that writes `partners`, and it is the first
- * that writes many resources in one call. Both are asserted here at the
- * database, not at the mapper.
+ * The action is where the two things unit tests cannot reach happen: it
+ * creates providers in a batch (every resource writer creates one at a time
+ * through `ensureProvider`; this is the one that creates many), and it is
+ * the first that writes many resources in one call. Both are asserted here
+ * at the database, not at the mapper.
  *
  * **What is mocked, and what that costs.** The same three modules
  * `tests/rls/resource-partner-fk.test.ts` mocks, for the same Vitest-process

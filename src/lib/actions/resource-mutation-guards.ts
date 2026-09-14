@@ -71,23 +71,22 @@ export function unknownPartnerMessage(partner: string): string {
  * `resources.partner` is `text not null references partners(name)`
  * (0014_partner_logos.sql). `resourceInput` checks the shape of that string —
  * trimmed, non-empty, at most 200 characters — and can check nothing about
- * whether it names a row, having no database access, so before this check the
- * first thing to object to `partner: "Googel"` was Postgres, and its message
- * reached the operator as a generic failure. Zod cannot take this over:
- * `resourceInput` is imported by `ResourceForm`, a client component that calls
- * `safeParse` synchronously in the browser, and a refinement that has to be
- * awaited cannot run there at all.
+ * whether it names a row, having no database access. Zod cannot take this
+ * over: `resourceInput` is imported by `ResourceForm`, a client component
+ * that calls `safeParse` synchronously in the browser, and a refinement that
+ * has to be awaited cannot run there at all.
  *
- * The select on the form is UX; this is the check. CLAUDE.md: UI gating is
- * not security, and a server action can be invoked directly with any string
- * in the field.
+ * What this check covers, now that every resource writer creates a missing
+ * provider first (`ensureProvider`, src/lib/admin/partners.ts): the row the
+ * caller's role was not allowed to create, or cannot see. The form's
+ * provider field is free text with suggestions, not a gate -- CLAUDE.md: UI
+ * gating is not security, and a server action can be invoked directly with
+ * any string in the field -- so this runs on a fresh read after the create
+ * step, and the operator gets a message naming the value rather than a
+ * constraint violation.
  *
- * `known` comes from `readPartnerNames()`, which reads on the caller's own
- * RLS-bound client — the same query the form's select is built from, so the
- * two cannot disagree about what counts as a partner. They are still separate
- * reads: the list can change between the page render and the save, which is
- * the whole reason the form's copy of this check is not the only one. Two
- * further consequences, stated rather than left to be discovered:
+ * `known` comes from `readPartnerNames()`, on the caller's own RLS-bound
+ * client. Two consequences, stated rather than left to be discovered:
  *
  *  - Membership is exact JavaScript string equality, and nothing here folds
  *    case or trims (`resourceInput` has already trimmed). That agrees with the
@@ -97,11 +96,11 @@ export function unknownPartnerMessage(partner: string): string {
  *  - A row the caller's role cannot SELECT is treated as not existing, while a
  *    foreign-key check inside Postgres is not subject to RLS. Today no such
  *    row exists: `partners_select_authenticated` admits every staff role. A
- *    narrower policy later would make this refuse a partner the constraint
+ *    narrower policy later would make this refuse a provider the constraint
  *    would have accepted.
  *
  * Not a substitute for handling the constraint violation itself, and not
- * claimed to be: a partner not yet referenced by any resource can be deleted
+ * claimed to be: a provider not yet referenced by any resource can be deleted
  * between that read and the insert. `resourceWriteError` below covers the
  * window.
  */

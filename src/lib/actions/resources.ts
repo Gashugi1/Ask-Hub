@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { requireRole } from '@/lib/auth';
 import { createAdminReadClient } from '@/lib/admin/client';
 import { readPartnerNames, readResourceDedupeIndex } from '@/lib/admin/readers';
+import { ensureProvider } from '@/lib/admin/partners';
 import { resourceInput, toRow } from '@/lib/schemas/resource';
 import { CACHE_TAGS } from '@/lib/public/cache';
 import { parseCsv } from '@/lib/admin/import-csv';
@@ -45,9 +46,10 @@ function revalidateResources(): void {
 }
 
 /**
- * The bulk import is the only path that writes `partners`, so this is the only
- * caller. `listPublicPartners` is cached on this tag and reads an unfiltered
- * projection of the table, so a created partner genuinely changes its result.
+ * Called by every path here that may create a provider row -- the create and
+ * update actions and the bulk import; the review queue's actions call
+ * revalidateTag on the same tag directly. `listPublicPartners` is cached on
+ * it and reads the whole registry, so a created provider changes its result.
  */
 function revalidatePartners(): void {
   revalidateTag(CACHE_TAGS.partners, { expire: 0 });
@@ -71,9 +73,13 @@ export async function createResource(input: unknown): Promise<{ id: string }> {
   await requireRole(['admin', 'editor']);
   const parsed = resourceInput.parse(input);
   const supabase = await createAdminReadClient();
-  // `partner` is a foreign key to partners(name) and the schema cannot check
-  // it — see assertKnownPartner. Before the insert, so the operator gets a
-  // message naming the value instead of a constraint violation.
+  // `partner` is a foreign key to partners(name). A provider the registry
+  // lacks is created name-only first (ensureProvider -- the prototype's
+  // free-text field, made to work with the FK), then the check runs on a
+  // fresh read: what it still catches is a row this role could not create or
+  // cannot see, and the operator gets a message naming the value rather than
+  // a constraint violation.
+  const { created } = await ensureProvider(supabase, parsed.partner);
   assertKnownPartner(parsed.partner, await readPartnerNames());
   const { data, error } = await supabase
     .from('resources')
@@ -82,6 +88,7 @@ export async function createResource(input: unknown): Promise<{ id: string }> {
     .single();
   if (error) throw resourceWriteError('createResource', error, parsed.partner);
   revalidateResources();
+  if (created) revalidatePartners();
   return { id: data!.id };
 }
 
@@ -90,9 +97,9 @@ export async function updateResource(rawId: unknown, input: unknown): Promise<vo
   const targetId = id.parse(rawId);
   const parsed = resourceInput.parse(input);
   const supabase = await createAdminReadClient();
-  // The same hole as createResource, and not a theoretical one: the edit form
-  // pre-fills a partner that is already valid, so this path only looks safe
-  // until someone changes the field.
+  // As createResource: an edit may retarget a resource to a provider the
+  // registry has never seen, and that provider is created before the check.
+  const { created } = await ensureProvider(supabase, parsed.partner);
   assertKnownPartner(parsed.partner, await readPartnerNames());
   const { data, error } = await supabase
     .from('resources')
@@ -102,6 +109,7 @@ export async function updateResource(rawId: unknown, input: unknown): Promise<vo
   if (error) throw resourceWriteError('updateResource', error, parsed.partner);
   assertRowAffected('updateResource', data);
   revalidateResources();
+  if (created) revalidatePartners();
 }
 
 export async function setResourceStatus(rawId: unknown, rawStatus: unknown): Promise<void> {
@@ -238,13 +246,12 @@ async function tableFrom(file: z.infer<typeof importRequest>): Promise<string[][
  * same file after a failure returns the rows that already landed as
  * duplicates rather than doubling them.
  *
- * **Missing partners are created first.** `resources.partner` is a foreign key
- * to `partners(name)` and a tracker export names providers that are mostly not
- * there yet; rejecting them would be unactionable, because nothing in this
- * product can create a partner. The upsert body carries `name` alone: PostgREST
- * builds its `ON CONFLICT DO UPDATE SET` from the keys present in the body, so
- * omitting `logo_url`/`website_url` is what stops a re-import blanking assets
- * an admin uploaded later (see scripts/seed.ts).
+ * **Missing providers are created first.** `resources.partner` is a foreign
+ * key to `partners(name)` and a tracker export names providers that are
+ * mostly not there yet. The batch goes through one name-only upsert with
+ * ON CONFLICT DO NOTHING, the same statement `ensureProvider` issues for a
+ * single row, so a re-import can neither blank a logo an admin uploaded
+ * later nor write a spurious audit row for a provider that already exists.
  *
  * One `audit_log` row per resource is unavoidable and correct: the trigger from
  * 0018_audit_triggers.sql is `for each row`, so a 40-row import is 40 `created`
@@ -279,7 +286,7 @@ export async function importTrackerResources(input: unknown): Promise<ImportRepo
       .from('partners')
       .upsert(
         validation.newPartners.map((name) => ({ name })),
-        { onConflict: 'name' },
+        { onConflict: 'name', ignoreDuplicates: true },
       );
     if (error) throw new Error(`importTrackerResources failed (partners): ${error.message}`);
     createdPartners.push(...validation.newPartners);
