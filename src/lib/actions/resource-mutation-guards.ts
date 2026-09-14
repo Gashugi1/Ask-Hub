@@ -44,25 +44,26 @@ const UNIQUE_VIOLATION = '23505';
 const PARTNER_NAME_KEY = 'resources_partner_name_key';
 
 /**
- * What a caller is told when the partner they submitted is not in `partners`.
+ * What a caller is told when the provider they submitted is not in
+ * `partners` after `ensureProvider` has had its chance to create it.
  *
  * One function so the pre-flight check below and the constraint-violation
  * translation say the same thing, and so a test can assert the message
- * without copying its wording. It names the offending value and the remedy,
- * which `insert or update on table "resources" violates foreign key
- * constraint "resources_partner_fkey"` does neither of.
+ * without copying its wording. It names the offending value and what must
+ * have happened -- the row could not be created by this role, or is not
+ * visible to it -- which `insert or update on table "resources" violates
+ * foreign key constraint "resources_partner_fkey"` does neither of.
  *
  * This is the *server's* message: the server log, and a developer running
  * locally. It is not the channel the admin screen uses — Next replaces the
  * message of an error thrown out of a server action with an opaque digest
- * before it reaches the browser in production, so `ResourceForm` produces the
- * localised equivalent itself from `src/locales/en.json` rather than reading
- * anything off the thrown error. Deliberately not routed through `t()`: this
+ * before it reaches the browser in production, so the admin screen shows
+ * its generic failure copy rather than reading anything off the thrown error. Deliberately not routed through `t()`: this
  * string is not user-facing copy in the i18n sense, and a server action's
  * thrown message has no locale to resolve against.
  */
 export function unknownPartnerMessage(partner: string): string {
-  return `"${partner}" is not a known partner — choose one from the list`;
+  return `"${partner}" is not a known provider — it could not be created or cannot be seen by your role`;
 }
 
 /**

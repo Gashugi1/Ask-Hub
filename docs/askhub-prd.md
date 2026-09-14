@@ -71,7 +71,7 @@ Mirrors `auth.users`. Fields: `user_id` (FK to auth.users), `email`, `full_name`
 ### 4.2 `resources`
 The core entity.
 
-- Identity: `name`, `partner` (text or FK to `partners`), `partner_tier` (enum: `strategic` | `network` | `institutional` | `other`)
+- Identity: `name`, `partner` (the provider — text or FK to `partners`; shown as "Provider" everywhere a person reads it), `partner_tier` (enum: `strategic` | `network` | `institutional` | `other`)
 - Classification: `resource_type` (e.g. Credits, Programme, Course, Network), `need_primary` (enum: `compute` | `training` | `funding` | `accelerator` | `data` | `challenges` | `community` — `partners` was a category until the client had it removed; partner organisations are who provides a resource, not a kind of resource), `need_secondary` (same enum, nullable), `sub_category` (text, e.g. "Cloud credits", "HPC allocation", "Curriculum", "Community")
 - Content: `description`, `action_label`, `external_url`, `banner_image_url`
 - Eligibility: `countries_eligible` (text array), `sectors_eligible` (text array), `stages_eligible` (text array), `geo_scope` (enum: `global` | `all_africa` | `partner_countries` | `specific`)
@@ -86,8 +86,8 @@ Derived behaviour, computed and not stored:
 - Only `status = 'live'` resources appear publicly.
 - `geo_scope` of `global`, `all_africa` or `partner_countries` matches any country filter selection. There is no "Global programmes" option in the country filter (content rule 10.6).
 
-### 4.3 `partners`
-`name`, `logo_url`, `website_url`, `tier`, `sort_order`. Logos link to official sites.
+### 4.3 `partners` — the provider registry
+`name`, `logo_url`, `website_url`, `tier`, `sort_order`. Logos link to official sites. The table keeps its name; in every screen and export it is the **provider** registry: the organisations whose opportunities the directory lists. AskHub has no official partners, and no row here asserts one (the AI Hub partner flag of migration 0019 was removed by 0027).
 
 ### 4.4 `partnerships`
 AskHub's own partner pipeline, scoped to AskHub partners only. This is not an organisation-wide CRM.
@@ -175,14 +175,14 @@ Immediately usable on landing, in this order:
 3. Prominent search
 4. Persistent browse by need — every need type, each with its live count, including the ones currently at zero
 5. Featured opportunities carousel
-6. Scrolling partner logo row, each logo linking to the partner's official site
+6. ~~Scrolling partner logo row~~ — removed 1 Sep 2026: with no logos it was names sliding past, and AskHub has no partners to show. The provider registry is unfiltered data with no public consumer
 7. Recently added rail
 8. The full resource directory, flowing on the same page
 
 ### 5.2 Directory
 
 - Filters: need (five), sector (six), country (18 partner countries), stage (New to AI, Getting started, Building, Scaling)
-- Natural-language free-text search across name, partner, description, sub-category
+- Natural-language free-text search across name, provider, description, sub-category
 - Sort: Featured first, Recently added
 - Resource count displayed
 - Export to CSV and Excel. **The public export must exclude views, clicks, CTR, internal notes, submitter emails, and every other internal or analytics field.** Implement via a dedicated public-safe database view.
@@ -190,7 +190,7 @@ Immediately usable on landing, in this order:
 
 ### 5.3 Resource detail
 
-Banner, title, partner, description, eligibility (countries, sectors, stages), deadline or status badge, apply button to the verified external URL, and a share pop-up (copy link, LinkedIn, email, WhatsApp) with editable pre-written text.
+Banner, title, provider, description, eligibility (countries, sectors, stages), deadline or status badge, apply button to the verified external URL, and a share pop-up (copy link, LinkedIn, email, WhatsApp) with editable pre-written text.
 
 - Apply links: `rel="noopener noreferrer"`, `target="_blank"`, `https` scheme validated on save.
 - Each detail page carries a "Suggest an update" affordance that creates an `update_suggestion` submission for that resource.
@@ -202,7 +202,7 @@ Modal. Email plus category multi-select, optional country and sector, explicit c
 
 ### 5.5 Suggest a resource
 
-Modal. Fields: resource name, organisation or partner, need (select), link, one or two lines on what it offers, submitter email. Copy states that the AI Hub team reviews every submission before it goes live. Lands in `submissions` as `pending`.
+Modal. Fields: resource name, organisation (the provider), need (select), link, one or two lines on what it offers, submitter email. Copy states that the AI Hub team reviews every submission before it goes live. Lands in `submissions` as `pending`.
 
 ### 5.6 About and Contact
 
@@ -240,10 +240,10 @@ Leadership view giving the full reach and engagement picture.
 
 - Header count: total resources, with the note that live items appear on the public directory
 - Tabs: All, Expiring soon, Closed
-- Search by name or partner; filter by status; filter by need
-- Table columns: Resource (name, then partner, tier, type, sub-category), Need (primary and secondary), Eligibility (geo, sectors, stages), Deadline (Rolling, or date with "N days left", or "Auto-closed, past deadline"), Status (inline dropdown for immediate change), Actions (featured star toggle, Edit, Delete)
-- Add resource, with an identical field set to Edit
-- Required-field validation on both create and edit
+- Search by name or provider; filter by status ("All statuses"); filter by category ("All categories")
+- Table columns: Resource (name, then provider, tier, type, sub-category), Need (primary and secondary), Eligibility (geo, sectors, stages), Deadline (Rolling, or date with "N days left", or "Auto-closed, past deadline"), Status (inline dropdown for immediate change), Actions (featured star toggle, Edit, Delete)
+- Add resource and Edit open the same form as a modal over the table (the prototype's), with an identical field set. The provider is free text with the registry offered as suggestions; a name the registry lacks is created as a provider when the resource is saved, and the form says so beside the field
+- Required-field validation on both create and edit, plus the prototype's two rules: at least one eligible stage, and at least one country when the scope is "Selected countries"
 - Delete requires confirmation and writes to the audit log
 
 ### 6.3 Review queue
@@ -413,7 +413,7 @@ Supabase Auth covers only authentication email (invite, password reset). A trans
 7. Cyber4Africa partners are Cyber 4.0 and Cisco.
 8. **No per-resource "Verified" badge.** Quality assurance is stated once globally: "Every resource is curated by the AI Hub team."
 9. No claims about "UNDP or MIMIT data-protection standards". Privacy copy stays minimal and factual pending legal review.
-10. Partner and institution logos link to their official sites. Footer logo order matches the official AI Hub website.
+10. Provider and institution logos link to their official sites. Footer logo order matches the official AI Hub website.
 
 These rules override the public prototype wherever they conflict. See Section 16.
 
@@ -553,9 +553,9 @@ Each item is a test, not an assertion:
 
 ## 15. Seeding
 
-- Seed the curated resources with real titles, partners, descriptions, and verified working external URLs. Approximately 20 records: 11 live, the remainder pipeline and reference.
+- Seed the curated resources with real titles, providers, descriptions, and verified working external URLs. Approximately 20 records: 11 live, the remainder pipeline and reference.
 - Where a URL cannot be confirmed working, set that resource to `pipeline` rather than publishing a broken link. Do not treat a failed automated HEAD request as proof of a dead link; many live sites reject bots. Verify ambiguous cases by hand.
-- Where no partner image exists, generate a clean branded placeholder banner (partner name and title, colour keyed to need type). **Never fabricate event flyers or invent imagery.**
+- Where no provider image exists, generate a clean branded placeholder banner (provider name and title, colour keyed to need type). **Never fabricate event flyers or invent imagery.**
 - Seed `programmes`, `impact_stories`, `headline_stats`, `compute_metrics` and `partners` from the values in the prototype, which are real programme records.
 - **Do not seed:** subscribers, submissions, digest send history, engagement events, or any analytics figure. The prototype's subscriber emails and send log are fixtures, and seeding them would place fabricated personal data and false reporting history into a production UNDP system.
 - Seed the initial admin users by invitation, using real team addresses supplied by the client.

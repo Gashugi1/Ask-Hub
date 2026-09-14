@@ -49,7 +49,7 @@ describe('assertRowAffected', () => {
 describe('assertKnownPartner', () => {
   const known = ['Amazon Web Services', 'Google', 'NVIDIA'];
 
-  it('accepts a partner that is in the list', () => {
+  it('accepts a provider that is in the list', () => {
     expect(() => assertKnownPartner('Google', known)).not.toThrow();
   });
 
@@ -60,8 +60,8 @@ describe('assertKnownPartner', () => {
     } catch (err) {
       const message = (err as Error).message;
       expect(message).toContain('Googel');
-      expect(message).toContain('is not a known partner');
-      expect(message).toContain('choose one from the list');
+      expect(message).toContain('is not a known provider');
+      expect(message).toContain('could not be created or cannot be seen');
     }
   });
 
