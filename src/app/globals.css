@@ -379,23 +379,92 @@ button {
   min-width: 0;
 }
 
+.admin-rail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-nav {
+  margin-top: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* The signed-in block at the foot of the rail: pushed to the bottom of the
+   full-height rail by the auto margin, above a hairline. */
+.admin-rail-foot {
+  margin-top: auto;
+  padding: 14px 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+/* Desktop: the list is always open and the menu button does not exist; the
+   page footer under the content does not exist either -- the rail's copy of
+   the signed-in block is the one shown. */
+.admin-menu-toggle,
+.admin-page-foot {
+  display: none;
+}
+
 @media (max-width: 900px) {
+  /* Three stacked rows -- bar, content, footer -- with the content taking
+     every spare pixel of the shell's 100vh minimum. Left to `auto`, the
+     grid shares that height across all three and the bar and footer grow
+     into empty dark bands. */
   .admin-shell {
     grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
   }
 
+  /* The rail becomes a bar across the top: wordmark on the left, the menu
+     button on the right, the screen list collapsed beneath until opened. */
   .admin-rail {
     position: static;
     height: auto;
+    padding: 14px 16px;
   }
 
-  /* With the rail no longer full-height, `margin-top: auto` has nothing to
-     push against and the signed-in block lands straight under the last nav
-     item with only its hairline between them. Give it the gap the desktop
-     rail's spare height provided. */
+  .admin-menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    border: 1.5px solid rgba(255, 255, 255, 0.3);
+    background: none;
+    color: #c6d2f2;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .admin-menu-toggle[aria-expanded='true'] {
+    border-color: #1f5fbf;
+    color: #fff;
+  }
+
+  .admin-nav {
+    display: none;
+    margin-top: 14px;
+  }
+
+  .admin-nav--open {
+    display: flex;
+  }
+
+  /* The signed-in block leaves the rail and becomes the page footer. */
   .admin-rail-foot {
-    margin-top: 28px;
-    padding-top: 18px;
+    display: none;
+  }
+
+  .admin-page-foot {
+    display: block;
+    background: #1a2332;
+    color: #fff;
+    margin-top: 0;
+    padding: 18px 18px 28px 18px;
+    border-top: none;
   }
 
   .admin-content {

@@ -17,23 +17,21 @@ import { t } from '@/lib/i18n';
  * role on the server and this renders exactly what it is handed.
  */
 export default function AdminNavList({
+  id,
   items,
+  className = 'admin-nav',
 }: {
+  id?: string;
   items: readonly { href: string; labelKey: string }[];
+  /** `.admin-nav` lays the list out; `.admin-nav--open` shows it at phone width (see globals.css). */
+  className?: string;
 }) {
   const pathname = usePathname();
 
   return (
-    <ul
-      style={{
-        marginTop: 26,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 4,
-        listStyle: 'none',
-        padding: 0,
-      }}
-    >
+    // Layout lives on the class rather than inline: an inline `display`
+    // would beat the phone-width rule that hides the list until opened.
+    <ul id={id} className={className} style={{ listStyle: 'none', padding: 0 }}>
       {items.map((item) => {
         // `/admin` would otherwise light up on every screen beneath it.
         const active =

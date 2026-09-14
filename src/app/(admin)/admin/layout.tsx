@@ -1,5 +1,6 @@
 import { getCurrentUser } from '@/lib/auth';
 import AdminSidebar from '@/components/admin/AdminSidebar';
+import AdminFooter from '@/components/admin/AdminFooter';
 
 /**
  * Every screen under /admin is per-request: this layout resolves the
@@ -49,6 +50,9 @@ export default async function AdminLayout({
     <div className="admin-shell" style={{ minHeight: '100vh', background: '#F4F6F9' }}>
       <AdminSidebar role={user.role} user={user} />
       <div className="admin-content">{children}</div>
+      {/* Phone width only (globals.css): the signed-in block as a footer
+          under the content, once the rail has become a collapsed top bar. */}
+      <AdminFooter user={user} className="admin-page-foot" />
     </div>
   );
 }

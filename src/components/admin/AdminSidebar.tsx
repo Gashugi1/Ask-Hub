@@ -1,6 +1,6 @@
 import { visibleNavItems } from '@/lib/admin/guard';
 import { t } from '@/lib/i18n';
-import AdminNavList from './AdminNavList';
+import AdminNav from './AdminNav';
 import AdminFooter from './AdminFooter';
 import type { Role, CurrentUser } from '@/lib/auth';
 
@@ -42,31 +42,37 @@ export default function AdminSidebar({
         flexDirection: 'column',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px' }}>
-        {/* The prototype sets an accent bead beside the wordmark here. It is
-            not transcribed, with the rest of the dot device -- see
-            WelcomeBand, which holds the note for every surface that
-            carried one. */}
-        <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em' }}>
-          {t('site.wordmark')}
-        </span>
-        <span
-          style={{
-            fontSize: 11,
-            color: '#A9B8E0',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.06em',
-            marginLeft: 2,
-          }}
-        >
-          {t('admin.nav.label')}
-        </span>
-      </div>
+      <AdminNav
+        items={visibleNavItems(role)}
+        brand={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px' }}>
+            {/* The prototype sets an accent bead beside the wordmark here. It
+                is not transcribed, with the rest of the dot device -- see
+                WelcomeBand, which holds the note for every surface that
+                carried one. */}
+            <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em' }}>
+              {t('site.wordmark')}
+            </span>
+            <span
+              style={{
+                fontSize: 11,
+                color: '#A9B8E0',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                marginLeft: 2,
+              }}
+            >
+              {t('admin.nav.label')}
+            </span>
+          </div>
+        }
+      />
 
-      <AdminNavList items={visibleNavItems(role)} />
-
-      <AdminFooter user={user} />
+      {/* The signed-in block, at the foot of the rail on a desktop. At phone
+          width this copy is hidden and AdminLayout renders it again as a page
+          footer under the content. */}
+      <AdminFooter user={user} className="admin-rail-foot" />
     </nav>
   );
 }

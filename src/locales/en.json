@@ -224,6 +224,7 @@
   "impact.title": "Impact",
   "impact.empty": "Impact stories will appear here once they are published.",
   "admin.nav.label": "Admin",
+  "admin.nav.menu": "Menu",
   "admin.nav.dashboard": "Dashboard",
   "admin.nav.resources": "Resources",
   "admin.nav.settings": "Settings",
