@@ -1,5 +1,5 @@
 import { requirePageRole } from '@/lib/admin/guard';
-import { readPendingSubmissions } from '@/lib/admin/readers';
+import { readPartnerNames, readPendingSubmissions, readResourceForEdit } from '@/lib/admin/readers';
 import ReviewCard from '@/components/admin/ReviewCard';
 import { ADMIN_H1, ADMIN_SUB } from '@/components/admin/chrome';
 import { t } from '@/lib/i18n';
@@ -15,7 +15,21 @@ import { t } from '@/lib/i18n';
  */
 export default async function AdminReviewPage() {
   await requirePageRole(['admin', 'editor']);
-  const submissions = await readPendingSubmissions();
+  const [submissions, partners] = await Promise.all([readPendingSubmissions(), readPartnerNames()]);
+  // "Open resource to edit" opens the target in the modal, so its full input
+  // is read here for each update suggestion (a handful of rows at most). A
+  // target the reader cannot return -- deleted, or hidden -- leaves the card
+  // without that button rather than opening a blank form.
+  const targets = Object.fromEntries(
+    await Promise.all(
+      submissions
+        .filter((s) => s.targetResourceId !== null)
+        .map(async (s) => {
+          const input = await readResourceForEdit(s.targetResourceId!);
+          return [s.id, input ? { ...input, id: s.targetResourceId! } : null] as const;
+        }),
+    ),
+  );
 
   return (
     <main data-route="/admin/review">
@@ -43,7 +57,12 @@ export default async function AdminReviewPage() {
       ) : (
         <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
           {submissions.map((submission) => (
-            <ReviewCard key={submission.id} submission={submission} />
+            <ReviewCard
+              key={submission.id}
+              submission={submission}
+              partners={partners}
+              targetInput={targets[submission.id] ?? null}
+            />
           ))}
         </div>
       )}

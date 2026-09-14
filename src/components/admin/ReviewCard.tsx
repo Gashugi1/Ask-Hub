@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { approveAndPublishSubmission, rejectSubmission } from '@/lib/actions/submissions';
+import { submissionResourceDraft } from '@/lib/admin/submission-to-resource';
 import type { ReviewSubmission } from '@/lib/admin/types';
+import type { ResourceInput } from '@/lib/schemas/resource';
 import { t } from '@/lib/i18n';
+import ResourceModal, { type ResourceModalMode } from './ResourceModal';
 import { ADMIN_PANEL, ADMIN_ERROR, ADMIN_HELP } from './chrome';
 
 /** A fixed locale and zone so the server render and hydration agree (see TeamAccessCard). */
@@ -69,14 +71,47 @@ const DANGER = {
  * queue uses PRD 4.5's three statuses, and a card leaves the screen when
  * it stops being pending.
  *
+ * "Edit first" and "Open resource to edit" both open the prototype's
+ * resource-form modal over the queue, as its `openForm(..., sub.id)` does:
+ * the first starts from the suggestion's draft and creates the resource, the
+ * second opens the target resource itself; saving either approves the
+ * suggestion and takes the card off the screen. "Open resource to edit" is
+ * offered only when the page could read the target (`targetInput`).
+ *
  * Mounted only by `/admin/review`, which `requirePageRole`s admin and
  * editor, so there is no read-only branch.
  */
-export default function ReviewCard({ submission }: { submission: ReviewSubmission }) {
+export default function ReviewCard({
+  submission,
+  partners,
+  targetInput,
+}: {
+  submission: ReviewSubmission;
+  /** From `readPartnerNames()`, for the form's provider suggestions. */
+  partners: readonly string[];
+  /** For an update suggestion: the target resource's full input, or null if the page could not read it. */
+  targetInput?: (ResourceInput & { id: string }) | null;
+}) {
   const [pending, startTransition] = useTransition();
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
+  const [modal, setModal] = useState<ResourceModalMode | null>(null);
   const router = useRouter();
   const isNew = submission.type === 'new_resource';
+
+  function openEditFirst() {
+    setNotice(null);
+    setModal({
+      kind: 'fromSubmission',
+      prefill: submissionResourceDraft(submission),
+      submissionId: submission.id,
+    });
+  }
+
+  function openTarget() {
+    if (!targetInput) return;
+    setNotice(null);
+    setModal({ kind: 'editForSubmission', initial: targetInput, submissionId: submission.id });
+  }
 
   function approve() {
     setNotice(null);
@@ -192,17 +227,14 @@ export default function ReviewCard({ submission }: { submission: ReviewSubmissio
             <button type="button" disabled={pending} onClick={approve} style={PRIMARY}>
               {t('admin.review.approve')}
             </button>
-            <Link href={`/admin/resources/new?submission=${submission.id}`} style={SECONDARY}>
+            <button type="button" disabled={pending} onClick={openEditFirst} style={SECONDARY}>
               {t('admin.review.editFirst')}
-            </Link>
+            </button>
           </>
-        ) : submission.targetResourceId ? (
-          <Link
-            href={`/admin/resources/${submission.targetResourceId}?submission=${submission.id}`}
-            style={SECONDARY}
-          >
+        ) : targetInput ? (
+          <button type="button" disabled={pending} onClick={openTarget} style={SECONDARY}>
             {t('admin.review.openResource')}
-          </Link>
+          </button>
         ) : null}
         <button type="button" disabled={pending} onClick={reject} style={DANGER}>
           {t('admin.review.reject')}
@@ -215,6 +247,18 @@ export default function ReviewCard({ submission }: { submission: ReviewSubmissio
           {notice?.text ?? ''}
         </span>
       </div>
+
+      <ResourceModal
+        mode={modal}
+        partners={partners}
+        onClose={(result) => {
+          setModal(null);
+          if (result === 'saved') {
+            setNotice({ tone: 'ok', text: t('admin.resources.saved') });
+            router.refresh();
+          }
+        }}
+      />
     </article>
   );
 }

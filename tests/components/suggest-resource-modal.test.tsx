@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, afterEach, beforeAll } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { t } from '@/lib/i18n';
+import { polyfillDialog } from '../helpers/dialog';
 
 /**
  * The public form's client half: what it offers, what it hides, and what it
@@ -16,16 +17,7 @@ vi.mock('@/lib/actions/suggestions', () => actions);
 
 const SuggestResourceModal = (await import('@/components/public/SuggestResourceModal')).default;
 
-beforeAll(() => {
-  // jsdom has no <dialog> implementation; the component only needs the two
-  // methods, and the dialog's children render regardless of open state.
-  HTMLDialogElement.prototype.showModal = function () {
-    this.setAttribute('open', '');
-  };
-  HTMLDialogElement.prototype.close = function () {
-    this.removeAttribute('open');
-  };
-});
+polyfillDialog();
 
 afterEach(() => {
   cleanup();

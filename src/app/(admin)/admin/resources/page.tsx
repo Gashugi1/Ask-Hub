@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { requireRole } from '@/lib/auth';
 import { canWrite } from '@/lib/admin/guard';
-import { readAdminResources } from '@/lib/admin/readers';
+import { readAdminResourceRows, readPartnerNames } from '@/lib/admin/readers';
+import { toAdminResource } from '@/lib/admin/types';
+import { rowToResourceInput } from '@/lib/schemas/resource';
 import {
   parseResourceQuery,
   filterAdminResources,
@@ -13,6 +15,7 @@ import {
 } from '@/lib/admin/resource-view';
 import { NEED_KEYS } from '@/lib/reference';
 import ResourceTable from '@/components/admin/ResourceTable';
+import { ResourceEditorProvider, AddResourceButton } from '@/components/admin/ResourceEditor';
 import {
   ResourceSelectionProvider,
   PublishSelectedButton,
@@ -49,13 +52,22 @@ export default async function AdminResourcesPage({
     ),
   );
   const query = parseResourceQuery(params);
-  const allRows = await readAdminResources();
+  const rawRows = await readAdminResourceRows();
+  const allRows = rawRows.map(toAdminResource);
   const rows = filterAdminResources(allRows, query);
   const counts = tabCounts(allRows);
   const userCanWrite = canWrite(user.role);
+  // Only a writer gets the modal, so only a writer pays for what it needs:
+  // the provider list for the field's suggestions, and each row's full
+  // editable input for the Edit action.
+  const partners = userCanWrite ? await readPartnerNames() : [];
+  const inputs = userCanWrite
+    ? Object.fromEntries(rawRows.map((row) => [row.id, { ...rowToResourceInput(row), id: row.id }]))
+    : {};
 
   return (
     <ResourceSelectionProvider rows={rows}>
+    <ResourceEditorProvider inputs={inputs} partners={partners}>
     <main data-route="/admin/resources">
       <div
         style={{
@@ -83,13 +95,9 @@ export default async function AdminResourcesPage({
             >
               {t('admin.resources.import')}
             </Link>
-            <Link
-              href="/admin/resources/new"
-              className="proto-primary-button"
-              style={{ ...ADMIN_PRIMARY, padding: '11px 20px', fontSize: 13.5 }}
-            >
-              {t('admin.resources.addNew')}
-            </Link>
+            {/* The prototype's "+ Add resource" opens its form modal over
+                the table; the modal itself is hosted by ResourceEditorProvider. */}
+            <AddResourceButton />
           </div>
         ) : null}
       </div>
@@ -150,7 +158,7 @@ export default async function AdminResourcesPage({
         <label>
           <span className="sr-only">{t('admin.resources.filterStatus')}</span>
           <select name="status" defaultValue={query.status} style={FILTER_SELECT}>
-            <option value="all">{t('admin.resources.filterAll')}</option>
+            <option value="all">{t('admin.resources.filterAllStatuses')}</option>
             {STATUSES.map((status) => (
               <option key={status} value={status}>
                 {t(`status.${status}`)}
@@ -161,7 +169,7 @@ export default async function AdminResourcesPage({
         <label>
           <span className="sr-only">{t('admin.resources.filterNeed')}</span>
           <select name="need" defaultValue={query.need} style={FILTER_SELECT}>
-            <option value="all">{t('admin.resources.filterAll')}</option>
+            <option value="all">{t('admin.resources.filterAllCategories')}</option>
             {NEED_KEYS.map((need) => (
               <option key={need} value={need}>
                 {t(`need.${need}`)}
@@ -176,6 +184,7 @@ export default async function AdminResourcesPage({
 
       <ResourceTable rows={rows} canWrite={userCanWrite} />
     </main>
+    </ResourceEditorProvider>
     </ResourceSelectionProvider>
   );
 }

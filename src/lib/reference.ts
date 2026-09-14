@@ -26,6 +26,15 @@ export const STAGES = [
   'New to AI', 'Getting started', 'Building', 'Scaling',
 ] as const;
 
+/**
+ * The resource form's type options, the prototype's list. `resource_type` is
+ * free text in the database (PRD 4.1 gives examples, not an enum), so a
+ * stored value outside this list is still shown and kept by the form.
+ */
+export const RESOURCE_TYPES = [
+  'Programme', 'Credits', 'Course', 'Community', 'Dataset', 'Competition', 'Fund', 'Report',
+] as const;
+
 export const NEED_KEYS = [
   'compute', 'training', 'funding', 'accelerator',
   // Trailing order matches the database enum: 0022_need_types_expand.sql

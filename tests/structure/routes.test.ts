@@ -85,10 +85,6 @@ describe('route structure', () => {
     expect(routes()['/(admin)/admin/resources/page']).toBe('/admin/resources');
   });
 
-  it('serves the new-resource form at /admin/resources/new', () => {
-    expect(routes()['/(admin)/admin/resources/new/page']).toBe('/admin/resources/new');
-  });
-
   it('serves the bulk import at /admin/resources/import', () => {
     // A sibling of /new rather than a query on the table: it is its own screen
     // with its own role gate.
@@ -101,10 +97,6 @@ describe('route structure', () => {
 
   it('serves the settings screen at /admin/settings', () => {
     expect(routes()['/(admin)/admin/settings/page']).toBe('/admin/settings');
-  });
-
-  it('serves the edit-resource form at /admin/resources/[id]', () => {
-    expect(routes()['/(admin)/admin/resources/[id]/page']).toBe('/admin/resources/[id]');
   });
 
   it('serves the reach and engagement placeholder at /admin/reach', () => {

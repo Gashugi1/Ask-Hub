@@ -17,6 +17,8 @@ const actions = vi.hoisted(() => ({
   deleteResource: vi.fn(),
   setResourceStatus: vi.fn(),
   setResourceFeatured: vi.fn(),
+  createResource: vi.fn(),
+  updateResource: vi.fn(),
 }));
 
 vi.mock('@/lib/actions/resources', () => actions);
@@ -28,6 +30,7 @@ const ResourceTable = (await import('@/components/admin/ResourceTable')).default
 const { ResourceSelectionProvider, PublishSelectedButton } = await import(
   '@/components/admin/ResourceSelection'
 );
+const { ResourceEditorProvider } = await import('@/components/admin/ResourceEditor');
 
 afterEach(() => {
   cleanup();
@@ -57,12 +60,14 @@ function row(id: string, status: AdminResource['status']): AdminResource {
 
 const ROWS = [row('a', 'pipeline'), row('b', 'live'), row('c', 'reference')];
 
-/** The page's shape: the header button and the table under one provider. */
+/** The page's shape: the header button and the table under the two providers the page mounts. */
 function mount(canWrite: boolean) {
   render(
     <ResourceSelectionProvider rows={ROWS}>
-      {canWrite ? <PublishSelectedButton /> : null}
-      <ResourceTable rows={ROWS} canWrite={canWrite} />
+      <ResourceEditorProvider inputs={{}} partners={[]}>
+        {canWrite ? <PublishSelectedButton /> : null}
+        <ResourceTable rows={ROWS} canWrite={canWrite} />
+      </ResourceEditorProvider>
     </ResourceSelectionProvider>,
   );
 }

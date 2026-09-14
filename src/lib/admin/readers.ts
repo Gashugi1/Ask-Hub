@@ -1,4 +1,5 @@
 import 'server-only';
+import type { Database } from '@/lib/supabase/database.types';
 import { createAdminReadClient } from './client';
 import { deadlineInfo } from '@/lib/deadline';
 import {
@@ -141,6 +142,19 @@ export async function readSubmissionForReview(id: string): Promise<ReviewSubmiss
  * ordering is visible here too, then by name for a stable tie-break.
  */
 export async function readAdminResources(): Promise<AdminResource[]> {
+  return (await readAdminResourceRows()).map(toAdminResource);
+}
+
+type ResourceRow = Database['public']['Tables']['resources']['Row'];
+
+/**
+ * The same query, unnarrowed: every column of every resource in the table's
+ * order. The resources screen reads this once and derives both the table
+ * rows (`toAdminResource`) and, for a writer, the full editable input each
+ * row's Edit action opens the modal with (`rowToResourceInput`) -- one query
+ * rather than one per edit.
+ */
+export async function readAdminResourceRows(): Promise<ResourceRow[]> {
   const supabase = await createAdminReadClient();
   const { data, error } = await supabase
     .from('resources')
@@ -148,7 +162,7 @@ export async function readAdminResources(): Promise<AdminResource[]> {
     .order('sort_order', { ascending: true, nullsFirst: false })
     .order('name', { ascending: true });
   if (error) throw new Error(`admin read failed (resources): ${error.message}`);
-  return (data ?? []).map(toAdminResource);
+  return data ?? [];
 }
 
 /**

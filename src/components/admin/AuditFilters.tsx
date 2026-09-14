@@ -39,7 +39,7 @@ export default function AuditFilters({ filters }: { filters: AuditFiltersState }
           defaultValue={filters.action}
           style={ADMIN_FIELD}
         >
-          <option value="all">{t('admin.resources.filterAll')}</option>
+          <option value="all">{t('admin.audit.filterAllActions')}</option>
           {AUDIT_ACTIONS.map((action) => (
             <option key={action} value={action}>
               {t(`admin.audit.action.${action}`)}

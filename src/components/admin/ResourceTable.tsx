@@ -1,18 +1,18 @@
 'use client';
 
 import { useEffect, useRef, useState, useTransition } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { t } from '@/lib/i18n';
 import { deadlineInfo } from '@/lib/deadline';
 import { deleteResource } from '@/lib/actions/resources';
 import { useResourceSelection } from './ResourceSelection';
+import { useResourceEditor } from './ResourceEditor';
 import type { AdminResource } from '@/lib/admin/types';
 import EmptyState from './EmptyState';
 import StatusSelect from './StatusSelect';
 import FeaturedToggle from './FeaturedToggle';
 import ConfirmDeleteButton from './ConfirmDeleteButton';
-import { ADMIN_LINK_DANGER, ADMIN_ERROR } from './chrome';
+import { ADMIN_LINK_ACTION, ADMIN_LINK_DANGER, ADMIN_ERROR } from './chrome';
 
 /**
  * One row's worth of eligibility, labelled by which array it came from —
@@ -54,6 +54,27 @@ function DeadlineCell({ deadline }: { deadline: string | null }) {
         : '#42506E';
   return (
     <span style={{ fontSize: 12.5, fontWeight: 700, color: tone }}>{label}</span>
+  );
+}
+
+/**
+ * The row's Edit, opening the prototype's form modal over the table with
+ * this row's full input. Rendered only inside the `canWrite` branch, where
+ * ResourceEditorProvider is mounted.
+ */
+function EditRowButton({ id }: { id: string }) {
+  const { open, inputs } = useResourceEditor();
+  const input = inputs[id];
+  if (!input) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => open({ kind: 'edit', initial: input })}
+      className="proto-admin-action"
+      style={{ ...ADMIN_LINK_ACTION, fontSize: 12.5 }}
+    >
+      {t('admin.resources.actions.edit')}
+    </button>
   );
 }
 
@@ -227,13 +248,7 @@ export default function ResourceTable({
                   <td style={TD}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <FeaturedToggle id={row.id} isFeatured={row.isFeatured} />
-                      <Link
-                        href={`/admin/resources/${row.id}`}
-                        className="proto-admin-action"
-                        style={{ fontSize: 12.5, fontWeight: 800, color: '#1F5FBF' }}
-                      >
-                        {t('admin.resources.actions.edit')}
-                      </Link>
+                      <EditRowButton id={row.id} />
                       <DeleteRowButton row={row} />
                     </div>
                   </td>
