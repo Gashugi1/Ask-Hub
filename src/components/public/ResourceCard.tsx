@@ -2,14 +2,15 @@ import Link from 'next/link';
 import { t } from '@/lib/i18n';
 import { deadlineLabel } from '@/lib/public/deadline-label';
 import { needBanner, bannerPartner } from '@/lib/public/need-banner';
-import PartnerLogo, { LOGO_ON_CARD } from './PartnerLogo';
 import type { PublicResource } from '@/lib/public/types';
 
 /**
- * Transcribed from the approved prototype, docs/prototype/prototype.html
- * lines 253-278: a 14px-radius card with a 92px need-coloured banner carrying
- * the providing organisation, then pills, a 17px title, the partner, the
- * description, and a "learn more" line pinned to the bottom.
+ * Transcribed from the approved prototype's directory card: a 14px-radius card
+ * with a 92px need-coloured banner carrying the providing organisation and,
+ * below it, the title in white clamped to one line (the linked heading). The
+ * body then carries the need pill, accent and neutral tag pills, the
+ * description, and a "learn more"/apply line pinned to the bottom. The title
+ * and partner appear once each, in the banner -- not repeated in the body.
  *
  * Pure presentation over a `resources_public` row: it derives nothing the
  * database did not already state, which is what keeps the deadline rule in
@@ -25,10 +26,10 @@ import type { PublicResource } from '@/lib/public/types';
  * rather than a change in how it looks. It wears the same treatment as the
  * learn-more line beside it.
  *
- * The providing organisation's mark sits in the banner's top-right corner
- * when `partners.logo_url` has one, exactly as the prototype's `bnLogoDir`
- * does. Most partners have none, and the slot simply renders nothing --
- * see PartnerLogo for why there is no placeholder in its place.
+ * **No partner mark on the banner**, though the prototype's `bnLogoDir` pins
+ * one to its top-right corner. Most partners have no `logo_url`, so the slot
+ * rendered for a handful of cards and not the rest, which read as a defect
+ * rather than as data the grid did not have.
  *
  * **The banner colour is the need's, not the organisation's.** The prototype
  * paints it per card; this database holds no brand colour per partner, and
@@ -86,7 +87,6 @@ export default function ResourceCard({ resource }: { resource: PublicResource })
           flexShrink: 0,
         }}
       >
-        <PartnerLogo logoUrl={resource.partnerLogoUrl} style={LOGO_ON_CARD} />
         <div
           style={{
             position: 'absolute',
@@ -108,21 +108,26 @@ export default function ResourceCard({ resource }: { resource: PublicResource })
           >
             {bannerPartner(resource.partnerName)}
           </div>
-          <div
+          {/* The title lives in the banner (white, one-line clamp), as the
+              linked heading -- the prototype's directory card shows it once,
+              here, not again in the body. */}
+          <h3
             style={{
+              margin: '3px 0 0 0',
               fontSize: 14.5,
               fontWeight: 800,
               color: '#fff',
               lineHeight: 1.25,
-              marginTop: 3,
               overflow: 'hidden',
               display: '-webkit-box',
               WebkitLineClamp: 1,
               WebkitBoxOrient: 'vertical',
             }}
           >
-            {resource.name}
-          </div>
+            <Link href={`/resources/${resource.id}`} style={{ color: '#fff' }}>
+              {resource.name}
+            </Link>
+          </h3>
         </div>
       </div>
 
@@ -174,23 +179,26 @@ export default function ResourceCard({ resource }: { resource: PublicResource })
           </span>
         </div>
 
-        <h3 style={{ fontSize: 17, fontWeight: 800, lineHeight: 1.3, margin: 0 }}>
-          <Link href={`/resources/${resource.id}`} style={{ color: '#1A2332' }}>
-            {resource.name}
-          </Link>
-        </h3>
-
-        <div style={{ fontSize: 12.5, fontWeight: 700, color: '#1F5FBF' }}>
-          {resource.partnerName}
-        </div>
-
         {resource.description ? (
+          // Clamped to three lines, as the recently-added rail clamps its own.
+          // Descriptions are partner copy of no fixed length -- an imported
+          // tracker row assembles one from a dozen columns and can run to a
+          // thousand characters -- and the directory is a grid, so every card
+          // in a row stretches to the tallest. Unclamped, a single long
+          // description pushes its neighbours' action links a screen down and
+          // leaves them sitting above that much empty white. The full text is
+          // still in the DOM for a reader and a crawler, and the detail page
+          // is where it is meant to be read.
           <p
             style={{
               fontSize: 13.5,
               lineHeight: 1.55,
               color: '#42506E',
               margin: 0,
+              overflow: 'hidden',
+              display: '-webkit-box',
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical',
             }}
           >
             {resource.description}
@@ -226,7 +234,7 @@ export default function ResourceCard({ resource }: { resource: PublicResource })
   );
 }
 
-/** The prototype's neutral tag pill (reference line 270). */
+/** The prototype's neutral tag pill. */
 const TAG_PILL = {
   fontSize: 11.5,
   fontWeight: 600,

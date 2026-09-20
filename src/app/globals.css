@@ -40,7 +40,13 @@
  * tokens remain the source for anything the prototype does not cover, and
  * for the two colours where accessibility overrides it (D9, below).
  */
-@theme {
+/* `static` forces every token here to be emitted as a :root CSS variable even
+   when no generated utility references it. The need colours are read through a
+   dynamic `var(--color-need-${need})` in the cards and browse rail, which
+   Tailwind cannot see, so without `static` a need used only that way (data,
+   challenges, community) had its variable tree-shaken and its swatch rendered
+   colourless. */
+@theme static {
   --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
 
   --color-primary: #1F5FBF;
@@ -59,6 +65,12 @@
   --color-tint-3: #C9D3E8;
   --color-danger: #C0392B;
   --color-danger-bg: #FBEAE8;
+  /* The "went well" pair -- a published resource, an approved submission --
+     the green twin of danger. Held as its own token rather than borrowed
+     from a need category's colour, so a badge that means "published" does
+     not change colour when the category palette does. */
+  --color-success: #0E7A54;
+  --color-success-bg: #E7F4EE;
 
   /* PRD §11 typography: "Section eyebrow labels: bright cyan-blue, small,
      uppercase, letter-spaced". The PRD names the hue but gives no value, in
@@ -88,8 +100,9 @@
   --color-neutral: #5A6472;
   --color-neutral-bg: #EEF0F3;
 
-  /* PRD §11 fixes the five hues (compute blue, training teal, funding amber,
-     accelerator purple, partners green) but leaves the exact values to be
+  /* PRD §11 fixes the hues (compute blue, training teal, funding amber,
+     accelerator purple, then data green, challenges magenta and community
+     teal-green from 0022) but leaves the exact values to be
      derived here, and requires them to stay consistent between public cards
      and admin charts.
 
@@ -110,8 +123,12 @@
   --color-need-funding-bg: #F9F0E4;
   --color-need-accelerator: #6C3FA8;
   --color-need-accelerator-bg: #F1EAF9;
-  --color-need-partners: #0E7A54;
-  --color-need-partners-bg: #E7F4EE;
+  --color-need-data: #0E7A54;
+  --color-need-data-bg: #E7F4EE;
+  --color-need-challenges: #B4235F;
+  --color-need-challenges-bg: #FBE9F1;
+  --color-need-community: #0B6E63;
+  --color-need-community-bg: #E4F2F0;
 
   /* PRD §11: "#003C64 at 8%, x0 y2 blur 20". */
   --shadow-card: 0 2px 20px rgb(0 60 100 / 0.08);
@@ -146,7 +163,7 @@ body {
 
 /*
  * Transcribed from the approved prototype's own global stylesheet
- * (docs/prototype/prototype.html). `fadeUp` is its entrance animation, and
+ * (the approved prototype). `fadeUp` is its entrance animation, and
  * `.askhub-wordmark` hides the header wordmark on narrow screens so the logo
  * and search pill still fit on one row.
  *
@@ -161,6 +178,18 @@ body {
  */
 * {
   box-sizing: border-box;
+}
+
+/* Tailwind's preflight resets `margin: 0` on every element, which takes the
+   browser's own `margin: auto` off a modal <dialog> and leaves it pinned to
+   the top-left of the viewport. Restored here, once, for every dialog. */
+dialog {
+  margin: auto;
+}
+
+/* The prototype's modal scrim (its suggest and import overlays). */
+dialog::backdrop {
+  background: rgba(16, 24, 48, 0.5);
 }
 
 input,
@@ -196,7 +225,7 @@ button {
  * `.proto-nav-action` used to sit here for an outlined pill in the header's
  * right-hand slot. The prototype fills that slot with ADMIN, which PRD 5.8
  * forbids in public navigation, and Contact -- which had been standing in it
- * -- is a plain nav item in the prototype (reference line 21). With nothing
+ * -- is a plain nav item in the prototype. With nothing
  * outlined left in the header the rule had no consumer, so it is gone rather
  * than kept as a class nothing applies.
  */
@@ -204,8 +233,12 @@ button {
   background: #f1f4fa;
 }
 
-/* Footer, prototype lines 595-631: links warm to the accent, the outlined
+/* Footer: links warm to the accent, the outlined
    partner badges take an accent border and full-white text. */
+.proto-footer-link {
+  color: #c6d2f2;
+}
+
 .proto-footer-link:hover {
   color: #f06428;
 }
@@ -215,18 +248,18 @@ button {
   color: #fff;
 }
 
-/* Welcome band CTA, prototype line 45: the accent button brightens on hover
+/* Welcome band CTA: the accent button brightens on hover
    rather than shifting hue, so the navy-on-orange contrast ratio holds. */
 .proto-accent-button:hover {
   filter: brightness(1.06);
 }
 
-/* Storefront department menu, prototype lines 55-62. */
+/* Storefront department menu: */
 .proto-dept-item:hover {
   background: #f1f4fa;
 }
 
-/* The expanded category's sub-items, prototype lines 66-71: each warms to the
+/* The expanded category's sub-items: each warms to the
    nav tint and the primary blue, and the trailing "More" underlines. */
 .proto-dept-sub:hover {
   background: #f1f4fa;
@@ -237,20 +270,24 @@ button {
   text-decoration: underline;
 }
 
-/* Featured card, prototype line 88: the shadow lifts on hover. */
+/* Featured card: the shadow lifts on hover. */
 .proto-feature-card:hover {
   box-shadow: 0 12px 36px rgb(0 60 100 / 0.18);
 }
 
-/* Recently-added rail card, prototype line 148. */
+/* Recently-added rail card: */
 .proto-rail-card:hover {
   border-color: #1f5fbf;
   box-shadow: 0 6px 20px rgb(0 60 100 / 0.1);
 }
 
-/* Directory actions and filter chips, prototype lines 183-184, 194-196. */
+/* Directory actions and filter chips: */
 .proto-primary-button:hover:not(:disabled) {
   background: #174a99;
+}
+
+.proto-publish-button:hover:not(:disabled) {
+  filter: brightness(1.08);
 }
 
 .proto-outline-button:hover:not(:disabled) {
@@ -271,12 +308,12 @@ button {
   color: #1a2332;
 }
 
-/* Detail page back link, prototype line 293. */
+/* Detail page back link: */
 .proto-back-link:hover {
   color: #1f5fbf;
 }
 
-/* Admin rail, prototype lines 677 and 684. The nav hover is a translucent
+/* Admin rail: The nav hover is a translucent
    white so it reads the same over the dark rail whether or not the item is
    the current one. */
 .proto-admin-nav:hover {
@@ -287,12 +324,12 @@ button {
   color: #fff;
 }
 
-/* Row actions in the admin tables, prototype lines 834-835. */
+/* Row actions in the admin tables: */
 .proto-admin-action:hover {
   text-decoration: underline;
 }
 
-/* Directory card, prototype line 253. */
+/* Directory card: */
 .proto-card:hover {
   border-color: #1f5fbf;
   box-shadow: 0 6px 20px rgb(0 60 100 / 0.1);
@@ -342,14 +379,92 @@ button {
   min-width: 0;
 }
 
+.admin-rail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-nav {
+  margin-top: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* The signed-in block at the foot of the rail: pushed to the bottom of the
+   full-height rail by the auto margin, above a hairline. */
+.admin-rail-foot {
+  margin-top: auto;
+  padding: 14px 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+/* Desktop: the list is always open and the menu button does not exist; the
+   page footer under the content does not exist either -- the rail's copy of
+   the signed-in block is the one shown. */
+.admin-menu-toggle,
+.admin-page-foot {
+  display: none;
+}
+
 @media (max-width: 900px) {
+  /* Three stacked rows -- bar, content, footer -- with the content taking
+     every spare pixel of the shell's 100vh minimum. Left to `auto`, the
+     grid shares that height across all three and the bar and footer grow
+     into empty dark bands. */
   .admin-shell {
     grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
   }
 
+  /* The rail becomes a bar across the top: wordmark on the left, the menu
+     button on the right, the screen list collapsed beneath until opened. */
   .admin-rail {
     position: static;
     height: auto;
+    padding: 14px 16px;
+  }
+
+  .admin-menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    border: 1.5px solid rgba(255, 255, 255, 0.3);
+    background: none;
+    color: #c6d2f2;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .admin-menu-toggle[aria-expanded='true'] {
+    border-color: #1f5fbf;
+    color: #fff;
+  }
+
+  .admin-nav {
+    display: none;
+    margin-top: 14px;
+  }
+
+  .admin-nav--open {
+    display: flex;
+  }
+
+  /* The signed-in block leaves the rail and becomes the page footer. */
+  .admin-rail-foot {
+    display: none;
+  }
+
+  .admin-page-foot {
+    display: block;
+    background: #1a2332;
+    color: #fff;
+    margin-top: 0;
+    padding: 18px 18px 28px 18px;
+    border-top: none;
   }
 
   .admin-content {
@@ -374,6 +489,22 @@ button {
   min-width: 232px;
   position: sticky;
   top: 80px;
+  /* Prototype: a fixed-height card whose category list scrolls inside it,
+     rather than a menu that grows with the number of needs. `overflow: hidden`
+     clips to the radius; the inner list (BrowseByNeed's <ul>) carries the
+     scroll via overflow-y: auto + flex: 1 + min-height: 0.
+
+     This height governs the whole row. The row is `align-items: stretch` and
+     the recently-added cards fill their column, so whatever is set here is
+     what those cards are stretched to -- at the prototype's 440px they carried
+     about a hundred pixels of white space below their content. 340px is a
+     little above a card's natural height, so the cards very nearly hug their
+     content and the menu still scrolls to whatever number of categories the
+     taxonomy grows to. */
+  max-height: 340px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 @media (max-width: 900px) {
@@ -381,6 +512,9 @@ button {
     flex: 1 1 100%;
     min-width: 0;
     position: static;
+    /* Stacked full-width on a phone, the menu shows in full rather than
+       scrolling a stub of itself. */
+    max-height: none;
   }
 }
 
@@ -394,4 +528,110 @@ button {
   content: '';
   position: absolute;
   inset: 0;
+}
+
+/*
+ * Scroll affordances for the two rails.
+ *
+ * Both clip their content, and neither said so. On macOS the overlay scrollbar
+ * is invisible until you are already scrolling, which is too late to be an
+ * invitation -- the browse menu looked like eight categories and the rail like
+ * however many cards happened to fit.
+ *
+ * Two signals, both pure CSS, so neither rail has to become a client
+ * component: a slim scrollbar that is always drawn, and an edge where the
+ * content fades out because it continues. Where the browser supports
+ * scroll-driven animations the fade is tied to scroll position, so it thins as
+ * you approach the end and is gone once there is nothing left -- the movement
+ * is the affordance, and it tracks the reader's own gesture rather than
+ * playing at them. Everywhere else the same fade is simply static, which still
+ * says "more this way".
+ */
+/* The standard properties only where the WebKit pseudo-elements are absent
+   (Firefox). Chromium honours both, and once `scrollbar-width` is set it
+   discards the `::-webkit-scrollbar` rules below -- leaving macOS's overlay
+   bar, which hides itself until you are already scrolling. The
+   pseudo-element route is what forces a classic, always-drawn bar. */
+@supports not selector(::-webkit-scrollbar) {
+  .proto-rail-scroller,
+  .proto-browse-scroller {
+    scrollbar-width: thin;
+    scrollbar-color: #c9d3e8 transparent;
+  }
+}
+
+/* WebKit and Chromium: a slim bar that is always drawn. */
+.proto-rail-scroller::-webkit-scrollbar,
+.proto-browse-scroller::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.proto-rail-scroller::-webkit-scrollbar-track,
+.proto-browse-scroller::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.proto-rail-scroller::-webkit-scrollbar-thumb,
+.proto-browse-scroller::-webkit-scrollbar-thumb {
+  background: #c9d3e8;
+  border-radius: 99px;
+}
+
+.proto-rail-scroller::-webkit-scrollbar-thumb:hover,
+.proto-browse-scroller::-webkit-scrollbar-thumb:hover {
+  background: #1f5fbf;
+}
+
+/* The fade length, animated below. Registered so it can be interpolated: an
+   unregistered custom property is a string to the animation engine and would
+   jump from one value to the other rather than easing between them. */
+@property --proto-fade {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+.proto-rail-scroller {
+  --proto-fade: 56px;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--proto-fade)), transparent);
+}
+
+.proto-browse-scroller {
+  --proto-fade: 36px;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--proto-fade)), transparent);
+}
+
+@supports (animation-timeline: scroll()) {
+  /* `scroll(self …)` drives the keyframes from this element's own scroll
+     offset, so there is no listener, no state and nothing to keep in sync. */
+  .proto-rail-scroller {
+    animation: proto-fade-out linear both;
+    animation-timeline: scroll(self inline);
+  }
+
+  .proto-browse-scroller {
+    animation: proto-fade-out linear both;
+    animation-timeline: scroll(self block);
+  }
+
+  /* Held flat until the last stretch so the hint stays put while there is
+     still plenty to scroll, then released as the end comes into view. */
+  @keyframes proto-fade-out {
+    0%,
+    80% {
+      --proto-fade: var(--proto-fade-size, 56px);
+    }
+    100% {
+      --proto-fade: 0px;
+    }
+  }
+
+  .proto-rail-scroller {
+    --proto-fade-size: 56px;
+  }
+
+  .proto-browse-scroller {
+    --proto-fade-size: 36px;
+  }
 }

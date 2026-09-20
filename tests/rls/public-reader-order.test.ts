@@ -137,20 +137,13 @@ describe('listPublicPartners', () => {
     // something to catch. Note what that rests on: "unspecified" is exactly
     // what the tie-break exists to handle, so this half of the test is
     // sensitive to how Postgres happens to sort, not to a guarantee.
-    //
-    // `is_ai_hub_partner: true` on every fixture is required, not cosmetic:
-    // since 0019_ai_hub_partners.sql `partners_public` returns only flagged
-    // rows, so an unflagged fixture is invisible to this reader and this test
-    // would assert over an empty array. tests/rls/ai-hub-partners.test.ts is
-    // where that filter itself is covered.
     const tied = ['F', 'E', 'D', 'C', 'B', 'A'];
     const rows = [
       ...tied.map((letter) => ({
         name: `Reader order partner ${letter} ${stamp}`,
         sort_order: 2,
-        is_ai_hub_partner: true,
       })),
-      { name: `Reader order partner first ${stamp}`, sort_order: 1, is_ai_hub_partner: true },
+      { name: `Reader order partner first ${stamp}`, sort_order: 1 },
     ];
     const { error } = await svc.from('partners').insert(rows);
     expect(error, 'seeding partners').toBeNull();

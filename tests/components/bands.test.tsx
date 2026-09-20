@@ -152,7 +152,7 @@ describe('BrowseByNeed', () => {
 
   it('keeps a need\u2019s sub-items hidden while that need is not the one filtering', () => {
     // The sub-items are the expanded state of the *active* category
-    // (prototype line 3251). Rendering every need's sub-items at once would
+    //. Rendering every need's sub-items at once would
     // turn a 232px rail into a wall of twenty links and lose the signal of
     // which category the directory is actually showing.
     render(
@@ -226,7 +226,7 @@ describe('BrowseByNeed', () => {
   });
 
   it('turns the active need\u2019s own link into a way out of the filter', () => {
-    // Prototype line 3250 toggles the need off when it is picked again. The
+    // The prototype toggles the need off when it is picked again. The
     // rail has no "all needs" entry, so without the toggle a visitor who
     // filtered from here has no way back except the directory's Clear button.
     render(
@@ -268,8 +268,8 @@ describe('BrowseByNeed', () => {
     // already applied.
     render(
       <BrowseByNeed
-        entries={[entry({ need: 'partners', subCategories: [] })]}
-        activeNeed="partners"
+        entries={[entry({ need: 'community', subCategories: [] })]}
+        activeNeed="community"
       />,
     );
     expect(screen.queryByRole('link', { name: 'More' })).toBeNull();

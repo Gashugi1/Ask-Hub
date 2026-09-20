@@ -1,18 +1,32 @@
 import Link from 'next/link';
 import { requireRole } from '@/lib/auth';
 import { canWrite } from '@/lib/admin/guard';
-import { readAdminResources } from '@/lib/admin/readers';
+import { readAdminResourceRows, readPartnerNames } from '@/lib/admin/readers';
+import { toAdminResource } from '@/lib/admin/types';
+import { rowToResourceInput } from '@/lib/schemas/resource';
 import {
   parseResourceQuery,
   filterAdminResources,
   TABS,
   STATUSES,
+  tabCounts,
   type ResourceQuery,
   type ResourceTab,
 } from '@/lib/admin/resource-view';
 import { NEED_KEYS } from '@/lib/reference';
 import ResourceTable from '@/components/admin/ResourceTable';
-import { ADMIN_H1, ADMIN_SUB, ADMIN_PRIMARY, ADMIN_FIELD } from '@/components/admin/chrome';
+import { ResourceEditorProvider, AddResourceButton } from '@/components/admin/ResourceEditor';
+import {
+  ResourceSelectionProvider,
+  PublishSelectedButton,
+} from '@/components/admin/ResourceSelection';
+import {
+  ADMIN_H1,
+  ADMIN_SUB,
+  ADMIN_PRIMARY,
+  ADMIN_SECONDARY,
+  ADMIN_FIELD,
+} from '@/components/admin/chrome';
 import { t } from '@/lib/i18n';
 
 /** A tab link keeps the current search, status and need — switching tabs narrows the deadline view, not the filters. */
@@ -38,10 +52,22 @@ export default async function AdminResourcesPage({
     ),
   );
   const query = parseResourceQuery(params);
-  const rows = filterAdminResources(await readAdminResources(), query);
+  const rawRows = await readAdminResourceRows();
+  const allRows = rawRows.map(toAdminResource);
+  const rows = filterAdminResources(allRows, query);
+  const counts = tabCounts(allRows);
   const userCanWrite = canWrite(user.role);
+  // Only a writer gets the modal, so only a writer pays for what it needs:
+  // the provider list for the field's suggestions, and each row's full
+  // editable input for the Edit action.
+  const partners = userCanWrite ? await readPartnerNames() : [];
+  const inputs = userCanWrite
+    ? Object.fromEntries(rawRows.map((row) => [row.id, { ...rowToResourceInput(row), id: row.id }]))
+    : {};
 
   return (
+    <ResourceSelectionProvider rows={rows}>
+    <ResourceEditorProvider inputs={inputs} partners={partners}>
     <main data-route="/admin/resources">
       <div
         style={{
@@ -59,18 +85,25 @@ export default async function AdminResourcesPage({
         {/* CLAUDE.md: a viewer sees no write affordance at all, not a disabled
             one — so this is absent rather than greyed out. */}
         {userCanWrite ? (
-          <Link
-            href="/admin/resources/new"
-            className="proto-primary-button"
-            style={{ ...ADMIN_PRIMARY, padding: '11px 20px', fontSize: 13.5 }}
-          >
-            {t('admin.resources.addNew')}
-          </Link>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* The prototype's bulk publish sits here, first in the action row,
+                and only while something in the table is selected. */}
+            <PublishSelectedButton />
+            <Link
+              href="/admin/resources/import"
+              style={{ ...ADMIN_SECONDARY, padding: '11px 18px', fontSize: 13.5 }}
+            >
+              {t('admin.resources.import')}
+            </Link>
+            {/* The prototype's "+ Add resource" opens its form modal over
+                the table; the modal itself is hosted by ResourceEditorProvider. */}
+            <AddResourceButton />
+          </div>
         ) : null}
       </div>
 
       {/* The prototype's view switcher is a row of pills rather than underlined
-          tabs (reference line 781). These stay links, not buttons: each view is
+          tabs. These stay links, not buttons: each view is
           a distinct URL, which is what makes one shareable and the back button
           work. */}
       <nav
@@ -95,7 +128,10 @@ export default async function AdminResourcesPage({
                 whiteSpace: 'nowrap',
               }}
             >
-              {t(`admin.resources.tab.${tab}`)}
+              {t('admin.resources.tabWithCount', {
+                label: t(`admin.resources.tab.${tab}`),
+                count: counts[tab],
+              })}
             </Link>
           );
         })}
@@ -122,7 +158,7 @@ export default async function AdminResourcesPage({
         <label>
           <span className="sr-only">{t('admin.resources.filterStatus')}</span>
           <select name="status" defaultValue={query.status} style={FILTER_SELECT}>
-            <option value="all">{t('admin.resources.filterAll')}</option>
+            <option value="all">{t('admin.resources.filterAllStatuses')}</option>
             {STATUSES.map((status) => (
               <option key={status} value={status}>
                 {t(`status.${status}`)}
@@ -133,7 +169,7 @@ export default async function AdminResourcesPage({
         <label>
           <span className="sr-only">{t('admin.resources.filterNeed')}</span>
           <select name="need" defaultValue={query.need} style={FILTER_SELECT}>
-            <option value="all">{t('admin.resources.filterAll')}</option>
+            <option value="all">{t('admin.resources.filterAllCategories')}</option>
             {NEED_KEYS.map((need) => (
               <option key={need} value={need}>
                 {t(`need.${need}`)}
@@ -148,10 +184,12 @@ export default async function AdminResourcesPage({
 
       <ResourceTable rows={rows} canWrite={userCanWrite} />
     </main>
+    </ResourceEditorProvider>
+    </ResourceSelectionProvider>
   );
 }
 
-/** Prototype line 786: the two filter selects beside the search field. */
+/** Prototype: the two filter selects beside the search field. */
 const FILTER_SELECT = {
   padding: '10px 12px',
   borderRadius: 9,

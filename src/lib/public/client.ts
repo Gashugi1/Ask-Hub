@@ -4,7 +4,9 @@ import type { Database } from '@/lib/supabase/database.types';
 import { supabaseUrlFromEnv } from '@/lib/supabase/env';
 
 /**
- * The public site's only database client.
+ * The public site's only database client -- and, for the same sessionless
+ * reason, the client the password-reset request goes through
+ * (src/lib/actions/session.ts explains the flow-type reason).
  *
  * Deliberately NOT the request-scoped `createServerSupabase()`: that one
  * carries the caller's cookies, so an admin browsing the public site would

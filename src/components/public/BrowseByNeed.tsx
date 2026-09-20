@@ -5,8 +5,8 @@ import type { NeedMenuEntry } from '@/lib/public/need-menu';
 import type { NeedKey } from '@/lib/public/types';
 
 /**
- * Transcribed from the approved prototype, docs/prototype/prototype.html
- * lines 50-82: the storefront's left-hand department menu -- a 232px card
+ * Transcribed from the approved prototype
+ * (the approved prototype): the storefront's left-hand department menu -- a 232px card
  * that sticks below the header, listing each need with a colour swatch, a
  * left rule, its live count, and, under whichever need is currently
  * filtering the directory, that need's sub-categories.
@@ -28,7 +28,7 @@ import type { NeedKey } from '@/lib/public/types';
  * need -- see BrowseByNeedClient for why there are two.
  *
  * **The expanded state is the filter, not a disclosure.** The prototype's
- * `expanded: on` is `filters.need === n` (reference line 3251): a category's
+ * `expanded: on` is `filters.need === n`: a category's
  * sub-items are showing precisely because that category is what the directory
  * is currently filtered to. There is no independent open/closed state to
  * track, so there is no toggle button, no `aria-expanded` and nothing that
@@ -46,7 +46,7 @@ import type { NeedKey } from '@/lib/public/types';
  * a visitor would have got by typing that phrase into the search box.
  *
  * **The counts beside them are not in the prototype** (its sub-items are bare
- * labels, reference line 68). They are added at the client's instruction, and
+ * labels). They are added at the client's instruction, and
  * they are real: `buildNeedMenu` tallies the live rows carrying each label,
  * using the same need predicate the directory filters by, so the number is
  * exactly how many cards the link leads to. The colour is inherited rather
@@ -126,6 +126,7 @@ export default function BrowseByNeed({
       </div>
 
       <ul
+        className="proto-browse-scroller"
         style={{
           marginTop: 10,
           display: 'flex',
@@ -133,6 +134,14 @@ export default function BrowseByNeed({
           gap: 2,
           listStyle: 'none',
           padding: 0,
+          // The scroll region inside the card (globals.css
+          // .proto-browse-rail sets its height): the "Browse" label stays put
+          // while the category list scrolls, matching the prototype's
+          // department menu. The class carries the scrollbar and the edge
+          // fade that say the list continues.
+          overflowY: 'auto',
+          flex: 1,
+          minHeight: 0,
         }}
       >
         {entries.map((entry) => {
@@ -219,7 +228,7 @@ export default function BrowseByNeed({
                 </span>
               </Link>
 
-              {/* Prototype lines 65-73. A nested list rather than a sibling
+              {/* The prototype's sub-items. A nested list rather than a sibling
                   block: these are the sub-navigation of the entry above them,
                   and nesting is what says so to a screen reader without a
                   second `aria-label` inventing a name for the group.

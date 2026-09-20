@@ -181,3 +181,68 @@ export function toImpactStory(row: ImpactStoriesRow): ImpactStory {
     sortOrder: row.sort_order,
   };
 }
+
+type SubmissionRow = Database['public']['Tables']['submissions']['Row'];
+
+/**
+ * One queue entry, in the shape the review screen and the approve action
+ * both read. `rejectionReason` and `sourceIpHash` are `@sensitive` and have
+ * no field here; the readers select an explicit column list that never
+ * fetches them. The three personal fields -- submitter name and email, and
+ * the programme contact -- are here for the reviewer to see and for nothing
+ * else: `submissionToResourceInput` does not read them.
+ */
+export interface ReviewSubmission {
+  id: string;
+  type: SubmissionRow['type'];
+  resourceName: string;
+  organisation: string | null;
+  need: SubmissionRow['need'];
+  link: string | null;
+  description: string;
+  submitterName: string | null;
+  submitterEmail: string;
+  programmeContactEmail: string | null;
+  createdAt: string;
+  targetResourceId: string | null;
+  /** The target's current name, for an update suggestion; null for a new resource. */
+  targetResourceName: string | null;
+}
+
+/** The explicit column list the two submission readers select. */
+export const REVIEW_SUBMISSION_COLUMNS =
+  'id, type, resource_name, organisation, need, link, description, submitter_name, submitter_email, programme_contact_email, created_at, target_resource_id, resources ( name )';
+
+export function toReviewSubmission(
+  row: Pick<
+    SubmissionRow,
+    | 'id'
+    | 'type'
+    | 'resource_name'
+    | 'organisation'
+    | 'need'
+    | 'link'
+    | 'description'
+    | 'submitter_name'
+    | 'submitter_email'
+    | 'programme_contact_email'
+    | 'created_at'
+    | 'target_resource_id'
+  > & { resources: { name: string } | null },
+): ReviewSubmission {
+  return {
+    id: row.id,
+    type: row.type,
+    resourceName: row.resource_name,
+    organisation: row.organisation,
+    need: row.need,
+    link: row.link,
+    description: row.description,
+    submitterName: row.submitter_name,
+    submitterEmail: row.submitter_email,
+    programmeContactEmail: row.programme_contact_email,
+    createdAt: row.created_at,
+    targetResourceId: row.target_resource_id,
+    targetResourceName: row.resources?.name ?? null,
+  };
+}

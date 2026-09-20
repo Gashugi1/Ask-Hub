@@ -1,11 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { buildNeedMenu, MAX_SUB_CATEGORIES } from '@/lib/public/need-menu';
+import {
+  buildNeedMenu,
+  MAX_SUB_CATEGORIES,
+  type NeedMenuEntry,
+} from '@/lib/public/need-menu';
+import { NEED_KEYS } from '@/lib/reference';
 import type { NeedCount, PublicResource } from '@/lib/public/types';
 
 /**
  * `buildNeedMenu` is the whole of the browse menu's logic: the component that
  * renders it holds none. Every rule the prototype's `deptMenu` encodes
- * (docs/prototype/prototype.html lines 3242-3253) is asserted here, and each
+ * (the approved prototype) is asserted here, and each
  * assertion is built so that deleting the clause it covers fails it -- a test
  * that still passes with the rule removed is not testing the rule.
  */
@@ -40,15 +45,32 @@ const resource = (over: Partial<PublicResource> & Pick<PublicResource, 'id'>): P
 
 const count = (need: NeedCount['need'], liveCount: number): NeedCount => ({ need, liveCount });
 
+/**
+ * The entry for one need. Every need renders now, so a test cannot reach the
+ * one it is about by position.
+ */
+const only = (menu: NeedMenuEntry[], need: NeedCount['need']) => {
+  const entry = menu.find((e) => e.need === need);
+  if (!entry) throw new Error(`no menu entry for ${need}`);
+  return entry;
+};
+
+const labelsOf = (menu: NeedMenuEntry[], need: NeedCount['need']) =>
+  only(menu, need).subCategories.map((c) => c.label);
+
 describe('which entries exist', () => {
-  it('drops a need with no live resource rather than showing it as a zero', () => {
-    // Both halves in one call. The absence half alone would pass against a
-    // function that returned [] for everything.
+  it('shows a need with nothing live as a zero rather than dropping it', () => {
+    // The menu states what the directory covers, not what happens to be
+    // published today, so an empty category is an honest zero rather than a
+    // silent omission. A need missing from `counts` entirely is the same
+    // thing: Postgres counted live rows and found none.
     const menu = buildNeedMenu(
       [count('compute', 3), count('funding', 0), count('accelerator', 1)],
       [],
     );
-    expect(menu.map((e) => e.need)).toEqual(['compute', 'accelerator']);
+    expect(only(menu, 'funding').liveCount).toBe(0);
+    expect(only(menu, 'community').liveCount).toBe(0);
+    expect(only(menu, 'compute').liveCount).toBe(3);
   });
 
   it('imposes the browse order, whatever order it is given', () => {
@@ -61,7 +83,10 @@ describe('which entries exist', () => {
     // The input is scrambled on purpose: canonical input passes through any
     // ordering that happens to agree with it.
     const menu = buildNeedMenu(
-      [count('accelerator', 1), count('compute', 2), count('training', 3), count('funding', 4)],
+      [
+        count('accelerator', 1), count('community', 2), count('compute', 3),
+        count('data', 4), count('training', 5), count('challenges', 6), count('funding', 7),
+      ],
       [],
     );
     expect(menu.map((e) => e.need)).toEqual([
@@ -69,18 +94,20 @@ describe('which entries exist', () => {
       'compute',
       'funding',
       'accelerator',
+      'data',
+      'challenges',
+      'community',
     ]);
   });
 
-  it('leaves Partners out of the menu while keeping it a real category', () => {
-    // Hidden here only. `partners` is still a valid need everywhere else --
-    // the directory filter, the pill on a card, exports, the admin form -- so
-    // the resources under it keep their category and stay findable. A test
-    // that only checked the menu would not notice if someone "tidied up" by
-    // dropping the enum value, so the count going in proves the omission is
-    // the menu's decision and not an absence of data.
-    const menu = buildNeedMenu([count('partners', 3), count('compute', 1)], []);
-    expect(menu.map((e) => e.need)).toEqual(['compute']);
+  it('offers every need the product has, and no other', () => {
+    // A menu missing a category understates what the directory covers, and
+    // one listing a category the enum no longer has (partners, dropped in
+    // 0026) would link to an empty filter. The count going in proves an
+    // entry carries real data rather than a placeholder.
+    const menu = buildNeedMenu([count('community', 3), count('compute', 1)], []);
+    expect([...menu.map((e) => e.need)].sort()).toEqual([...NEED_KEYS].sort());
+    expect(only(menu, 'community').liveCount).toBe(3);
   });
 
   it('takes the count from need_counts_public and never recomputes it', () => {
@@ -93,7 +120,7 @@ describe('which entries exist', () => {
       [count('compute', 9)],
       [resource({ id: 'a', needPrimary: 'compute' })],
     );
-    expect(menu.map((e) => e.liveCount)).toEqual([9]);
+    expect(only(menu, 'compute').liveCount).toBe(9);
   });
 });
 
@@ -108,9 +135,7 @@ describe('which sub-categories an entry carries', () => {
         resource({ id: 'b', needPrimary: 'training', subCategory: 'Curriculum' }),
       ],
     );
-    expect(menu.map((e) => e.subCategories.map((c) => c.label))).toEqual([
-      ['Training pathway', 'Curriculum'],
-    ]);
+    expect(labelsOf(menu, 'training')).toEqual(['Training pathway', 'Curriculum']);
   });
 
   it('counts a resource filed under the need as its secondary, not only its primary', () => {
@@ -131,7 +156,7 @@ describe('which sub-categories an entry carries', () => {
         resource({ id: 'b', needPrimary: 'compute', subCategory: 'Cloud credits' }),
       ],
     );
-    expect(menu.map((e) => e.subCategories.map((c) => c.label))).toEqual([['Startup programme']]);
+    expect(labelsOf(menu, 'training')).toEqual(['Startup programme']);
   });
 
   it('lists a repeated sub-category once, and counts both rows', () => {
@@ -142,8 +167,8 @@ describe('which sub-categories an entry carries', () => {
         resource({ id: 'b', needPrimary: 'compute', subCategory: 'Cloud credits' }),
       ],
     );
-    expect(menu.map((e) => e.subCategories)).toEqual([
-      [{ label: 'Cloud credits', liveCount: 2 }],
+    expect(only(menu, 'compute').subCategories).toEqual([
+      { label: 'Cloud credits', liveCount: 2 },
     ]);
   });
 
@@ -160,7 +185,7 @@ describe('which sub-categories an entry carries', () => {
         resource({ id: 'd', needPrimary: 'compute', subCategory: '  HPC allocation  ' }),
       ],
     );
-    expect(menu.map((e) => e.subCategories.map((c) => c.label))).toEqual([['HPC allocation']]);
+    expect(labelsOf(menu, 'compute')).toEqual(['HPC allocation']);
   });
 
   it('treats a trimmed duplicate as the same sub-category', () => {
@@ -172,7 +197,7 @@ describe('which sub-categories an entry carries', () => {
         resource({ id: 'b', needPrimary: 'funding', subCategory: ' Grants ' }),
       ],
     );
-    expect(menu.map((e) => e.subCategories)).toEqual([[{ label: 'Grants', liveCount: 2 }]]);
+    expect(only(menu, 'funding').subCategories).toEqual([{ label: 'Grants', liveCount: 2 }]);
   });
 
   it(`stops at ${MAX_SUB_CATEGORIES}, keeping the first ones`, () => {
@@ -183,8 +208,8 @@ describe('which sub-categories an entry carries', () => {
           resource({ id: `r${i}`, needPrimary: 'funding', subCategory }),
       ),
     );
-    expect(menu.map((e) => e.subCategories.length)).toEqual([MAX_SUB_CATEGORIES]);
-    expect(menu.flatMap((e) => e.subCategories).map((c) => c.label)).not.toContain('Prize');
+    expect(only(menu, 'funding').subCategories).toHaveLength(MAX_SUB_CATEGORIES);
+    expect(labelsOf(menu, 'funding')).not.toContain('Prize');
   });
 
   it('counts only the rows carrying that label, not the need\u2019s whole set', () => {
@@ -200,11 +225,9 @@ describe('which sub-categories an entry carries', () => {
         resource({ id: 'd', needPrimary: 'compute', subCategory: null }),
       ],
     );
-    expect(menu.map((e) => e.subCategories)).toEqual([
-      [
-        { label: 'Cloud credits', liveCount: 2 },
-        { label: 'HPC allocation', liveCount: 1 },
-      ],
+    expect(only(menu, 'compute').subCategories).toEqual([
+      { label: 'Cloud credits', liveCount: 2 },
+      { label: 'HPC allocation', liveCount: 1 },
     ]);
   });
 
@@ -221,8 +244,8 @@ describe('which sub-categories an entry carries', () => {
         }),
       ],
     );
-    expect(menu.map((e) => e.subCategories)).toEqual([
-      [{ label: 'Curriculum', liveCount: 2 }],
+    expect(only(menu, 'training').subCategories).toEqual([
+      { label: 'Curriculum', liveCount: 2 },
     ]);
   });
 
@@ -237,13 +260,11 @@ describe('which sub-categories an entry carries', () => {
         (subCategory, i) => resource({ id: `r${i}`, needPrimary: 'funding', subCategory }),
       ),
     );
-    expect(menu.map((e) => e.subCategories)).toEqual([
-      [
-        { label: 'Grants', liveCount: 2 },
-        { label: 'Corporate VC', liveCount: 1 },
-        { label: 'Grant fund', liveCount: 1 },
-        { label: 'Early-stage capital', liveCount: 1 },
-      ],
+    expect(only(menu, 'funding').subCategories).toEqual([
+      { label: 'Grants', liveCount: 2 },
+      { label: 'Corporate VC', liveCount: 1 },
+      { label: 'Grant fund', liveCount: 1 },
+      { label: 'Early-stage capital', liveCount: 1 },
     ]);
   });
 
@@ -254,7 +275,11 @@ describe('which sub-categories an entry carries', () => {
       [count('accelerator', 1)],
       [resource({ id: 'a', needPrimary: 'accelerator', subCategory: null })],
     );
-    expect(menu).toEqual([{ need: 'accelerator', liveCount: 1, subCategories: [] }]);
+    expect(only(menu, 'accelerator')).toEqual({
+      need: 'accelerator',
+      liveCount: 1,
+      subCategories: [],
+    });
   });
 
   it('keeps each need to its own sub-categories', () => {
@@ -269,9 +294,7 @@ describe('which sub-categories an entry carries', () => {
     );
     // Courses precedes Compute in the browse order, so the expectation is in
     // that order rather than the order the counts were passed in.
-    expect(menu.map((e) => e.subCategories.map((c) => c.label))).toEqual([
-      ['Curriculum'],
-      ['Cloud credits'],
-    ]);
+    expect(labelsOf(menu, 'training')).toEqual(['Curriculum']);
+    expect(labelsOf(menu, 'compute')).toEqual(['Cloud credits']);
   });
 });

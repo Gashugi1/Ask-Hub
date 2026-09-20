@@ -17,7 +17,7 @@ const REQUIRED_TOKENS: Record<string, string> = {
   '--color-need-training': '#0E7685',
   '--color-need-funding': '#9E5C1B',
   '--color-need-accelerator': '#6C3FA8',
-  '--color-need-partners': '#0E7A54',
+  '--color-success': '#0E7A54',
 };
 
 /** WCAG 2.1 relative luminance. */
@@ -43,7 +43,10 @@ function token(name: string): string {
   return match[1];
 }
 
-const NEEDS = ['compute', 'training', 'funding', 'accelerator', 'partners'] as const;
+const NEEDS = [
+  'compute', 'training', 'funding', 'accelerator',
+  'data', 'challenges', 'community',
+] as const;
 const AA_NORMAL_TEXT = 4.5;
 
 describe('design tokens', () => {

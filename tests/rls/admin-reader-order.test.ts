@@ -227,8 +227,8 @@ describe('admin readers order by sort_order, nulls last', () => {
 describe('readPartnerNames', () => {
   /**
    * The one reader here that does NOT order by `sort_order`, for the reason
-   * recorded on it: on `partners` that column curates the public logo row's
-   * sequence, and it is nullable and non-unique besides. It orders by `name`,
+   * recorded on it: on `partners` that column orders the public projection
+   * (`partners_public`), and it is nullable and non-unique besides. It orders by `name`,
    * the primary key, which makes the order total.
    *
    * Ordering is load-bearing rather than cosmetic. This list populates the

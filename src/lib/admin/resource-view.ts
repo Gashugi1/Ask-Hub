@@ -54,3 +54,20 @@ export function filterAdminResources(rows: AdminResource[], query: ResourceQuery
     return true;
   });
 }
+
+/**
+ * How many resources each tab would list, counted over the whole table
+ * before search, status and need narrow it -- the prototype's
+ * `All (59) · Expiring soon (3) · Closed (2)`. The number on a pill is the
+ * size of the view it switches to, not of the current filtered view, so
+ * the reader can tell at a glance whether a tab is worth opening.
+ */
+export function tabCounts(rows: readonly AdminResource[]): Record<ResourceTab, number> {
+  const counts = { all: rows.length, expiring: 0, closed: 0 };
+  for (const row of rows) {
+    const { state } = deadlineInfo(row.deadline);
+    if (state === 'expiring') counts.expiring += 1;
+    else if (state === 'closed') counts.closed += 1;
+  }
+  return counts;
+}

@@ -13,9 +13,9 @@ import { ADMIN_H2, ADMIN_PANEL_COL, ADMIN_FIELD_ROW, ADMIN_FIELD, ADMIN_PRIMARY,
  * Supabase project level, so after `scripts/provision-admins.ts` bootstraps
  * the first admins this form is the only way anyone else gets an account.
  *
- * `/admin/users` is gated `requirePageRole(['admin'])` — a non-admin gets
- * `notFound()`, not a read-only view — so there is no `canWrite` prop here
- * and no disabled rendering path, exactly as `SettingsForm` has none.
+ * Rendered only inside the Team access card, which `/admin/settings` mounts
+ * for an admin and for nobody else — an editor's Settings has no such card
+ * — so there is no `canWrite` prop here and no disabled rendering path.
  *
  * Validated client-side against the same schema the server enforces, so a
  * missing full name is caught without a round trip. `inviteUser`'s own

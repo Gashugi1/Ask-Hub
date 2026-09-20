@@ -4,22 +4,23 @@ import { sortResources } from '@/lib/public/filters';
 import { deadlineLabel } from '@/lib/public/deadline-label';
 import { needBanner, bannerPartner } from '@/lib/public/need-banner';
 import type { PublicResource } from '@/lib/public/types';
-import PartnerLogo, { LOGO_ON_RAIL } from './PartnerLogo';
 
 const RECENT_LIMIT = 6;
 
 /**
- * Transcribed from the approved prototype, docs/prototype/prototype.html
- * lines 143-168: a horizontally scrolling rail of narrow 250px cards, each
- * with an 84px need-coloured banner over a compact body.
+ * Transcribed from the approved prototype's recentRail card: a horizontally
+ * scrolling rail of 262px cards, each a 128px need-coloured banner over a
+ * compact body. The banner carries the provider eyebrow and, below it, the
+ * title in white clamped to two lines; the body carries the need pill (and a
+ * featured badge), the description, and the deadline label.
  *
  * PRD 5.1 item 7.
  *
  * **The rail has its own card, rather than reusing ResourceCard.** The
- * prototype's rail card is a different object from its directory card -- a
- * shorter banner, 14.5px title against the directory's larger one, one line
- * of clamped banner text, and no action links. Reusing the directory card
- * here and overriding its type would have produced neither.
+ * prototype's rail card is a different object from its directory card -- the
+ * title lives in the banner rather than the body, and it carries no action
+ * links. Reusing the directory card here and overriding its type would have
+ * produced neither.
  *
  * **The prototype's "added" label is not transcribed literally.** Its rail
  * shows when a resource was added; showing that here would mean formatting a
@@ -49,6 +50,7 @@ export default function RecentlyAddedRail({ resources }: { resources: PublicReso
       </h2>
 
       <ul
+        className="proto-rail-scroller"
         style={{
           display: 'flex',
           gap: 14,
@@ -62,7 +64,7 @@ export default function RecentlyAddedRail({ resources }: { resources: PublicReso
         }}
       >
         {recent.map((resource) => (
-          <li key={resource.id} style={{ flex: '0 0 250px', display: 'flex' }}>
+          <li key={resource.id} style={{ flex: '0 0 262px', display: 'flex' }}>
             <article
               className="proto-rail-card"
               style={{
@@ -73,48 +75,74 @@ export default function RecentlyAddedRail({ resources }: { resources: PublicReso
                 background: '#fff',
                 display: 'flex',
                 flexDirection: 'column',
+                // A floor, not the working height: the row's height comes
+                // from .proto-browse-rail beside it and these cards stretch to
+                // it. Low enough never to push that row taller.
+                minHeight: 240,
                 height: '100%',
               }}
             >
+              {/* The banner uses flex flow (not the prototype's absolute
+                  overlay) to bottom-align its content: it must NOT be a
+                  positioning context, or the stretched-link ::after below would
+                  scope to the banner instead of the whole card. Same visual,
+                  and the article stays the positioning context for the stretch. */}
               <div
                 style={{
-                  height: 110,
+                  height: 128,
                   background: needBanner(resource.needPrimary),
-                  position: 'relative',
                   flexShrink: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'flex-end',
+                  padding: '14px 18px',
                 }}
               >
-                <PartnerLogo logoUrl={resource.partnerLogoUrl} style={LOGO_ON_RAIL} />
                 <div
                   style={{
-                    position: 'absolute',
-                    inset: 0,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'flex-end',
-                    padding: '12px 16px',
+                    fontSize: 10,
+                    fontWeight: 800,
+                    color: 'rgba(255,255,255,0.72)',
+                    letterSpacing: '0.13em',
+                    textTransform: 'uppercase',
                   }}
                 >
-                  <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 800,
-                      color: 'rgba(255,255,255,0.72)',
-                      letterSpacing: '0.13em',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    {bannerPartner(resource.partnerName)}
-                  </div>
+                  {bannerPartner(resource.partnerName)}
                 </div>
+                {/* Prototype: the title sits in the banner, white, clamped to
+                    two lines, below the partner eyebrow. Kept as the
+                    stretched-link anchor (.proto-rail-card .proto-rail-open::after
+                    covers the card), so the whole card opens the resource and the
+                    accessibility tree still has one link named for it. */}
+                <h3
+                  style={{
+                    margin: '3px 0 0 0',
+                    fontSize: 14.5,
+                    fontWeight: 800,
+                    color: '#fff',
+                    lineHeight: 1.25,
+                    overflow: 'hidden',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                  }}
+                >
+                  <Link
+                    href={`/resources/${resource.id}`}
+                    className="proto-rail-open"
+                    style={{ color: '#fff' }}
+                  >
+                    {resource.name}
+                  </Link>
+                </h3>
               </div>
 
               <div
                 style={{
-                  padding: '14px 16px 16px 16px',
+                  padding: '16px 18px 18px 18px',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 7,
+                  gap: 8,
                   flex: 1,
                 }}
               >
@@ -135,30 +163,6 @@ export default function RecentlyAddedRail({ resources }: { resources: PublicReso
                     <span style={RAIL_BADGE}>{t('badge.featured')}</span>
                   ) : null}
                 </div>
-
-                <h3
-                  style={{
-                    fontSize: 14.5,
-                    fontWeight: 800,
-                    lineHeight: 1.3,
-                    margin: 0,
-                  }}
-                >
-                  {/* Stretched link: the anchor covers the whole card via
-                      .proto-rail-card a::after, so the banner, pills and
-                      deadline are all clickable -- the prototype opens the
-                      resource from anywhere on the card. Kept as one anchor
-                      rather than wrapping the card, so the accessibility tree
-                      still has a single link with the resource's name, not a
-                      link containing every scrap of text on the card. */}
-                  <Link
-                    href={`/resources/${resource.id}`}
-                    className="proto-rail-open"
-                    style={{ color: '#1A2332' }}
-                  >
-                    {resource.name}
-                  </Link>
-                </h3>
 
                 {resource.description ? (
                   <p

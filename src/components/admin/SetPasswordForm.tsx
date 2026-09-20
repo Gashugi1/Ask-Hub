@@ -7,7 +7,8 @@ import { t } from '@/lib/i18n';
 import { FIELD, FIELD_LABEL, CARD_BUTTON } from './AuthCard';
 
 /**
- * Where an invited operator finishes setting up their account, and where a
+ * Where an invited operator finishes setting up their account, where one who
+ * forgot their password arrives from the recovery email, and where a
  * signed-in one changes their password.
  *
  * **Why this runs in the browser rather than as a server action.** Supabase's
@@ -29,10 +30,19 @@ import { FIELD, FIELD_LABEL, CARD_BUTTON } from './AuthCard';
  * contact form and digests — the server-side flow becomes available and this
  * component can go back to being a thin form.
  *
- * `createBrowserSupabase()` picks the fragment up on construction
- * (`detectSessionInUrl`, on by default) and writes the session to cookies via
- * `@supabase/ssr`, which is what makes the rest of the admin portal see the
- * operator on their next navigation.
+ * **The fragment is read here, by hand.** `createBrowserSupabase()` is
+ * `@supabase/ssr`'s browser client, and that client is hard-wired to the
+ * PKCE flow: shown an implicit `#access_token=...` fragment it throws "Not a
+ * valid PKCE flow url" inside its own initialisation and stores nothing --
+ * which, until this was followed in a real browser, made every invitation
+ * and every recovery link land here and be told it was invalid. So the
+ * effect below parses the fragment before constructing the client and hands
+ * the pair to `setSession`, which writes them to cookies through the same
+ * storage adapter, and then clears the fragment from the address bar so the
+ * tokens do not sit in the history. That cookie is what makes the rest of
+ * the admin portal see the operator on their next navigation. With no
+ * fragment -- a signed-in operator changing their password -- `getSession`
+ * reads the cookie that is already there.
  *
  * `updateUser` acts on the caller's own session and cannot be aimed at another
  * account, so there is no target check to make: the authorisation is the
@@ -55,16 +65,35 @@ export default function SetPasswordForm() {
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
+    // Read before the client is constructed: the client's own URL handling
+    // leaves the fragment alone on the error path, but reading first costs
+    // nothing and does not depend on that.
+    const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const accessToken = fragment.get('access_token');
+    const refreshToken = fragment.get('refresh_token');
+
     // One client, constructed once: constructing it is what consumes the
     // fragment, so doing it per render would race with itself.
     const supabase = createBrowserSupabase();
     let cancelled = false;
 
-    // getSession resolves after the client has processed the URL, which is why
-    // this is awaited rather than read synchronously.
-    void supabase.auth.getSession().then(({ data }) => {
+    const session =
+      accessToken && refreshToken
+        ? supabase.auth
+            .setSession({ access_token: accessToken, refresh_token: refreshToken })
+            .then(({ data }) => {
+              window.history.replaceState(
+                null,
+                '',
+                window.location.pathname + window.location.search,
+              );
+              return data.session;
+            })
+        : supabase.auth.getSession().then(({ data }) => data.session);
+
+    void session.then((value) => {
       if (cancelled) return;
-      setPhase(data.session ? 'ready' : 'nosession');
+      setPhase(value ? 'ready' : 'nosession');
     });
 
     return () => {

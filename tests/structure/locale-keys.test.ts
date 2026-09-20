@@ -174,6 +174,9 @@ const DECLARED_AHEAD_OF_USE: Record<string, string> = {
   // tests/unit/i18n.test.ts. It is the canonical wording, kept in en.json so
   // there is one place to read it from when a surface needs it.
   'site.attribution': 'content rule, asserted by tests/unit/i18n.test.ts',
+  // Rule 10.1's full co-led sentence, likewise pinned verbatim by the i18n
+  // test. /contact carried it until the client asked for the line to go.
+  'site.footer': 'content rule, asserted by tests/unit/i18n.test.ts',
   // PRD 7's partnership pipeline stages. The Partnerships screen is SP4.
   'stage.prospecting': 'partnership pipeline, SP4',
   'stage.in_discussion': 'partnership pipeline, SP4',

@@ -16,6 +16,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  * "cannot read properties of undefined" from an unmocked import.
  */
 const signInWithPassword = vi.fn();
+const resetPasswordForEmail = vi.fn();
 const createServerClient = vi.fn(() => ({ auth: { signInWithPassword } }));
 const redirect = vi.fn((path: string) => {
   throw new Error(`NEXT_REDIRECT:${path}`);
@@ -30,13 +31,23 @@ vi.mock('next/headers', () => ({
     getAll: () => [],
     set: () => {},
   })),
+  headers: vi.fn(async () => ({
+    get: (name: string) =>
+      name === 'host' ? 'askhub.example' : name === 'x-forwarded-proto' ? 'https' : null,
+  })),
 }));
 
 vi.mock('next/navigation', () => ({
   redirect: (path: string) => redirect(path),
 }));
 
-const { signIn } = await import('@/lib/actions/session');
+// The reset request goes through the sessionless public client, not the SSR
+// one (session.ts says why); stubbed at the factory so the real action runs.
+vi.mock('@/lib/public/client', () => ({
+  createPublicSupabase: () => ({ auth: { resetPasswordForEmail } }),
+}));
+
+const { signIn, requestPasswordReset } = await import('@/lib/actions/session');
 
 function formData(fields: Record<string, string>): FormData {
   const fd = new FormData();
@@ -46,6 +57,7 @@ function formData(fields: Record<string, string>): FormData {
 
 beforeEach(() => {
   signInWithPassword.mockReset();
+  resetPasswordForEmail.mockReset();
   createServerClient.mockClear();
   redirect.mockClear();
   // vitest.config.ts loads .env.test, so both are already present; asserted
@@ -99,5 +111,52 @@ describe('signIn', () => {
     await expect(
       signIn(formData({ email: 'someone@askhub.test', password: 'correct-password' })),
     ).rejects.toThrow('NEXT_REDIRECT:/admin');
+  });
+});
+
+describe('requestPasswordReset', () => {
+  it('reports the identical outcome for a malformed address, an unknown one, a sent email and a Supabase error', async () => {
+    // PRD 14.4: the reset flow must not disclose whether an account exists.
+    // Supabase's own errors are not uniform -- its email rate limit trips
+    // only when an email was actually sent -- so the action has to flatten
+    // every outcome itself. Four cases, one shape.
+    const malformed = await requestPasswordReset(formData({ email: 'not-an-email' }));
+    resetPasswordForEmail.mockResolvedValueOnce({ error: null });
+    const sent = await requestPasswordReset(formData({ email: 'someone@askhub.test' }));
+    resetPasswordForEmail.mockResolvedValueOnce({ error: null });
+    const unknown = await requestPasswordReset(formData({ email: 'nobody@askhub.test' }));
+    resetPasswordForEmail.mockResolvedValueOnce({
+      error: { message: 'For security purposes, you can only request this once every 60 seconds' },
+    });
+    const errored = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const limited = await requestPasswordReset(formData({ email: 'someone@askhub.test' }));
+    errored.mockRestore();
+
+    expect(malformed).toEqual({ done: true });
+    expect(sent).toEqual(malformed);
+    expect(unknown).toEqual(malformed);
+    expect(limited).toEqual(malformed);
+  });
+
+  it('never calls Supabase for a malformed address', async () => {
+    await requestPasswordReset(formData({ email: 'not-an-email' }));
+    expect(resetPasswordForEmail).not.toHaveBeenCalled();
+  });
+
+  it('points the recovery link at this host\'s set-password screen', async () => {
+    // The same derivation inviteUser uses: a reset requested on a preview
+    // deployment must land back on that preview, not on whichever host an
+    // environment variable happens to name.
+    resetPasswordForEmail.mockResolvedValue({ error: null });
+    await requestPasswordReset(formData({ email: 'Someone@askhub.test' }));
+    expect(resetPasswordForEmail).toHaveBeenCalledWith('Someone@askhub.test', {
+      redirectTo: 'https://askhub.example/admin/set-password',
+    });
+  });
+
+  it('never redirects: the screen shows its one sentence and stays', async () => {
+    resetPasswordForEmail.mockResolvedValue({ error: null });
+    await requestPasswordReset(formData({ email: 'someone@askhub.test' }));
+    expect(redirect).not.toHaveBeenCalled();
   });
 });

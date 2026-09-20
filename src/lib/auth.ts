@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { createServerSupabase } from '@/lib/supabase/server';
 
 /**
@@ -34,8 +35,20 @@ export interface CurrentUser {
  * `is_active` is false. A deactivated account must be indistinguishable from
  * no account at all — this is the one function every mutating action relies
  * on to make that true.
+ *
+ * Wrapped in React's `cache` so one request resolves the user once. The
+ * admin layout calls this for the sidebar and every page calls it again
+ * through `requireRole`, and each call is two network round trips to
+ * Supabase -- `auth.getUser()` validates the token with the auth server, then
+ * the profile is read. Uncached, a single admin navigation paid for both
+ * twice, in series, before its own reads began; with the Vercel function and
+ * the database in different regions that is most of the click-to-screen
+ * delay. The cache is per request: a server action still resolves the caller
+ * fresh for its own invocation, so nothing about the security boundary
+ * changes -- a deactivated account is refused on its next request exactly as
+ * before. Outside a React request (the unit tests) `cache` is a passthrough.
  */
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const supabase = await createServerSupabase();
   const {
     data: { user },
@@ -58,7 +71,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     displayLabel: profile.display_label,
     role: profile.role,
   };
-}
+});
 
 /**
  * Resolves the current user and asserts their role is one of `allowed`.

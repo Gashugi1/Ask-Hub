@@ -2,8 +2,7 @@ import { t } from '@/lib/i18n';
 import type { NeedKey } from '@/lib/public/types';
 
 /**
- * The need pill, as the prototype draws it (docs/prototype/prototype.html
- * line 265): 11.5px/700 on a 99px radius, the need's own colour on its tint.
+ * The need pill, as the prototype draws it (the approved prototype): 11.5px/700 on a 99px radius, the need's own colour on its tint.
  *
  * Per-need colours are read as CSS custom properties rather than transcribed.
  * `--color-need-training` and `--color-need-funding` are deliberately darker

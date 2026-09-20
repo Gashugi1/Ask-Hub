@@ -2,41 +2,43 @@ import { describe, it, expect } from 'vitest';
 import { NAV_ITEMS, visibleNavItems, canWrite, canAdminister } from '@/lib/admin/guard';
 
 describe('visibleNavItems', () => {
-  it('shows every launch screen to an admin', () => {
+  it('shows every screen to an admin, in the prototype order', () => {
     expect(visibleNavItems('admin').map((i) => i.href)).toEqual([
       '/admin',
+      '/admin/reach',
       '/admin/resources',
-      '/admin/content',
+      '/admin/review',
       '/admin/settings',
-      '/admin/users',
       '/admin/audit',
     ]);
   });
 
-  it('hides Settings and Users from an editor', () => {
-    const hrefs = visibleNavItems('editor').map((i) => i.href);
-    expect(hrefs).not.toContain('/admin/settings');
-    expect(hrefs).not.toContain('/admin/users');
-    expect(hrefs).toContain('/admin/content');
+  it('shows an editor the same six screens', () => {
+    // The prototype's middle tier: an editor curates resources, works the
+    // review queue and edits the welcome copy on Settings, so nothing is
+    // hidden from them. What an editor may not do inside Settings is decided
+    // by the page, which renders the admin-only cards for an admin alone.
+    expect(visibleNavItems('editor').map((i) => i.href)).toEqual(
+      visibleNavItems('admin').map((i) => i.href),
+    );
   });
 
-  it('hides Settings and Users from a viewer too', () => {
-    const hrefs = visibleNavItems('viewer').map((i) => i.href);
-    expect(hrefs).toEqual(['/admin', '/admin/resources', '/admin/content', '/admin/audit']);
+  it('shows a viewer only the read-only screens', () => {
+    expect(visibleNavItems('viewer').map((i) => i.href)).toEqual([
+      '/admin',
+      '/admin/reach',
+      '/admin/audit',
+    ]);
   });
 
   it('links to no deferred screen', () => {
-    // The deferred screens have no route (spec 2). A nav entry pointing at a
-    // route that does not exist is a 404 waiting to be clicked, and a
-    // disabled "coming soon" entry invites the question of when.
+    // The screens the prototype lists but this application does not have
+    // get no nav entry: a route that does not exist is a 404 waiting to be
+    // clicked, and a disabled "coming soon" entry invites the question of
+    // when. Reach is not on this list because it has a route -- one whose
+    // whole content is the statement that reporting is not available yet.
     const hrefs = NAV_ITEMS.map((i) => i.href);
-    for (const deferred of [
-      '/admin/subscribers',
-      '/admin/partnerships',
-      '/admin/reach',
-      '/admin/review',
-      '/admin/updates',
-    ]) {
+    for (const deferred of ['/admin/subscribers', '/admin/partnerships', '/admin/updates']) {
       expect(hrefs).not.toContain(deferred);
     }
   });
@@ -44,6 +46,12 @@ describe('visibleNavItems', () => {
   it('names a locale key for every label, never a literal', () => {
     for (const item of NAV_ITEMS) {
       expect(item.labelKey).toMatch(/^admin\.nav\./);
+    }
+  });
+
+  it('lists every screen for at least one role', () => {
+    for (const item of NAV_ITEMS) {
+      expect(item.roles.length).toBeGreaterThan(0);
     }
   });
 });

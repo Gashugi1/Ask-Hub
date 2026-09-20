@@ -39,27 +39,31 @@ const FOREIGN_KEY_VIOLATION = '23503';
 
 /** The constraint 0014_partner_logos.sql put on `resources.partner`. */
 const PARTNER_FK = 'resources_partner_fkey';
+const UNIQUE_VIOLATION = '23505';
+/** `unique (partner, name)`, from 0013_reconcile_partners.sql. */
+const PARTNER_NAME_KEY = 'resources_partner_name_key';
 
 /**
- * What a caller is told when the partner they submitted is not in `partners`.
+ * What a caller is told when the provider they submitted is not in
+ * `partners` after `ensureProvider` has had its chance to create it.
  *
  * One function so the pre-flight check below and the constraint-violation
  * translation say the same thing, and so a test can assert the message
- * without copying its wording. It names the offending value and the remedy,
- * which `insert or update on table "resources" violates foreign key
- * constraint "resources_partner_fkey"` does neither of.
+ * without copying its wording. It names the offending value and what must
+ * have happened -- the row could not be created by this role, or is not
+ * visible to it -- which `insert or update on table "resources" violates
+ * foreign key constraint "resources_partner_fkey"` does neither of.
  *
  * This is the *server's* message: the server log, and a developer running
  * locally. It is not the channel the admin screen uses — Next replaces the
  * message of an error thrown out of a server action with an opaque digest
- * before it reaches the browser in production, so `ResourceForm` produces the
- * localised equivalent itself from `src/locales/en.json` rather than reading
- * anything off the thrown error. Deliberately not routed through `t()`: this
+ * before it reaches the browser in production, so the admin screen shows
+ * its generic failure copy rather than reading anything off the thrown error. Deliberately not routed through `t()`: this
  * string is not user-facing copy in the i18n sense, and a server action's
  * thrown message has no locale to resolve against.
  */
 export function unknownPartnerMessage(partner: string): string {
-  return `"${partner}" is not a known partner — choose one from the list`;
+  return `"${partner}" is not a known provider — it could not be created or cannot be seen by your role`;
 }
 
 /**
@@ -68,23 +72,22 @@ export function unknownPartnerMessage(partner: string): string {
  * `resources.partner` is `text not null references partners(name)`
  * (0014_partner_logos.sql). `resourceInput` checks the shape of that string —
  * trimmed, non-empty, at most 200 characters — and can check nothing about
- * whether it names a row, having no database access, so before this check the
- * first thing to object to `partner: "Googel"` was Postgres, and its message
- * reached the operator as a generic failure. Zod cannot take this over:
- * `resourceInput` is imported by `ResourceForm`, a client component that calls
- * `safeParse` synchronously in the browser, and a refinement that has to be
- * awaited cannot run there at all.
+ * whether it names a row, having no database access. Zod cannot take this
+ * over: `resourceInput` is imported by `ResourceForm`, a client component
+ * that calls `safeParse` synchronously in the browser, and a refinement that
+ * has to be awaited cannot run there at all.
  *
- * The select on the form is UX; this is the check. CLAUDE.md: UI gating is
- * not security, and a server action can be invoked directly with any string
- * in the field.
+ * What this check covers, now that every resource writer creates a missing
+ * provider first (`ensureProvider`, src/lib/admin/partners.ts): the row the
+ * caller's role was not allowed to create, or cannot see. The form's
+ * provider field is free text with suggestions, not a gate -- CLAUDE.md: UI
+ * gating is not security, and a server action can be invoked directly with
+ * any string in the field -- so this runs on a fresh read after the create
+ * step, and the operator gets a message naming the value rather than a
+ * constraint violation.
  *
- * `known` comes from `readPartnerNames()`, which reads on the caller's own
- * RLS-bound client — the same query the form's select is built from, so the
- * two cannot disagree about what counts as a partner. They are still separate
- * reads: the list can change between the page render and the save, which is
- * the whole reason the form's copy of this check is not the only one. Two
- * further consequences, stated rather than left to be discovered:
+ * `known` comes from `readPartnerNames()`, on the caller's own RLS-bound
+ * client. Two consequences, stated rather than left to be discovered:
  *
  *  - Membership is exact JavaScript string equality, and nothing here folds
  *    case or trims (`resourceInput` has already trimmed). That agrees with the
@@ -94,11 +97,11 @@ export function unknownPartnerMessage(partner: string): string {
  *  - A row the caller's role cannot SELECT is treated as not existing, while a
  *    foreign-key check inside Postgres is not subject to RLS. Today no such
  *    row exists: `partners_select_authenticated` admits every staff role. A
- *    narrower policy later would make this refuse a partner the constraint
+ *    narrower policy later would make this refuse a provider the constraint
  *    would have accepted.
  *
  * Not a substitute for handling the constraint violation itself, and not
- * claimed to be: a partner not yet referenced by any resource can be deleted
+ * claimed to be: a provider not yet referenced by any resource can be deleted
  * between that read and the insert. `resourceWriteError` below covers the
  * window.
  */
@@ -133,11 +136,42 @@ export function resourceWriteError(
   action: string,
   error: { code?: string | null; message: string; details?: string | null },
   partner: string,
+  name?: string,
 ): Error {
   const mentionsPartnerFk =
     (error.message ?? '').includes(PARTNER_FK) || (error.details ?? '').includes(PARTNER_FK);
   if (error.code === FOREIGN_KEY_VIOLATION && mentionsPartnerFk) {
     return new Error(unknownPartnerMessage(partner));
   }
+  if (isDuplicateResource(error)) {
+    return new Error(duplicateResourceMessage(partner, name ?? ''));
+  }
   return new Error(`${action} failed: ${error.message}`);
+}
+
+/**
+ * Whether a failed write collided with `unique (partner, name)`.
+ *
+ * Matched on the code *and* the constraint name for the same reason
+ * `resourceWriteError` matches the foreign key that way: `resources` may grow
+ * a second unique constraint, and the pair is what stops this reporting an
+ * unrelated collision as "this resource already exists".
+ *
+ * Returns a boolean rather than a message because the bulk import needs to
+ * decide per row -- it reports a *code* the client renders through `t()`,
+ * since Next replaces a thrown message with an opaque digest in production.
+ */
+export function isDuplicateResource(error: {
+  code?: string | null;
+  message: string;
+  details?: string | null;
+}): boolean {
+  const mentionsKey =
+    (error.message ?? '').includes(PARTNER_NAME_KEY) ||
+    (error.details ?? '').includes(PARTNER_NAME_KEY);
+  return error.code === UNIQUE_VIOLATION && mentionsKey;
+}
+
+export function duplicateResourceMessage(partner: string, name: string): string {
+  return `"${name}" already exists for ${partner}`;
 }

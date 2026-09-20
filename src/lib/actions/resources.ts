@@ -4,12 +4,23 @@ import { revalidateTag } from 'next/cache';
 import { z } from 'zod';
 import { requireRole } from '@/lib/auth';
 import { createAdminReadClient } from '@/lib/admin/client';
-import { readPartnerNames } from '@/lib/admin/readers';
-import { resourceInput } from '@/lib/schemas/resource';
+import { readPartnerNames, readResourceDedupeIndex } from '@/lib/admin/readers';
+import { ensureProvider } from '@/lib/admin/partners';
+import { resourceInput, toRow } from '@/lib/schemas/resource';
 import { CACHE_TAGS } from '@/lib/public/cache';
+import { parseCsv } from '@/lib/admin/import-csv';
+import { pickSheetTable } from '@/lib/admin/import-sheet';
+import {
+  IMPORT_MAX_BYTES,
+  TITLE_HEADERS,
+  validateTracker,
+  type ImportReport,
+  type RowOutcome,
+} from '@/lib/admin/tracker-import';
 import {
   assertRowAffected,
   assertKnownPartner,
+  isDuplicateResource,
   resourceWriteError,
 } from './resource-mutation-guards';
 
@@ -35,6 +46,16 @@ function revalidateResources(): void {
 }
 
 /**
+ * Called by every path here that may create a provider row -- the create and
+ * update actions and the bulk import; the review queue's actions call
+ * revalidateTag on the same tag directly. `listPublicPartners` is cached on
+ * it and reads the whole registry, so a created provider changes its result.
+ */
+function revalidatePartners(): void {
+  revalidateTag(CACHE_TAGS.partners, { expire: 0 });
+}
+
+/**
  * Every action here opens with its own requireRole. Not because the page did
  * not check — because an action can be invoked directly, with no page and no
  * proxy in the path (PRD 14.4).
@@ -47,38 +68,18 @@ function revalidateResources(): void {
  * write that failed would evict a correct cached page and replace it with an
  * identical one, hiding the failure behind a cache miss.
  */
-function toRow(input: ReturnType<typeof resourceInput.parse>) {
-  return {
-    name: input.name,
-    partner: input.partner,
-    partner_tier: input.partnerTier,
-    resource_type: input.resourceType,
-    need_primary: input.needPrimary,
-    need_secondary: input.needSecondary,
-    sub_category: input.subCategory,
-    description: input.description,
-    action_label: input.actionLabel,
-    external_url: input.externalUrl,
-    banner_image_url: input.bannerImageUrl,
-    countries_eligible: input.countriesEligible,
-    sectors_eligible: input.sectorsEligible,
-    stages_eligible: input.stagesEligible,
-    geo_scope: input.geoScope,
-    deadline: input.deadline,
-    status: input.status,
-    is_featured: input.isFeatured,
-    exclusivity: input.exclusivity,
-    sort_order: input.sortOrder,
-  };
-}
 
 export async function createResource(input: unknown): Promise<{ id: string }> {
   await requireRole(['admin', 'editor']);
   const parsed = resourceInput.parse(input);
   const supabase = await createAdminReadClient();
-  // `partner` is a foreign key to partners(name) and the schema cannot check
-  // it — see assertKnownPartner. Before the insert, so the operator gets a
-  // message naming the value instead of a constraint violation.
+  // `partner` is a foreign key to partners(name). A provider the registry
+  // lacks is created name-only first (ensureProvider -- the prototype's
+  // free-text field, made to work with the FK), then the check runs on a
+  // fresh read: what it still catches is a row this role could not create or
+  // cannot see, and the operator gets a message naming the value rather than
+  // a constraint violation.
+  const { created } = await ensureProvider(supabase, parsed.partner);
   assertKnownPartner(parsed.partner, await readPartnerNames());
   const { data, error } = await supabase
     .from('resources')
@@ -87,6 +88,7 @@ export async function createResource(input: unknown): Promise<{ id: string }> {
     .single();
   if (error) throw resourceWriteError('createResource', error, parsed.partner);
   revalidateResources();
+  if (created) revalidatePartners();
   return { id: data!.id };
 }
 
@@ -95,9 +97,9 @@ export async function updateResource(rawId: unknown, input: unknown): Promise<vo
   const targetId = id.parse(rawId);
   const parsed = resourceInput.parse(input);
   const supabase = await createAdminReadClient();
-  // The same hole as createResource, and not a theoretical one: the edit form
-  // pre-fills a partner that is already valid, so this path only looks safe
-  // until someone changes the field.
+  // As createResource: an edit may retarget a resource to a provider the
+  // registry has never seen, and that provider is created before the check.
+  const { created } = await ensureProvider(supabase, parsed.partner);
   assertKnownPartner(parsed.partner, await readPartnerNames());
   const { data, error } = await supabase
     .from('resources')
@@ -107,6 +109,7 @@ export async function updateResource(rawId: unknown, input: unknown): Promise<vo
   if (error) throw resourceWriteError('updateResource', error, parsed.partner);
   assertRowAffected('updateResource', data);
   revalidateResources();
+  if (created) revalidatePartners();
 }
 
 export async function setResourceStatus(rawId: unknown, rawStatus: unknown): Promise<void> {
@@ -139,12 +142,202 @@ export async function setResourceFeatured(rawId: unknown, rawFeatured: unknown):
   revalidateResources();
 }
 
-export async function deleteResource(rawId: unknown): Promise<void> {
+export type DeleteOutcome = { ok: true } | { ok: false; reason: 'referenced' };
+
+/** Postgres's foreign_key_violation. */
+const FOREIGN_KEY_VIOLATION = '23503';
+
+/**
+ * Returns rather than throws for the one refusal the operator can act on. A
+ * submission's `target_resource_id` is `on delete restrict`
+ * (0005_community.sql), so a resource an update suggestion points at cannot
+ * be deleted until that submission is dealt with. Next strips the message
+ * from an error thrown in a production server action, so a thrown Error
+ * would reach the screen as "something went wrong" -- which is exactly the
+ * wrong thing to say about a refusal that has a specific remedy. Any other
+ * failure still throws, as before.
+ */
+export async function deleteResource(rawId: unknown): Promise<DeleteOutcome> {
   await requireRole(['admin', 'editor']);
   const targetId = id.parse(rawId);
   const supabase = await createAdminReadClient();
   const { data, error } = await supabase.from('resources').delete().eq('id', targetId).select('id');
+  if (error?.code === FOREIGN_KEY_VIOLATION) return { ok: false, reason: 'referenced' };
   if (error) throw new Error(`deleteResource failed: ${error.message}`);
   assertRowAffected('deleteResource', data);
   revalidateResources();
+  return { ok: true };
+}
+
+const idList = z.array(id).min(1).max(200);
+
+/**
+ * The resources table's "Publish selected": every listed id that is not
+ * already live becomes live, in one statement.
+ *
+ * One UPDATE with `in` and `neq`, not a loop of `setResourceStatus`: a
+ * batch that fails halfway would leave the operator to work out which of
+ * the twelve rows they selected went through, and one statement either
+ * publishes all of them or none. `neq('status', 'live')` makes an
+ * already-live selection a no-op rather than a spurious `published` audit
+ * row -- the trigger records one per row actually changed. The count
+ * returned is the number of rows that changed, which is what the screen
+ * reports, and the cache is invalidated only when that number is not zero.
+ *
+ * Not a partner writer: status is the only column touched.
+ */
+export async function publishResources(rawIds: unknown): Promise<{ published: number }> {
+  await requireRole(['admin', 'editor']);
+  const ids = idList.parse(rawIds);
+  const supabase = await createAdminReadClient();
+  const { data, error } = await supabase
+    .from('resources')
+    .update({ status: 'live' })
+    .in('id', ids)
+    .neq('status', 'live')
+    .select('id');
+  if (error) throw new Error(`publishResources failed: ${error.message}`);
+  const published = data?.length ?? 0;
+  if (published > 0) revalidateResources();
+  return { published };
+}
+
+/**
+ * The uploaded file, as text for a CSV and as base64 for a spreadsheet.
+ *
+ * A `.xlsx` is a zip archive, so it cannot travel as text and cannot be
+ * re-parsed from anything the browser derived from it. Sending the bytes keeps
+ * the property the CSV path has: the browser chooses a file, and the server
+ * decides everything about its contents. Base64 costs a third in size, which
+ * is why next.config.ts raises the server-action body limit above the default.
+ */
+const importRequest = z.union([
+  z.object({ csv: z.string().max(IMPORT_MAX_BYTES) }),
+  z.object({ xlsx: z.string().max(Math.ceil(IMPORT_MAX_BYTES * 1.4)) }),
+]);
+
+/** Reads the uploaded file into the grid `validateTracker` works in. */
+async function tableFrom(file: z.infer<typeof importRequest>): Promise<string[][]> {
+  if ('csv' in file) return parseCsv(file.csv);
+  // Imported here rather than at module scope so a CSV import does not pay for
+  // the spreadsheet reader, matching how the public export loads its writer.
+  const { default: readXlsxFile } = await import('read-excel-file/node');
+  const sheets = await readXlsxFile(Buffer.from(file.xlsx, 'base64'));
+  return pickSheetTable(sheets, TITLE_HEADERS);
+}
+
+/**
+ * Bulk-create resources from an Operation 100 tracker CSV export.
+ *
+ * **The caller sends the file, not its verdicts.** The browser has already
+ * parsed and previewed the same bytes with the same pure `validateTrackerCsv`,
+ * but its conclusions are never consulted: this re-reads the dedupe index and
+ * the partner list, re-runs the parser, and imports only the rows that pass
+ * here. So the browser is the authority on nothing except which file to
+ * import, and because the parser is pure, the row numbers in this report line
+ * up with the preview the operator approved.
+ *
+ * **Rows are inserted one at a time, on purpose.** A single `insert([...])` is
+ * one statement in one transaction: any collision with
+ * `unique (partner, name)` would roll back every other row and return one
+ * error naming none of them. Importing the good rows and reporting the rest is
+ * the whole point of the feature, so the loop is what makes that possible. It
+ * also makes recovery free -- the import only ever adds, so re-uploading the
+ * same file after a failure returns the rows that already landed as
+ * duplicates rather than doubling them.
+ *
+ * **Missing providers are created first.** `resources.partner` is a foreign
+ * key to `partners(name)` and a tracker export names providers that are
+ * mostly not there yet. The batch goes through one name-only upsert with
+ * ON CONFLICT DO NOTHING, the same statement `ensureProvider` issues for a
+ * single row, so a re-import can neither blank a logo an admin uploaded
+ * later nor write a spurious audit row for a provider that already exists.
+ *
+ * One `audit_log` row per resource is unavoidable and correct: the trigger from
+ * 0018_audit_triggers.sql is `for each row`, so a 40-row import is 40 `created`
+ * entries with the same actor. There is no batch representation and none may
+ * be invented -- `audit_log` takes no writes from the application at all.
+ */
+export async function importTrackerResources(input: unknown): Promise<ImportReport> {
+  await requireRole(['admin', 'editor']);
+  const file = importRequest.parse(input);
+  const supabase = await createAdminReadClient();
+  const validation = validateTracker(await tableFrom(file), {
+    existing: await readResourceDedupeIndex(),
+    partners: await readPartnerNames(),
+  });
+
+  const strip = (row: RowOutcome): RowOutcome => ({ ...row, payload: null });
+  if (validation.fileProblem !== null) {
+    // no-revalidate: the file was rejected before any write, so no cached page
+    // could have gone stale and evicting one would hide nothing but itself.
+    return {
+      fileProblem: validation.fileProblem,
+      rows: [],
+      imported: 0,
+      createdPartners: [],
+      preApproved: validation.preApproved,
+    };
+  }
+
+  const createdPartners: string[] = [];
+  if (validation.newPartners.length > 0) {
+    const { error } = await supabase
+      .from('partners')
+      .upsert(
+        validation.newPartners.map((name) => ({ name })),
+        { onConflict: 'name', ignoreDuplicates: true },
+      );
+    if (error) throw new Error(`importTrackerResources failed (partners): ${error.message}`);
+    createdPartners.push(...validation.newPartners);
+  }
+
+  // Re-read, because the upsert above changed it and every row's partner has
+  // to be in this list for assertKnownPartner to pass.
+  const known = await readPartnerNames();
+  const outcomes: RowOutcome[] = [];
+  let imported = 0;
+
+  for (const row of validation.rows) {
+    if (!row.ok || row.payload === null) {
+      outcomes.push(strip(row));
+      continue;
+    }
+    const payload = row.payload;
+    try {
+      // Never expected to fire: the partner was either already known or
+      // created moments ago. If it does, the partner list changed underneath
+      // this import, and that is one row's problem rather than the file's.
+      assertKnownPartner(payload.partner, known);
+    } catch {
+      outcomes.push({ ...strip(row), ok: false, code: 'invalid', detail: 'partner' });
+      continue;
+    }
+    const { error } = await supabase.from('resources').insert(toRow(payload));
+    if (error === null) {
+      imported += 1;
+      outcomes.push(strip(row));
+      continue;
+    }
+    outcomes.push({
+      ...strip(row),
+      ok: false,
+      code: isDuplicateResource(error) ? 'duplicateExisting' : 'writeFailed',
+      detail: payload.name,
+    });
+  }
+
+  // Last, and only for what actually landed: invalidating a tag for a write
+  // that failed would evict a correct cached page and hide the failure behind
+  // a cache miss.
+  if (imported > 0) revalidateResources();
+  if (createdPartners.length > 0) revalidatePartners();
+
+  return {
+    fileProblem: null,
+    rows: outcomes,
+    imported,
+    createdPartners,
+    preApproved: validation.preApproved,
+  };
 }

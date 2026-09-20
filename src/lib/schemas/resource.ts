@@ -63,9 +63,43 @@ export type ResourceInput = z.infer<typeof resourceInput>;
 type ResourceRow = Database['public']['Tables']['resources']['Row'];
 
 /**
- * The inverse of the admin actions' `toRow`: a full base-table row, back
+ * The parsed input as the base-table row the actions insert or update.
+ * Lives here rather than in src/lib/actions/resources.ts because a
+ * `'use server'` module may export only async functions, and the review
+ * queue's actions need the same builder. The name is load-bearing:
+ * tests/structure/partner-fk-wiring.test.ts recognises a resource writer by
+ * a `toRow(...)` payload, so renaming it would blind that guard.
+ */
+export function toRow(input: ResourceInput) {
+  return {
+    name: input.name,
+    partner: input.partner,
+    partner_tier: input.partnerTier,
+    resource_type: input.resourceType,
+    need_primary: input.needPrimary,
+    need_secondary: input.needSecondary,
+    sub_category: input.subCategory,
+    description: input.description,
+    action_label: input.actionLabel,
+    external_url: input.externalUrl,
+    banner_image_url: input.bannerImageUrl,
+    countries_eligible: input.countriesEligible,
+    sectors_eligible: input.sectorsEligible,
+    stages_eligible: input.stagesEligible,
+    geo_scope: input.geoScope,
+    deadline: input.deadline,
+    status: input.status,
+    is_featured: input.isFeatured,
+    exclusivity: input.exclusivity,
+    sort_order: input.sortOrder,
+  };
+}
+
+
+/**
+ * The inverse of `toRow`: a full base-table row, back
  * into the camelCase shape `resourceInput` and `ResourceForm` use. Exists
- * for the edit route, which needs every editable column — `AdminResource`
+ * for the edit modal, which needs every editable column — `AdminResource`
  * (src/lib/admin/types.ts) deliberately carries only the table view's
  * columns, not `description`, `action_label`, `external_url`,
  * `banner_image_url` or `exclusivity`, so it is not enough on its own to

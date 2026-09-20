@@ -348,7 +348,6 @@ export type Database = {
       partners: {
         Row: {
           created_at: string
-          is_ai_hub_partner: boolean
           logo_url: string | null
           name: string
           sort_order: number | null
@@ -357,7 +356,6 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          is_ai_hub_partner?: boolean
           logo_url?: string | null
           name: string
           sort_order?: number | null
@@ -366,7 +364,6 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          is_ai_hub_partner?: boolean
           logo_url?: string | null
           name?: string
           sort_order?: number | null
@@ -666,6 +663,7 @@ export type Database = {
           link: string | null
           need: Database["public"]["Enums"]["need_type"] | null
           organisation: string | null
+          programme_contact_email: string | null
           rejection_reason: string | null
           resource_name: string
           reviewed_at: string | null
@@ -673,6 +671,7 @@ export type Database = {
           source_ip_hash: string | null
           status: Database["public"]["Enums"]["submission_status"]
           submitter_email: string
+          submitter_name: string | null
           target_resource_id: string | null
           type: Database["public"]["Enums"]["submission_type"]
           updated_at: string
@@ -684,6 +683,7 @@ export type Database = {
           link?: string | null
           need?: Database["public"]["Enums"]["need_type"] | null
           organisation?: string | null
+          programme_contact_email?: string | null
           rejection_reason?: string | null
           resource_name: string
           reviewed_at?: string | null
@@ -691,6 +691,7 @@ export type Database = {
           source_ip_hash?: string | null
           status?: Database["public"]["Enums"]["submission_status"]
           submitter_email: string
+          submitter_name?: string | null
           target_resource_id?: string | null
           type: Database["public"]["Enums"]["submission_type"]
           updated_at?: string
@@ -702,6 +703,7 @@ export type Database = {
           link?: string | null
           need?: Database["public"]["Enums"]["need_type"] | null
           organisation?: string | null
+          programme_contact_email?: string | null
           rejection_reason?: string | null
           resource_name?: string
           reviewed_at?: string | null
@@ -709,6 +711,7 @@ export type Database = {
           source_ip_hash?: string | null
           status?: Database["public"]["Enums"]["submission_status"]
           submitter_email?: string
+          submitter_name?: string | null
           target_resource_id?: string | null
           type?: Database["public"]["Enums"]["submission_type"]
           updated_at?: string
@@ -1123,6 +1126,20 @@ export type Database = {
         Args: { p_email: string; p_message: string; p_name: string }
         Returns: undefined
       }
+      submit_resource_suggestion: {
+        Args: {
+          p_description: string
+          p_link: string
+          p_need: string
+          p_organisation: string
+          p_programme_contact_email: string
+          p_resource_name: string
+          p_source_ip_hash: string
+          p_submitter_email: string
+          p_submitter_name: string
+        }
+        Returns: undefined
+      }
       test_break_audit_log: { Args: never; Returns: undefined }
       test_unbreak_audit_log: { Args: never; Returns: undefined }
       trigger_inventory: {
@@ -1156,7 +1173,14 @@ export type Database = {
         | "digest_sent"
       exclusivity: "exclusive" | "early_access"
       geo_scope: "global" | "all_africa" | "partner_countries" | "specific"
-      need_type: "compute" | "training" | "funding" | "accelerator" | "partners"
+      need_type:
+        | "compute"
+        | "training"
+        | "funding"
+        | "accelerator"
+        | "data"
+        | "challenges"
+        | "community"
       partner_tier:
         | "strategic"
         | "government"
@@ -1314,7 +1338,15 @@ export const Constants = {
       ],
       exclusivity: ["exclusive", "early_access"],
       geo_scope: ["global", "all_africa", "partner_countries", "specific"],
-      need_type: ["compute", "training", "funding", "accelerator", "partners"],
+      need_type: [
+        "compute",
+        "training",
+        "funding",
+        "accelerator",
+        "data",
+        "challenges",
+        "community",
+      ],
       partner_tier: [
         "strategic",
         "government",

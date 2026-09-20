@@ -6,8 +6,8 @@ import { ADMIN_TH, ADMIN_TD, ADMIN_TABLE, ADMIN_TABLE_PANEL, ADMIN_THEAD_ROW, AD
 
 /**
  * PRD 4.15's badge colours, mapped onto the existing design tokens rather
- * than new hex literals: `published`/`approved` share the green already
- * defined for the `partners` need, `edited`/`created` share the blue already
+ * than new hex literals: `published`/`approved` take the `success` pair,
+ * `edited`/`created` share the blue already
  * defined for the `compute` need, `deleted`/`rejected` reuse the existing
  * `danger` pair, and `role_changed` reuses the amber-brown already defined
  * for the `funding` need. Only `digest_sent`'s "neutral" had no existing
@@ -15,11 +15,11 @@ import { ADMIN_TH, ADMIN_TD, ADMIN_TABLE, ADMIN_TABLE_PANEL, ADMIN_THEAD_ROW, AD
  * `globals.css`'s `@theme` block for it — see the comment there.
  */
 const ACTION_CLASSES: Record<AuditAction, string> = {
-  published: 'bg-need-partners-bg text-need-partners',
+  published: 'bg-success-bg text-success',
   edited: 'bg-need-compute-bg text-need-compute',
   created: 'bg-need-compute-bg text-need-compute',
   deleted: 'bg-danger-bg text-danger',
-  approved: 'bg-need-partners-bg text-need-partners',
+  approved: 'bg-success-bg text-success',
   rejected: 'bg-danger-bg text-danger',
   role_changed: 'bg-need-funding-bg text-need-funding',
   digest_sent: 'bg-neutral-bg text-neutral',

@@ -2,8 +2,7 @@ import Link from 'next/link';
 import { t } from '@/lib/i18n';
 
 /**
- * The prototype's signed-out shell (docs/prototype/prototype.html lines
- * 634-664): a 420px card centred on a #F4F6F9 field, under the wordmark with
+ * The prototype's signed-out shell (the approved prototype* 634-664): a 420px card centred on a #F4F6F9 field, under the wordmark with
  * its accent dot and a "team admin" note, with a route back to the public site
  * beneath.
  *
@@ -60,15 +59,8 @@ export default function AuthCard({
           >
             {t('site.wordmark')}
           </span>
-          <span
-            aria-hidden="true"
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: 99,
-              background: 'var(--acc, #F06428)',
-            }}
-          />
+          {/* No accent bead between the wordmark and this label: the dot
+              device is not transcribed anywhere -- see WelcomeBand. */}
           <span style={{ fontSize: 12, color: '#5B6B8C' }}>{t('admin.login.teamAdmin')}</span>
         </Link>
 
@@ -104,7 +96,7 @@ export default function AuthCard({
   );
 }
 
-/** Prototype line 647: uppercase micro-label above each field. */
+/** Prototype: uppercase micro-label above each field. */
 export const FIELD_LABEL = {
   fontSize: 11.5,
   fontWeight: 800,
@@ -115,7 +107,7 @@ export const FIELD_LABEL = {
   marginBottom: 6,
 } as const;
 
-/** Prototype line 648. */
+/** The prototype's. */
 export const FIELD = {
   width: '100%',
   padding: '12px 14px',
@@ -126,7 +118,7 @@ export const FIELD = {
   outline: 'none',
 } as const;
 
-/** Prototype line 656: the card's full-width primary action. */
+/** Prototype: the card's full-width primary action. */
 export const CARD_BUTTON = {
   marginTop: 16,
   width: '100%',

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { serviceClient } from './helpers/clients';
 import { seed } from '../scripts/seed';
-import { AI_HUB_PARTNERS, PARTNERS, RESOURCES, SITE_CONTENT } from '../scripts/seed-data';
+import { PARTNERS, RESOURCES, SITE_CONTENT } from '../scripts/seed-data';
 
 // Every assertion in this suite is scoped to the seed's own rows (by name or
 // by key/locale) rather than a global table count: other suites insert
@@ -141,57 +141,57 @@ describe('seed', () => {
     // this one. Note the local flow never exercises the FK's ON UPDATE
     // CASCADE at all -- on a `db:reset` the resource is simply inserted
     // under the new name. The cascade is what carries an already-populated
-    // database across, and it is covered in tests/rls/ai-hub-partners.test.ts.
+    // database across, and it is covered in tests/rls/resource-partner-fk.test.ts.
     expect(resources).toHaveLength(1);
     expect(resources![0]!.partner).toBe('CINECA');
   });
 
   /**
-   * `is_ai_hub_partner` is the one column on `partners` the seed deliberately
-   * DOES rewrite on every run (logo_url and website_url are omitted from the
-   * payload so admin-uploaded assets survive). Asserted after a re-seed for
-   * that reason: this is the property that makes AI_HUB_PARTNERS the single
-   * declaration of which rows are flagged, rather than a one-off UPDATE in a
-   * migration that runs against an empty table.
-   *
-   * Scoped to PARTNERS' own names -- other suites insert flagged partner
-   * fixtures of their own, and this suite has no control over their lifetime.
+   * Insert-only: a second run must leave every existing provider row exactly
+   * as it was, in every column. This is the property that lets an admin edit
+   * a provider between runs without a re-seed reverting it, and it holds
+   * structurally (ON CONFLICT DO NOTHING) rather than because nothing else
+   * writes the table -- the admin portal does.
    */
-  it('flags exactly the AI Hub partners, and re-flags them on a re-seed', async () => {
+  it('never touches an existing provider row on a re-seed', async () => {
     const svc = serviceClient();
+    const probe = PARTNERS[0]!;
+    const { error: markError } = await svc
+      .from('partners')
+      .update({ website_url: 'https://example.org/kept-by-reseed' })
+      .eq('name', probe);
+    expect(markError).toBeNull();
+    const { data: before } = await svc.from('partners').select('updated_at').eq('name', probe).single();
+
     await seed();
 
-    const { data, error } = await svc
+    const { data: after, error } = await svc
       .from('partners')
-      .select('name, is_ai_hub_partner')
-      .in('name', [...PARTNERS]);
+      .select('website_url, updated_at')
+      .eq('name', probe)
+      .single();
     expect(error).toBeNull();
+    expect(after!.website_url).toBe('https://example.org/kept-by-reseed');
+    expect(after!.updated_at).toBe(before!.updated_at);
 
-    const flagged = (data ?? [])
-      .filter((row: { is_ai_hub_partner: boolean }) => row.is_ai_hub_partner)
-      .map((row: { name: string }) => row.name)
-      .sort();
-    expect(flagged).toEqual([...AI_HUB_PARTNERS].sort());
-
-    // Every remaining seeded partner is a resource provider, not a partner of
-    // the AI Hub. Stated as a count so that flagging an extra row fails here
-    // and not only in the equality above.
-    expect(data).toHaveLength(PARTNERS.length);
-    expect(flagged).toHaveLength(3);
+    // Put the seed's own value back so the asset backfill assertions above
+    // read what they expect on the next run.
+    await svc.from('partners').update({ website_url: null }).eq('name', probe);
+    await seed();
   });
 
   /**
-   * AI_HUB_PARTNERS must stay a subset of PARTNERS: a name in the first that
-   * is missing from the second is a partner the seed never inserts, so the
-   * flag would silently apply to nothing and the home page would show fewer
-   * partners than the file claims, with no error anywhere. Same class of
-   * source-consistency check as the resource->partner one below.
+   * UNDP co-leads the AI Hub with MIMIT rather than providing opportunities
+   * to it (content rule 10.1; it appears in the footer attribution), so no
+   * row for it belongs in the provider registry the seed populates.
    */
-  it('declares no AI Hub partner that PARTNERS does not seed', () => {
-    const partnerNames = new Set(PARTNERS);
-    for (const name of AI_HUB_PARTNERS) {
-      expect(partnerNames.has(name), `AI_HUB_PARTNERS names unseeded partner "${name}"`).toBe(true);
-    }
+  it('seeds no UNDP row into the provider registry', async () => {
+    const { data, error } = await serviceClient()
+      .from('partners')
+      .select('name')
+      .ilike('name', '%undp%');
+    expect(error).toBeNull();
+    expect(data ?? []).toEqual([]);
   });
 
   // The partner->resource FK guarantees referential integrity at the
@@ -245,7 +245,6 @@ describe('seed', () => {
       .filter((value): value is string => typeof value === 'string')
       .join('\n');
 
-    expect(combined).not.toMatch(/Mattei Plan/i);
     // "the Hub" bare must never appear — only "AI Hub" or "AI Hub for
     // Sustainable Development". Word-boundaried so it does not false-match
     // "the AI Hub". Case-insensitive so a sentence-initial "The Hub" is

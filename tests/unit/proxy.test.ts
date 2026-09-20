@@ -90,6 +90,16 @@ describe('the /admin gate', () => {
     expect(response.headers.get('location')).toBeNull();
   });
 
+  it('does not redirect /admin/forgot-password for a visitor with no session', async () => {
+    // The screen exists for someone who cannot sign in; bouncing it to the
+    // login page would make a forgotten password permanent.
+    signedOut();
+    const response = await proxy(request('/admin/forgot-password'));
+
+    expect(response.status).not.toBe(307);
+    expect(response.headers.get('location')).toBeNull();
+  });
+
   it('still redirects a nested admin route that merely starts like set-password', async () => {
     // The exemption is an exact-path match, not a prefix. A future
     // /admin/set-password-policy screen must not inherit it by accident.

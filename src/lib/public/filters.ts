@@ -249,12 +249,52 @@ function matchesCountry(row: PublicResource, selected: string | null): boolean {
   return matchesList(row.countriesEligible, selected);
 }
 
+/**
+ * Every word has to appear somewhere, rather than the whole string appearing
+ * intact in one field -- the prototype's `textMatch`.
+ *
+ * The searchable text is the four fields joined, so the words may be spread
+ * across them: "aws compute" matches a resource named "Activate" from partner
+ * "Amazon Web Services" described as compute credits, which a
+ * contiguous-phrase match in a single field could never find. A one-word
+ * query behaves exactly as it did before.
+ *
+ * What reaches here is already the *leftover* of `parseQuery` — the words it
+ * could not turn into a facet — so this is a search over prose, not a second
+ * attempt at classification.
+ */
 function matchesQuery(row: PublicResource, query: string): boolean {
   if (query === '') return true;
-  const needle = query.toLowerCase();
-  return [row.name, row.partnerName, row.description, row.subCategory].some(
-    (field) => field !== null && field.toLowerCase().includes(needle),
-  );
+  const haystack = [row.name, row.partnerName, row.description, row.subCategory]
+    .filter((field): field is string => field !== null)
+    .join(' ')
+    .toLowerCase();
+  return query
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((word) => word !== '')
+    .every((word) => haystack.includes(word));
+}
+
+/**
+ * The resources a visitor should be offered: everything live whose deadline
+ * has not passed.
+ *
+ * A closed opportunity leaves the public listings -- the directory, search,
+ * the recently-added rail and the browse menu -- because it is something
+ * nobody can act on any more, and a directory of things you cannot apply to
+ * is a directory that wastes the reader's time. It keeps its own page, so a
+ * link shared in a newsletter still resolves and says Closed rather than
+ * 404ing at whoever follows it months later.
+ *
+ * Reads `isClosed` rather than comparing dates: `resources_public` computes
+ * it in SQL, and a second opinion in TypeScript is how the two come to
+ * disagree about the day a deadline expires.
+ */
+export function openResources(
+  rows: readonly PublicResource[],
+): PublicResource[] {
+  return rows.filter((row) => !row.isClosed);
 }
 
 export function filterResources(

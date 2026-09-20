@@ -7,6 +7,7 @@ import RecentlyAddedRail from '@/components/public/RecentlyAddedRail';
 import ResourceDirectoryStatic from '@/components/public/ResourceDirectoryStatic';
 import ResourceDirectoryClient from '@/components/public/ResourceDirectoryClient';
 import { buildNeedMenu } from '@/lib/public/need-menu';
+import { openResources } from '@/lib/public/filters';
 import {
   listPublicResources,
   listNeedCounts,
@@ -66,14 +67,18 @@ export default async function PublicHomePage() {
     getSiteContent(),
   ]);
 
-  const needMenu = buildNeedMenu(needCounts, resources);
+  // Closed resources leave every listing on this page -- the browse menu, the
+  // rail, and the directory in both its renderers -- while keeping their own
+  // detail page, which reads the unfiltered list. See openResources.
+  const open = openResources(resources);
+  const needMenu = buildNeedMenu(needCounts, open);
 
   return (
     <>
       <WelcomeBand content={content} />
       <StatsBand stats={stats} />
 
-      {/* The prototype's storefront is two columns (reference lines 49-174):
+      {/* The prototype's storefront is two columns:
           a sticky department menu on the left and a single scrolling column
           on the right, inside a 1280px measure. `flex-wrap` collapses it to
           one column on a narrow screen, with no breakpoint needed.
@@ -126,14 +131,14 @@ export default async function PublicHomePage() {
             minInlineSize: 0,
           }}
         >
-          <RecentlyAddedRail resources={resources} />
+          <RecentlyAddedRail resources={open} />
         </div>
       </div>
 
       {/* Only this subtree calls useSearchParams(), so only this subtree
           needs the boundary — everything above still prerenders. */}
-      <Suspense fallback={<ResourceDirectoryStatic resources={resources} />}>
-        <ResourceDirectoryClient resources={resources} />
+      <Suspense fallback={<ResourceDirectoryStatic resources={open} />}>
+        <ResourceDirectoryClient resources={open} />
       </Suspense>
     </>
   );

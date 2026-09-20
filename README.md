@@ -1,7 +1,7 @@
 # AskHub
 
 Public curated directory for the AI Hub for Sustainable Development, co-led by
-MIMIT and UNDP. Specification: `docs/askhub-prd.md`. Build decomposition:
+MIMIT and UNDP. Product requirements: `docs/AskHub-PRD.md` (the internal v1 spec is archived at `docs/archive/askhub-prd-v1-internal.md`; "PRD §n" in code comments cites that archive). Build decomposition:
 `docs/superpowers/specs/2026-07-26-askhub-decomposition-design.md`.
 
 ## Versions

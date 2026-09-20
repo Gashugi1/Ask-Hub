@@ -60,6 +60,49 @@ describe('resource writes at the database boundary', () => {
     expect(data![0]!.actor_name).not.toBe('system');
   });
 
+  it('publishes a batch in one statement as an editor, touching only the non-live rows', async () => {
+    // publishResources's own statement: update ... in(ids) ... neq('status',
+    // 'live'). Two pipeline fixtures and one already live: exactly two rows
+    // change, and the trigger writes exactly two `published` audit rows.
+    const a = await fixture(`batch-a-${Date.now()}`);
+    const b = await fixture(`batch-b-${Date.now()}`);
+    const c = await fixture(`batch-c-${Date.now()}`);
+    await serviceClient().from('resources').update({ status: 'live' }).eq('id', c);
+
+    const editor = await roleClient('editor');
+    const { data, error } = await editor
+      .from('resources')
+      .update({ status: 'live' })
+      .in('id', [a, b, c])
+      .neq('status', 'live')
+      .select('id');
+    expect(error).toBeNull();
+    expect(data!.map((row) => row.id).sort()).toEqual([a, b].sort());
+
+    const { data: audit } = await serviceClient()
+      .from('audit_log')
+      .select('entity_id')
+      .in('entity_id', [a, b, c])
+      .eq('action', 'published')
+      .neq('actor_name', 'system');
+    expect(audit!.map((row) => row.entity_id).sort()).toEqual([a, b].sort());
+  });
+
+  it('publishes nothing for a viewer, and reports it as zero rows rather than an error', async () => {
+    const a = await fixture(`batch-viewer-${Date.now()}`);
+    const viewer = await roleClient('viewer');
+    const { data, error } = await viewer
+      .from('resources')
+      .update({ status: 'live' })
+      .in('id', [a])
+      .neq('status', 'live')
+      .select('id');
+    expect(error).toBeNull();
+    expect(data).toEqual([]);
+    const { data: after } = await serviceClient().from('resources').select('status').eq('id', a).single();
+    expect(after!.status).toBe('pipeline');
+  });
+
   it('refuses every write verb to a viewer', async () => {
     const id = await fixture(`viewer-denied-${Date.now()}`);
     const viewer = await roleClient('viewer');

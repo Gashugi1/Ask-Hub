@@ -5,21 +5,31 @@ import { requireRole, type CurrentUser, type Role } from '@/lib/auth';
 export interface NavItem {
   href: string;
   labelKey: string;
-  adminOnly: boolean;
+  /** The roles whose sidebar lists this screen. */
+  roles: readonly Role[];
 }
 
 /**
- * The launch sidebar (spec 1). Deferred screens are absent rather than
- * disabled: a route that does not exist asks no questions, while a greyed-out
- * "Subscribers" entry reads as a broken feature.
+ * The sidebar, in the approved prototype's order and with its visibility:
+ * a viewer sees Dashboard, Reach & Engagement and Audit Log; an editor and
+ * an admin see every screen. Expressed as a role list rather than an
+ * `adminOnly` boolean because the prototype's middle tier -- editor and
+ * admin, not viewer -- is not a boolean.
+ *
+ * Every entry here has a route. The screens the prototype lists but this
+ * application does not have (subscribers, updates, partnerships) are absent
+ * rather than disabled: a route that does not exist asks no questions,
+ * while a greyed-out entry reads as a broken feature. Reach & Engagement
+ * exists as a route precisely so it can say, on its own screen, that the
+ * reporting is not available yet.
  */
 export const NAV_ITEMS: readonly NavItem[] = [
-  { href: '/admin', labelKey: 'admin.nav.dashboard', adminOnly: false },
-  { href: '/admin/resources', labelKey: 'admin.nav.resources', adminOnly: false },
-  { href: '/admin/content', labelKey: 'admin.nav.content', adminOnly: false },
-  { href: '/admin/settings', labelKey: 'admin.nav.settings', adminOnly: true },
-  { href: '/admin/users', labelKey: 'admin.nav.users', adminOnly: true },
-  { href: '/admin/audit', labelKey: 'admin.nav.audit', adminOnly: false },
+  { href: '/admin', labelKey: 'admin.nav.dashboard', roles: ['admin', 'editor', 'viewer'] },
+  { href: '/admin/reach', labelKey: 'admin.nav.reach', roles: ['admin', 'editor', 'viewer'] },
+  { href: '/admin/resources', labelKey: 'admin.nav.resources', roles: ['admin', 'editor'] },
+  { href: '/admin/review', labelKey: 'admin.nav.review', roles: ['admin', 'editor'] },
+  { href: '/admin/settings', labelKey: 'admin.nav.settings', roles: ['admin', 'editor'] },
+  { href: '/admin/audit', labelKey: 'admin.nav.audit', roles: ['admin', 'editor', 'viewer'] },
 ];
 
 export function canWrite(role: Role): boolean {
@@ -31,7 +41,7 @@ export function canAdminister(role: Role): boolean {
 }
 
 export function visibleNavItems(role: Role): readonly NavItem[] {
-  return NAV_ITEMS.filter((item) => !item.adminOnly || canAdminister(role));
+  return NAV_ITEMS.filter((item) => item.roles.includes(role));
 }
 
 /**

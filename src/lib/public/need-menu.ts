@@ -4,8 +4,8 @@ import type { NeedCount, NeedKey, PublicResource } from './types';
  * The browse menu's model: one entry per need that has something live in it,
  * each carrying the sub-categories a visitor can narrow to.
  *
- * Transcribed from the approved prototype, docs/prototype/prototype.html
- * lines 3242-3253 (`deptMenu`). The sub-items are not a taxonomy and there is
+ * Transcribed from the approved prototype
+ * (the approved prototype): (`deptMenu`). The sub-items are not a taxonomy and there is
  * no table behind them: they are the distinct `sub_category` values found on
  * the live resources filed under that need, discovered from the same rows the
  * directory renders. So a curator who types a new sub-category into the
@@ -22,7 +22,7 @@ import type { NeedCount, NeedKey, PublicResource } from './types';
  * The prototype's `subs.slice(0, 4)`.
  *
  * The menu is a 232px rail beside the whole storefront; an unbounded list
- * would push the featured band and the partner row below the fold on a need
+ * would push the recently-added rail below the fold on a need
  * that happens to have twenty distinct sub-categories. What the cap hides is
  * reachable through the entry's own "More" link, which drops the
  * sub-category and shows every resource in the need.
@@ -85,33 +85,34 @@ function inNeed(row: PublicResource, need: NeedKey): boolean {
  * category out from under a returning visitor's cursor. A stated order stays
  * put.
  *
- * **Partners is absent, deliberately.** The client positioned this release
- * around four categories. It is hidden from this menu only: `partners` remains
- * a valid need everywhere else -- the directory's filter chips, the pill on a
- * card, exports, and the admin form -- so the resources under it keep their
- * category and stay findable by filtering. Nothing is stranded, and nothing
- * had to be re-categorised to make the menu shorter.
+ * **Every need appears, `partners` included.** It was held out of this menu
+ * for a while, on the reasoning that a category nobody had published into was
+ * not worth a row; the menu is now the product's statement of what the
+ * directory covers, so leaving one category out made the coverage look
+ * narrower than it is. Its position mirrors `NEED_KEYS`, between `accelerator`
+ * and `data`.
  */
-const BROWSE_ORDER: readonly NeedKey[] = ['training', 'compute', 'funding', 'accelerator'];
+const BROWSE_ORDER: readonly NeedKey[] = [
+  'training', 'compute', 'funding', 'accelerator', 'data', 'challenges', 'community',
+];
 
 export function buildNeedMenu(
   counts: readonly NeedCount[],
   resources: readonly PublicResource[],
 ): NeedMenuEntry[] {
   const byNeed = new Map(counts.map((count) => [count.need, count]));
-  return BROWSE_ORDER.flatMap((need) => {
-    const count = byNeed.get(need);
-    // A category with nothing live in it still renders no entry: a row
-    // reading "0" is a click through to an empty directory.
-    if (!count || count.liveCount <= 0) return [];
-    return [
-      {
-        need,
-        liveCount: count.liveCount,
-        subCategories: subCategoriesFor(resources, need),
-      },
-    ];
-  });
+  // Every category renders, including the ones with nothing live in them yet.
+  // They used to be dropped, because a row reading "0" is a click through to
+  // an empty directory -- but a menu that shows only what is already published
+  // describes the catalogue rather than the directory's scope, and a category
+  // silently missing is harder to explain than an honest zero. A need absent
+  // from `counts` is absent because Postgres counts live rows and found none,
+  // which is the same thing as zero.
+  return BROWSE_ORDER.map((need) => ({
+    need,
+    liveCount: byNeed.get(need)?.liveCount ?? 0,
+    subCategories: subCategoriesFor(resources, need),
+  }));
 }
 
 /**
@@ -134,7 +135,7 @@ export function buildNeedMenu(
  * it went would have made the numbers depend on row order -- the one thing a
  * count must not do.
  *
- * The prototype shows no number beside a sub-item (reference line 68); these
+ * The prototype shows no number beside a sub-item; these
  * are added at the client's instruction. Nothing about them is estimated or
  * carried over from a fixture: each is a tally of rows the page already
  * holds, so a sub-item with nothing behind it cannot exist to be

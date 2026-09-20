@@ -1,4 +1,5 @@
 import 'server-only';
+import type { Database } from '@/lib/supabase/database.types';
 import { createAdminReadClient } from './client';
 import { deadlineInfo } from '@/lib/deadline';
 import {
@@ -14,8 +15,12 @@ import {
   type ComputeMetric,
   type Programme,
   type ImpactStory,
+  REVIEW_SUBMISSION_COLUMNS,
+  toReviewSubmission,
+  type ReviewSubmission,
 } from './types';
 import { AUDIT_PAGE_SIZE, type AuditFilters } from './audit-view';
+import type { CoverageRow } from './dashboard-view';
 import { rowToResourceInput, type ResourceInput } from '@/lib/schemas/resource';
 import { CONTENT_KEYS, type ContentKey } from '@/lib/schemas/content';
 import { SETTING_KEYS, type SettingKey } from '@/lib/schemas/settings';
@@ -55,12 +60,101 @@ export async function readResourceCounts(): Promise<ResourceCounts> {
 }
 
 /**
+ * The five columns `computeCoverage` reads, for every live resource whose
+ * deadline has not passed -- the same rows the public site counts, so the
+ * dashboard's by-need bars and the public browse menu agree. The date
+ * boundary is `deadlineInfo`'s, the one every other surface uses; a
+ * deadline of today is still open.
+ */
+export async function readLiveCoverage(): Promise<CoverageRow[]> {
+  const supabase = await createAdminReadClient();
+  const { data, error } = await supabase
+    .from('resources')
+    .select('need_primary, need_secondary, geo_scope, countries_eligible, sectors_eligible, deadline')
+    .eq('status', 'live');
+  if (error) throw new Error(`admin read failed (resources): ${error.message}`);
+  return (data ?? [])
+    .filter((row) => deadlineInfo(row.deadline).state !== 'closed')
+    .map((row) => ({
+      needPrimary: row.need_primary,
+      needSecondary: row.need_secondary,
+      geoScope: row.geo_scope,
+      countriesEligible: row.countries_eligible,
+      sectorsEligible: row.sectors_eligible,
+    }));
+}
+
+/**
+ * How many submissions await a reviewer. A head request with an exact
+ * count: the dashboard shows the number and nothing else about the rows, so
+ * none of their columns -- several of them `@sensitive` -- are fetched.
+ */
+export async function readPendingSubmissionCount(): Promise<number> {
+  const supabase = await createAdminReadClient();
+  const { count, error } = await supabase
+    .from('submissions')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'pending');
+  if (error) throw new Error(`admin read failed (submissions): ${error.message}`);
+  return count ?? 0;
+}
+
+/**
+ * The review queue, oldest first so the longest wait is at the top.
+ *
+ * An explicit column list, never `*`: `rejection_reason` and
+ * `source_ip_hash` are `@sensitive` and the screen has no use for either.
+ * The target resource's current name is embedded for update suggestions,
+ * so the card can say which resource the visitor meant.
+ */
+export async function readPendingSubmissions(): Promise<ReviewSubmission[]> {
+  const supabase = await createAdminReadClient();
+  const { data, error } = await supabase
+    .from('submissions')
+    .select(REVIEW_SUBMISSION_COLUMNS)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true });
+  if (error) throw new Error(`admin read failed (submissions): ${error.message}`);
+  return (data ?? []).map(toReviewSubmission);
+}
+
+/**
+ * One submission by id, in any status -- the actions that read it check the
+ * status themselves, so a suggestion approved a moment ago from another tab
+ * is refused by them with a reason rather than by this reader with nothing.
+ * `null` when there is no such row.
+ */
+export async function readSubmissionForReview(id: string): Promise<ReviewSubmission | null> {
+  const supabase = await createAdminReadClient();
+  const { data, error } = await supabase
+    .from('submissions')
+    .select(REVIEW_SUBMISSION_COLUMNS)
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw new Error(`admin read failed (submissions): ${error.message}`);
+  return data ? toReviewSubmission(data) : null;
+}
+
+/**
  * Every column this screen shows, from the base table — not the *_public
  * view, which drops `status` and the other columns this screen exists to
  * surface. Sorted by `sort_order` first (nulls last) so a curator's manual
  * ordering is visible here too, then by name for a stable tie-break.
  */
 export async function readAdminResources(): Promise<AdminResource[]> {
+  return (await readAdminResourceRows()).map(toAdminResource);
+}
+
+type ResourceRow = Database['public']['Tables']['resources']['Row'];
+
+/**
+ * The same query, unnarrowed: every column of every resource in the table's
+ * order. The resources screen reads this once and derives both the table
+ * rows (`toAdminResource`) and, for a writer, the full editable input each
+ * row's Edit action opens the modal with (`rowToResourceInput`) -- one query
+ * rather than one per edit.
+ */
+export async function readAdminResourceRows(): Promise<ResourceRow[]> {
   const supabase = await createAdminReadClient();
   const { data, error } = await supabase
     .from('resources')
@@ -68,16 +162,18 @@ export async function readAdminResources(): Promise<AdminResource[]> {
     .order('sort_order', { ascending: true, nullsFirst: false })
     .order('name', { ascending: true });
   if (error) throw new Error(`admin read failed (resources): ${error.message}`);
-  return (data ?? []).map(toAdminResource);
+  return data ?? [];
 }
 
 /**
- * One full resource row, for the edit form. Unlike `readAdminResources`,
- * this is not narrowed through `toAdminResource` — the edit form needs every
+ * One full resource row, for the edit modal -- the Review Queue reads the
+ * target of an update suggestion through this. Unlike `readAdminResources`,
+ * this is not narrowed through `toAdminResource`: the form needs every
  * editable column (`description`, `action_label`, `external_url`,
  * `banner_image_url`, `exclusivity`), which `AdminResource` deliberately
  * omits because the table view never shows them. `null` means no row with
- * that id, which the route turns into `notFound()` rather than an error.
+ * that id, which the caller turns into an absent control rather than an
+ * empty form.
  */
 export async function readResourceForEdit(id: string): Promise<ResourceInput | null> {
   const supabase = await createAdminReadClient();
@@ -94,20 +190,19 @@ export async function readResourceForEdit(id: string): Promise<ResourceInput | n
  * primary key. So the string this list supplies is the exact value the
  * constraint checks; there is nothing to map through.
  *
- * Only `name` is selected. The picker shows nothing else, and `logo_url` /
- * `website_url` have no reason to travel to a form that cannot edit them —
- * the same explicit-column discipline as `readAuditPage`.
+ * Only `name` is selected. The form's provider field shows nothing else, and
+ * `logo_url` / `website_url` have no reason to travel to a form that cannot
+ * edit them — the same explicit-column discipline as `readAuditPage`.
  *
  * Ordered by `name`, which is the primary key and therefore unique, so this
  * order is total: the same list on every render, with no tie-break needed.
- * Deliberately not by `sort_order` like the other list readers in this file.
- * On `partners` that column exists to curate the sequence of the public logo
- * row (`listPublicPartners` in src/lib/public/readers.ts); applying it here
- * would scatter the names a curator is scanning for, and it is nullable and
- * non-unique, so it could not order this list on its own in any case.
+ * Deliberately not by `sort_order` like the other list readers in this file:
+ * that column orders the public projection (`listPublicPartners`), and
+ * applying it here would scatter the names a curator is scanning for; it is
+ * nullable and non-unique, so it could not order this list on its own anyway.
  *
- * Uncached, like every reader in this file: a partner added moments ago must
- * be selectable on the next page load.
+ * Uncached, like every reader in this file: a provider created moments ago
+ * must be offered on the next page load.
  */
 export async function readPartnerNames(): Promise<string[]> {
   const supabase = await createAdminReadClient();
@@ -117,6 +212,26 @@ export async function readPartnerNames(): Promise<string[]> {
     .order('name', { ascending: true });
   if (error) throw new Error(`admin read failed (partners): ${error.message}`);
   return (data ?? []).map((row) => row.name);
+}
+
+/**
+ * Every resource's title and partner, for the bulk import's duplicate check.
+ *
+ * Two columns and no filter: the import has to compare against everything,
+ * including `pipeline` and `reference` rows, because re-importing a row that
+ * is already staged would collide with `unique (partner, name)` just the same.
+ *
+ * Uncached, like every reader here. It is also the snapshot the *preview*
+ * compares against, so the commit reads it again — the two can be minutes
+ * apart, and the database is the only authority on what already exists.
+ */
+export async function readResourceDedupeIndex(): Promise<
+  { name: string; partner: string }[]
+> {
+  const supabase = await createAdminReadClient();
+  const { data, error } = await supabase.from('resources').select('name, partner');
+  if (error) throw new Error(`admin read failed (resources): ${error.message}`);
+  return data ?? [];
 }
 
 /**
@@ -242,7 +357,7 @@ export async function readSettings(): Promise<Record<string, string | boolean>> 
 }
 
 /**
- * One row of the Users screen (PRD 4.1). `invited_by` and `user_id` have no
+ * One row of the Team access card on Settings (PRD 4.1). `invited_by` and `user_id` have no
  * field here and are never selected: the screen shows neither, and a
  * `select('*')` would carry the auth-side identifier into the render layer
  * for no reason — same discipline as `readAuditPage`'s explicit column list.
@@ -260,6 +375,8 @@ export interface AdminUser {
   displayLabel: string;
   role: Role;
   isActive: boolean;
+  /** When the profile row was created -- the Team access card's Added column. */
+  createdAt: string;
   lastSignInAt: string | null;
 }
 
@@ -280,7 +397,7 @@ export async function readUsers(): Promise<AdminUser[]> {
   const supabase = await createAdminReadClient();
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, email, full_name, display_label, role, is_active, last_sign_in_at')
+    .select('id, email, full_name, display_label, role, is_active, created_at, last_sign_in_at')
     .order('full_name', { ascending: true })
     .order('email', { ascending: true });
   if (error) throw new Error(`admin read failed (profiles): ${error.message}`);
@@ -292,6 +409,7 @@ export async function readUsers(): Promise<AdminUser[]> {
     displayLabel: row.display_label,
     role: row.role,
     isActive: row.is_active,
+    createdAt: row.created_at,
     lastSignInAt: row.last_sign_in_at,
   }));
 }

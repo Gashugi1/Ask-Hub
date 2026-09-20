@@ -85,7 +85,7 @@ export default function ExportButton({ rows }: { rows: readonly PublicResource[]
 }
 
 /**
- * The prototype's two directory actions (reference lines 183-184): an
+ * The prototype's two directory actions: an
  * outlined secondary beside a solid primary, both 13.5px/700 on a 9px radius.
  * Its own pair is "Submit a resource" and "Download this list (Excel)"; the
  * submit half belongs to the write endpoints, which this read-only surface
