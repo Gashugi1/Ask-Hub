@@ -2,7 +2,7 @@
 
 Public curated directory for the AI Hub for Sustainable Development, co-led by MIMIT and UNDP. Open browsing with no account. Authenticated admin portal at `/admin` for curation, review, subscribers, partnerships, site content and reach reporting.
 
-Full specification: `docs/askhub-prd.md`. Read the relevant section before implementing any feature. This file holds only the rules that must never be violated.
+Product requirements: `docs/AskHub-PRD.md` (external, for circulation); the internal implementation spec it supersedes is archived at `docs/archive/askhub-prd-v1-internal.md`, and code comments citing "PRD §n" refer to that archived spec's section numbers. Read the relevant section before implementing any feature. This file holds only the rules that must never be violated.
 
 ## Stack
 
